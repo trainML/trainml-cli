@@ -1,0 +1,13 @@
+build/
+dist/
+*.egg-info/
+*.pyc
+vmlinu*
+config-*
+*.img
+.vagrant
+*.xz
+*.tar
+*.zip
+*.gz
+*.bz2
