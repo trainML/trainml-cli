@@ -1,38 +1,34 @@
-import time
-import sys
+import json
+from datetime import datetime
 
 
 class Datasets(object):
     def __init__(self, trainml):
         self.trainml = trainml
 
-    def get(self, id):
-        resp = self.trainml._query(f"/dataset/pub/{id}", "GET")
+    async def get(self, id):
+        resp = await self.trainml._query(f"/dataset/pub/{id}", "GET")
         return Dataset(self.trainml, **resp)
 
-    def create(self, name, source_type, source_uri, **kwargs):
+    async def create(self, name, source_type, source_uri, **kwargs):
         data = dict(
             name=name,
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
         )
-        resp = self.trainml._query("/dataset/pub", "POST", None, data)
+        print(f"Creating Dataset {name}")
+        resp = await self.trainml._query("/dataset/pub", "POST", None, data)
         dataset = Dataset(self.trainml, **resp)
-        print(f"Created Dataset {dataset.id}, status {dataset.status}")
+        print(f"Created Dataset {name} with id {dataset.id}")
+
         if kwargs.get("wait"):
-            sys.stdout.write("Downloading: ")
-            sys.stdout.flush()
-            while dataset.status != "ready":
-                time.sleep(5)
-                dataset = self.get(dataset.id)
-                sys.stdout.write(".")
-                sys.stdout.flush()
-            print("\nDownload Complete")
+            await dataset.attach()
+            dataset = await self.get(dataset.id)
         return dataset
 
-    def remove(self, id):
-        self.trainml._query(f"/dataset/pub/{id}", "DELETE")
+    async def remove(self, id):
+        await self.trainml._query(f"/dataset/pub/{id}", "DELETE")
 
 
 class Dataset:
@@ -50,5 +46,16 @@ class Dataset:
     def status(self) -> str:
         return self._status
 
-    def destroy(self):
-        self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")
+    async def destroy(self):
+        await self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")
+
+    async def attach(self):
+        def msg_handler(msg):
+            data = json.loads(msg.data)
+            if data.get("type") == "subscription":
+                timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+                print(
+                    f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
+                )
+
+        await self.trainml._ws_subscribe("dataset", self.id, msg_handler)

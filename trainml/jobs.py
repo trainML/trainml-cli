@@ -1,8 +1,16 @@
+import json
+from datetime import datetime
+
+
 class Jobs(object):
     def __init__(self, trainml):
         self.trainml = trainml
 
-    def create(
+    async def get(self, id):
+        resp = await self.trainml._query(f"/job/{id}", "GET")
+        return Job(self.trainml, **resp)
+
+    async def create(
         self,
         name,
         type,
@@ -15,6 +23,7 @@ class Jobs(object):
         data=dict(datasets=[]),
         model=None,
         vpn=dict(net_prefix_type_id=1),
+        **kwargs,
     ):
         payload = dict(
             name=name,
@@ -29,8 +38,11 @@ class Jobs(object):
             model=model,
             vpn=vpn,
         )
-        resp = self.trainml._query("/job", "POST", None, payload)
+        resp = await self.trainml._query("/job", "POST", None, payload)
         job = Job(self.trainml, **resp)
+        if kwargs.get("wait"):
+            await job.attach()
+            job = await self.get(job.id)
         return job
 
     def remove(self, id):
@@ -43,6 +55,7 @@ class Job:
         self._job = kwargs
         self._id = self._job.get("id", self._job.get("job_uuid"))
         self._status = self._job.get("status")
+        self._workers = self._job.get("workers")
 
     @property
     def id(self) -> str:
@@ -52,11 +65,36 @@ class Job:
     def status(self) -> str:
         return self._status
 
-    def start(self):
-        self.trainml._query(f"/job/{self._id}", "PATCH", None, dict(command="start"))
+    async def start(self):
+        await self.trainml._query(
+            f"/job/{self._id}", "PATCH", None, dict(command="start")
+        )
 
-    def stop(self):
-        self.trainml._query(f"/job/{self._id}", "PATCH", None, dict(command="stop"))
+    async def stop(self):
+        await self.trainml._query(
+            f"/job/{self._id}", "PATCH", None, dict(command="stop")
+        )
 
-    def destroy(self):
-        self.trainml._query(f"/job/{self._id}", "DELETE")
+    async def destroy(self):
+        await self.trainml._query(f"/job/{self._id}", "DELETE")
+
+    async def attach(self):
+        worker_numbers = {
+            w.get("job_worker_uuid"): ind + 1 for ind, w in enumerate(self._workers)
+        }
+        print(worker_numbers)
+
+        def msg_handler(msg):
+            data = json.loads(msg.data)
+            if data.get("type") == "subscription":
+                timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+                if len(self._workers) > 1:
+                    print(
+                        f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: Worker {worker_numbers.get(data.get('stream'))} - {data.get('msg').rstrip()}"
+                    )
+                else:
+                    print(
+                        f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
+                    )
+
+        await self.trainml._ws_subscribe("job", self.id, msg_handler)
