@@ -40,7 +40,7 @@ n_hex = (
 g_hex = "2"
 info_bits = bytearray("Caldera Derived Key", "utf-8")
 
-CONFIG_DIR = os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+CONFIG_DIR = os.path.expanduser(os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml")
 
 
 def hash_sha256(buf):
@@ -219,7 +219,7 @@ class AWSSRP(object):
         timestamp = re.sub(
             r" 0(\d) ",
             r" \1 ",
-            datetime.datetime.utcnow().strftime("%a %b %d %H:%M:%S UTC %Y"),
+            datetime.utcnow().strftime("%a %b %d %H:%M:%S UTC %Y"),
         )
         hkdf = self.get_password_authentication_key(
             user_id_for_srp, self.password, hex_to_long(srp_b_hex), salt_hex
@@ -325,7 +325,7 @@ class Auth(object):
         self.client_id = (
             os.environ.get("TRAINML_CLIENT_ID")
             or env.get("client_id")
-            or "536hafr05s8qj3ihgf707on4aq"
+            or "32mc1obk9nq97iv015fnmc5eq5"
         )
         self.pool_id = (
             os.environ.get("TRAINML_POOL_ID")
@@ -339,9 +339,13 @@ class Auth(object):
             keys = json.loads(key_str)
         except:
             keys = dict()
+
         self.username = os.environ.get("TRAINML_USER") or keys.get("user")
         self.password = os.environ.get("TRAINML_KEY") or keys.get("key")
         self.client = boto3.client("cognito-idp", region_name=self.region)
+        self.id_token = None
+        self.access_token = None
+        self.refresh_token = None
 
     def get_keys(self):
         pool_jwk = requests.get(
@@ -396,7 +400,7 @@ class Auth(object):
         self.id_token = id_token
         self.access_token = access_token
         self.refresh_token = refresh_token
-        self.expires = id_verify.get("exp")
+        self.expires = datetime.fromtimestamp(id_verify.get("exp"))
 
     def get_tokens(self):
         if not self.id_token:

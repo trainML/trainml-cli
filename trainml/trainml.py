@@ -3,14 +3,14 @@ import time
 import json
 import os
 
-from auth import Auth
-from datasets import Datasets
-from jobs import Jobs
+from .auth import Auth
+from .datasets import Datasets
+from .jobs import Jobs
 
-CONFIG_DIR = os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+CONFIG_DIR = os.path.expanduser(os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml")
 
 
-class Trainml(object):
+class TrainML(object):
     def __init__(self):
         try:
             with open(f"{CONFIG_DIR}/environment.json", "r") as file:
@@ -29,12 +29,15 @@ class Trainml(object):
             os.environ.get("TRAINML_WS_URL") or env.get("ws_url") or "api-ws.trainml.ai"
         )
 
-    def _query(self, path, method, params, data):
+    def _query(self, path, method, params=None, data=None, headers=None):
         tokens = self.auth.get_tokens()
-        headers = {"Authorization": tokens.get("id_token")}
+        headers = (
+            {**headers, **{"Authorization": tokens.get("id_token")}}
+            if headers
+            else {"Authorization": tokens.get("id_token")}
+        )
         url = f"https://{self.api_url}{path}"
-        req = Request("GET", url, data=data, headers=headers)
+        req = Request(method, url, data=json.dumps(data), headers=headers)
         prepped = self.session.prepare_request(req)
         resp = self.session.send(prepped)
-        print(resp.status_code)
         return resp.json()
