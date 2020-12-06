@@ -7,6 +7,7 @@ import aiohttp
 from .auth import Auth
 from .datasets import Datasets
 from .jobs import Jobs
+from .gpu_types import GpuTypes
 
 CONFIG_DIR = os.path.expanduser(os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml")
 
@@ -22,6 +23,7 @@ class TrainML(object):
         self.auth = Auth()
         self.datasets = Datasets(self)
         self.jobs = Jobs(self)
+        self.gpu_types = GpuTypes(self)
         self.api_url = (
             os.environ.get("TRAINML_API_URL") or env.get("api_url") or "api.trainml.ai"
         )

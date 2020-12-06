@@ -9,4 +9,5 @@ Provides programmatic access to trainML platform.
 ```
 mkdir -p ~/.trainml
 mv credentials.json ~/.trainml/credentials.json
+chmod 600 ~/.trainml/credentials.json
 ```

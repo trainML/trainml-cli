@@ -14,7 +14,7 @@ class Jobs(object):
         self,
         name,
         type,
-        gpu_type_id,
+        gpu_type_name,
         gpu_count,
         disk_size,
         worker_count=1,
@@ -25,11 +25,17 @@ class Jobs(object):
         vpn=dict(net_prefix_type_id=1),
         **kwargs,
     ):
+        gpu_types = await self.trainml.gpu_types.get()
+        gpu_type = next(
+            (gpu_type for gpu_type in gpu_types if gpu_type.name == gpu_type_name), None
+        )
+        if not gpu_type:
+            raise Exception("GPU Type Not Found")
         payload = dict(
             name=name,
             type=type,
             resources=dict(
-                gpu_type_id=gpu_type_id, gpu_count=gpu_count, disk_size=disk_size
+                gpu_type_id=gpu_type.id, gpu_count=gpu_count, disk_size=disk_size
             ),
             worker_count=worker_count,
             worker_commands=worker_commands,
@@ -38,8 +44,10 @@ class Jobs(object):
             model=model,
             vpn=vpn,
         )
+        print(f"Creating Job {name}")
         resp = await self.trainml._query("/job", "POST", None, payload)
         job = Job(self.trainml, **resp)
+        print(f"Created Job {name} with id {job.id}")
         if kwargs.get("wait"):
             await job.attach()
             job = await self.get(job.id)
@@ -64,6 +72,9 @@ class Job:
     @property
     def status(self) -> str:
         return self._status
+
+    def __repr__(self):
+        return json.dumps({k: v for k, v in self._job.items()})
 
     async def start(self):
         await self.trainml._query(

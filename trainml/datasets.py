@@ -46,6 +46,9 @@ class Dataset:
     def status(self) -> str:
         return self._status
 
+    def __repr__(self):
+        return json.dumps({k: v for k, v in self._dataset.items()})
+
     async def destroy(self):
         await self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")
 
