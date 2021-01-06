@@ -86,6 +86,9 @@ class Job:
             f"/job/{self._id}", "PATCH", None, dict(command="stop")
         )
 
+    async def get_connection_utility_url(self):
+        await self.trainml._query(f"/job/{self._id}/download", "GET")
+
     async def destroy(self):
         await self.trainml._query(f"/job/{self._id}", "DELETE")
 
