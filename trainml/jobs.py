@@ -87,7 +87,8 @@ class Job:
         )
 
     async def get_connection_utility_url(self):
-        await self.trainml._query(f"/job/{self._id}/download", "GET")
+        resp = await self.trainml._query(f"/job/{self._id}/download", "GET")
+        return resp
 
     async def destroy(self):
         await self.trainml._query(f"/job/{self._id}", "DELETE")

@@ -50,7 +50,8 @@ class Dataset:
         return json.dumps({k: v for k, v in self._dataset.items()})
 
     async def get_connection_utility_url(self):
-        await self.trainml._query(f"/dataset/pub/{self._id}/download", "GET")
+        resp = await self.trainml._query(f"/dataset/pub/{self._id}/download", "GET")
+        return resp
 
     async def destroy(self):
         await self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")
