@@ -27,7 +27,7 @@ job = asyncio.run(
             "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=10 --batch_size=1024",
         ],
         data=dict(
-            datasets=[dict(dataset_uuid=dataset.id, type="existing")],
+            datasets=[dict(id=dataset.id, type="existing")],
             output_uri="s3://trainml-examples/output/resnet_cifar10",
             output_type="aws",
         ),

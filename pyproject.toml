@@ -1,0 +1,14 @@
+[tool.pytest.ini_options]
+python_files = "test_*"
+python_classes = "*Tests"
+python_functions = "test_*"
+testpaths = [
+    "tests",
+]
+markers = [
+    "create: Tests that create resources on the trainml platform",
+    "gpu_types: Gpu Type tests",
+    "environments: Environment tests",
+    "datasets: Datasets tests",
+    "jobs: Jobs tests"
+]

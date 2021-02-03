@@ -488,7 +488,7 @@ class AWSSRP(object):
 
 
 class Auth(object):
-    def __init__(self):
+    def __init__(self, **kwargs):
 
         try:
             with open(f"{CONFIG_DIR}/environment.json", "r") as file:
@@ -498,15 +498,20 @@ class Auth(object):
             env = dict()
 
         self.region = (
-            os.environ.get("TRAINML_REGION") or env.get("region") or "us-east-2"
+            kwargs.get("region")
+            or os.environ.get("TRAINML_REGION")
+            or env.get("region")
+            or "us-east-2"
         )
         self.client_id = (
-            os.environ.get("TRAINML_CLIENT_ID")
+            kwargs.get("client_id")
+            or os.environ.get("TRAINML_CLIENT_ID")
             or env.get("client_id")
             or "32mc1obk9nq97iv015fnmc5eq5"
         )
         self.pool_id = (
-            os.environ.get("TRAINML_POOL_ID")
+            kwargs.get("pool_id")
+            or os.environ.get("TRAINML_POOL_ID")
             or env.get("pool_id")
             or "us-east-2_68kbvTL5p"
         )
@@ -518,8 +523,12 @@ class Auth(object):
         except:
             keys = dict()
 
-        self.username = os.environ.get("TRAINML_USER") or keys.get("user")
-        self.password = os.environ.get("TRAINML_KEY") or keys.get("key")
+        self.username = (
+            kwargs.get("user") or os.environ.get("TRAINML_USER") or keys.get("user")
+        )
+        self.password = (
+            kwargs.get("key") or os.environ.get("TRAINML_KEY") or keys.get("key")
+        )
         self.client = boto3.client("cognito-idp", region_name=self.region)
         self.id_token = None
         self.access_token = None

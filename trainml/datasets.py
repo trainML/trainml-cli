@@ -1,5 +1,10 @@
 import json
+import logging
+import math
+import asyncio
 from datetime import datetime
+
+from .exceptions import DatasetError, ApiError
 
 
 class Datasets(object):
@@ -10,17 +15,35 @@ class Datasets(object):
         resp = await self.trainml._query(f"/dataset/pub/{id}", "GET")
         return Dataset(self.trainml, **resp)
 
+    async def list(self):
+        resp = await self.trainml._query(f"/dataset/pub", "GET")
+        datasets = [Dataset(self.trainml, **dataset) for dataset in resp]
+        return datasets
+
+    async def list_public(self):
+        resp = await self.trainml._query(f"/dataset/public", "GET")
+        datasets = [Dataset(self.trainml, **dataset) for dataset in resp]
+        return datasets
+
     async def create(self, name, source_type, source_uri, **kwargs):
+        if kwargs.get("provider") and kwargs.get("provider") != "trainml":
+            if not kwargs.get("disk_size"):
+                raise AttributeError(
+                    "'disk_size' attribute required for non-trainML providers"
+                )
         data = dict(
             name=name,
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
+            provider=kwargs.get("provider"),
+            disk_size=kwargs.get("disk_size"),
         )
-        print(f"Creating Dataset {name}")
-        resp = await self.trainml._query("/dataset/pub", "POST", None, data)
+        payload = {k: v for k, v in data.items() if v}
+        logging.info(f"Creating Dataset {name}")
+        resp = await self.trainml._query("/dataset/pub", "POST", None, payload)
         dataset = Dataset(self.trainml, **resp)
-        print(f"Created Dataset {name} with id {dataset.id}")
+        logging.info(f"Created Dataset {name} with id {dataset.id}")
 
         if kwargs.get("wait"):
             await dataset.attach()
@@ -37,6 +60,7 @@ class Dataset:
         self._dataset = kwargs
         self._id = self._dataset.get("id", self._dataset.get("dataset_uuid"))
         self._status = self._dataset.get("status")
+        self._name = self._dataset.get("name")
 
     @property
     def id(self) -> str:
@@ -46,14 +70,24 @@ class Dataset:
     def status(self) -> str:
         return self._status
 
-    def __repr__(self):
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def __str__(self):
         return json.dumps({k: v for k, v in self._dataset.items()})
+
+    def __repr__(self):
+        return f"Dataset( trainml , {self._dataset.__repr__()})"
+
+    def __bool__(self):
+        return bool(self._id)
 
     async def get_connection_utility_url(self):
         resp = await self.trainml._query(f"/dataset/pub/{self._id}/download", "GET")
         return resp
 
-    async def destroy(self):
+    async def remove(self):
         await self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")
 
     async def attach(self):
@@ -66,3 +100,37 @@ class Dataset:
                 )
 
         await self.trainml._ws_subscribe("dataset", self.id, msg_handler)
+
+    async def refresh(self):
+        resp = await self.trainml._query(f"/dataset/pub/{self.id}", "GET")
+        self.__init__(self.trainml, **resp)
+        return self
+
+    async def waitFor(self, status, timeout=300):
+        valid_statuses = ["ready", "archived"]
+        if not status in valid_statuses:
+            raise ValueError(
+                f"Invalid waitFor status {status}.  Valid statuses are: {valid_statuses}"
+            )
+        if self.status == status:
+            return
+        POLL_INTERVAL = 5
+        retry_count = math.ceil(timeout / POLL_INTERVAL)
+        count = 0
+        while count < retry_count:
+            await asyncio.sleep(POLL_INTERVAL)
+            try:
+                await self.refresh()
+            except ApiError as e:
+                if status == "archived" and e.status == 404:
+                    return
+                raise e
+            if self.status == status:
+                return self
+            elif self.status == "failed":
+                raise DatasetError(self.status, self)
+            else:
+                count += 1
+                logging.debug(f"self: {self}, retry count {count}")
+
+        raise TimeoutError(f"Timeout waiting for {status}")

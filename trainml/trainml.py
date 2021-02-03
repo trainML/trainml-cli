@@ -8,27 +8,42 @@ from .auth import Auth
 from .datasets import Datasets
 from .jobs import Jobs
 from .gpu_types import GpuTypes
+from .environments import Environments
+from .exceptions import ApiError
 
 CONFIG_DIR = os.path.expanduser(os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml")
 
 
 class TrainML(object):
-    def __init__(self):
+    def __init__(self, **kwargs):
         try:
             with open(f"{CONFIG_DIR}/environment.json", "r") as file:
                 env_str = file.read().replace("\n", "")
             env = json.loads(env_str)
         except:
             env = dict()
-        self.auth = Auth()
+        self.auth = Auth(
+            user=kwargs.get("user"),
+            key=kwargs.get("key"),
+            region=kwargs.get("region"),
+            client_id=kwargs.get("client_id"),
+            pool_id=kwargs.get("pool_id"),
+        )
         self.datasets = Datasets(self)
         self.jobs = Jobs(self)
         self.gpu_types = GpuTypes(self)
+        self.environments = Environments(self)
         self.api_url = (
-            os.environ.get("TRAINML_API_URL") or env.get("api_url") or "api.trainml.ai"
+            kwargs.get("api_url")
+            or os.environ.get("TRAINML_API_URL")
+            or env.get("api_url")
+            or "api.trainml.ai"
         )
         self.ws_url = (
-            os.environ.get("TRAINML_WS_URL") or env.get("ws_url") or "api-ws.trainml.ai"
+            kwargs.get("ws_url")
+            or os.environ.get("TRAINML_WS_URL")
+            or env.get("ws_url")
+            or "api-ws.trainml.ai"
         )
 
     async def _query(self, path, method, params=None, data=None, headers=None):
@@ -52,6 +67,14 @@ class TrainML(object):
             async with session.request(
                 method, url, data=json.dumps(data), headers=headers
             ) as resp:
+                if (resp.status // 100) in [4, 5]:
+                    what = await resp.read()
+                    content_type = resp.headers.get("content-type", "")
+                    resp.close()
+                    if content_type == "application/json":
+                        raise ApiError(resp.status, json.loads(what.decode("utf8")))
+                    else:
+                        raise ApiError(resp.status, {"message": what.decode("utf8")})
                 results = await resp.json()
                 return results
 

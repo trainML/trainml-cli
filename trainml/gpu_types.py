@@ -20,6 +20,7 @@ class GpuType:
         self._name = self._gpu_type.get("name")
         self._available = self._gpu_type.get("available")
         self._credits_per_hour = self._gpu_type.get("credits_per_hour")
+        self._provider = self._gpu_type.get("provider")
 
     @property
     def id(self) -> str:
@@ -30,6 +31,10 @@ class GpuType:
         return self._name
 
     @property
+    def provider(self) -> str:
+        return self._provider
+
+    @property
     def available(self) -> int:
         return self._available
 
@@ -37,7 +42,7 @@ class GpuType:
     def credits_per_hour(self) -> float:
         return self._credits_per_hour
 
-    def __repr__(self):
+    def __str__(self):
         return json.dumps(
             {
                 k: v
@@ -45,6 +50,9 @@ class GpuType:
                 if k not in ["createdAt", "updatedAt"]
             }
         )
+
+    def __repr__(self):
+        return f"GpuType( trainml , {self._gpu_type.__repr__()})"
 
     async def refresh(self):
         resp = await self.trainml._query(f"/gpu/pub/types/{self.id}", "GET")

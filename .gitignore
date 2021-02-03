@@ -11,3 +11,7 @@ config-*
 *.zip
 *.gz
 *.bz2
+.prettierrc
+.coverage
+.pytest*
+**/__pycache__/
