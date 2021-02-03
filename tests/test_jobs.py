@@ -19,7 +19,7 @@ async def notebook_job(trainml):
         model=dict(git_uri="git@github.com:trainML/test-private.git"),
     )
     job = await job.waitFor("running")
-    print(job)
+    logging.info(job)
     yield job
     await job.stop()
     await job.waitFor("stopped")
@@ -35,6 +35,7 @@ async def job(trainml):
         gpu_count=1,
         disk_size=1,
     )
+    logging.info(job)
     yield job
 
 
