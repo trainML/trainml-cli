@@ -84,7 +84,9 @@ class Dataset:
         return bool(self._id)
 
     async def get_connection_utility_url(self):
-        resp = await self.trainml._query(f"/dataset/pub/{self._id}/download", "GET")
+        resp = await self.trainml._query(
+            f"/dataset/pub/{self._id}/download", "GET"
+        )
         return resp
 
     async def remove(self):
@@ -94,7 +96,9 @@ class Dataset:
         def msg_handler(msg):
             data = json.loads(msg.data)
             if data.get("type") == "subscription":
-                timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+                timestamp = datetime.fromtimestamp(
+                    int(data.get("time")) / 1000
+                )
                 print(
                     f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
                 )

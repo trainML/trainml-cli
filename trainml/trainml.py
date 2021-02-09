@@ -1,4 +1,3 @@
-import time
 import json
 import os
 import asyncio
@@ -11,7 +10,9 @@ from .gpu_types import GpuTypes
 from .environments import Environments
 from .exceptions import ApiError
 
-CONFIG_DIR = os.path.expanduser(os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml")
+CONFIG_DIR = os.path.expanduser(
+    os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+)
 
 
 class TrainML(object):
@@ -20,7 +21,7 @@ class TrainML(object):
             with open(f"{CONFIG_DIR}/environment.json", "r") as file:
                 env_str = file.read().replace("\n", "")
             env = json.loads(env_str)
-        except:
+        except OSError:
             env = dict()
         self.auth = Auth(
             user=kwargs.get("user"),
@@ -72,9 +73,13 @@ class TrainML(object):
                     content_type = resp.headers.get("content-type", "")
                     resp.close()
                     if content_type == "application/json":
-                        raise ApiError(resp.status, json.loads(what.decode("utf8")))
+                        raise ApiError(
+                            resp.status, json.loads(what.decode("utf8"))
+                        )
                     else:
-                        raise ApiError(resp.status, {"message": what.decode("utf8")})
+                        raise ApiError(
+                            resp.status, {"message": what.decode("utf8")}
+                        )
                 results = await resp.json()
                 return results
 
@@ -101,6 +106,9 @@ class TrainML(object):
                     )
                 )
                 async for msg in ws:
-                    if msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                    if msg.type in (
+                        aiohttp.WSMsgType.CLOSED,
+                        aiohttp.WSMsgType.ERROR,
+                    ):
                         break
                     msg_handler(msg)

@@ -37,7 +37,7 @@ async def test_gpu_type_properties(gpu_type):
 async def test_gpu_type_refresh(gpu_type):
     gpu_type_id = gpu_type.id
     refreshed_gpu_type = await gpu_type.refresh()
-    assert gpu_type.id == refreshed_gpu_type.id
+    assert gpu_type_id == refreshed_gpu_type.id
 
 
 @mark.asyncio

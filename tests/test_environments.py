@@ -45,6 +45,8 @@ def test_environment_str(environment):
 @mark.asyncio
 def test_environment_repr(environment):
     string = repr(environment)
-    regex = r"^Environment\( trainml , {.*'id': '" + environment.id + r"'.*}\)$"
+    regex = (
+        r"^Environment\( trainml , {.*'id': '" + environment.id + r"'.*}\)$"
+    )
     assert isinstance(string, str)
     assert re.match(regex, string)

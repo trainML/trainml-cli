@@ -218,7 +218,9 @@ n_hex = (
 g_hex = "2"
 info_bits = bytearray("Caldera Derived Key", "utf-8")
 
-CONFIG_DIR = os.path.expanduser(os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml")
+CONFIG_DIR = os.path.expanduser(
+    os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+)
 
 
 def hash_sha256(buf):
@@ -313,7 +315,9 @@ class AWSSRP(object):
         self.client_id = client_id
         self.client_secret = client_secret
         self.client = (
-            client if client else boto3.client("cognito-idp", region_name=pool_region)
+            client
+            if client
+            else boto3.client("cognito-idp", region_name=pool_region)
         )
         self.big_n = hex_to_long(n_hex)
         self.g = hex_to_long(g_hex)
@@ -342,7 +346,9 @@ class AWSSRP(object):
             raise ValueError("Safety check for A failed")
         return big_a
 
-    def get_password_authentication_key(self, username, password, server_b_value, salt):
+    def get_password_authentication_key(
+        self, username, password, server_b_value, salt
+    ):
         """
         Calculates the final hkdf based on computed S value, and computed U value and the key
         :param {String} username Username.
@@ -354,13 +360,19 @@ class AWSSRP(object):
         u_value = calculate_u(self.large_a_value, server_b_value)
         if u_value == 0:
             raise ValueError("U cannot be zero.")
-        username_password = "%s%s:%s" % (self.pool_id.split("_")[1], username, password)
+        username_password = "%s%s:%s" % (
+            self.pool_id.split("_")[1],
+            username,
+            password,
+        )
         username_password_hash = hash_sha256(username_password.encode("utf-8"))
 
         x_value = hex_to_long(hex_hash(pad_hex(salt) + username_password_hash))
         g_mod_pow_xn = pow(self.g, x_value, self.big_n)
         int_value2 = server_b_value - self.k * g_mod_pow_xn
-        s_value = pow(int_value2, self.small_a_value + u_value * x_value, self.big_n)
+        s_value = pow(
+            int_value2, self.small_a_value + u_value * x_value, self.big_n
+        )
         hkdf = compute_hkdf(
             bytearray.fromhex(pad_hex(s_value)),
             bytearray.fromhex(pad_hex(long_to_hex(u_value))),
@@ -385,7 +397,9 @@ class AWSSRP(object):
     @staticmethod
     def get_secret_hash(username, client_id, client_secret):
         message = bytearray(username + client_id, "utf-8")
-        hmac_obj = hmac.new(bytearray(client_secret, "utf-8"), message, hashlib.sha256)
+        hmac_obj = hmac.new(
+            bytearray(client_secret, "utf-8"), message, hashlib.sha256
+        )
         return base64.standard_b64encode(hmac_obj.digest()).decode("utf-8")
 
     def process_challenge(self, challenge_parameters):
@@ -436,14 +450,19 @@ class AWSSRP(object):
             ClientId=self.client_id,
         )
         if response["ChallengeName"] == self.PASSWORD_VERIFIER_CHALLENGE:
-            challenge_response = self.process_challenge(response["ChallengeParameters"])
+            challenge_response = self.process_challenge(
+                response["ChallengeParameters"]
+            )
             tokens = boto_client.respond_to_auth_challenge(
                 ClientId=self.client_id,
                 ChallengeName=self.PASSWORD_VERIFIER_CHALLENGE,
                 ChallengeResponses=challenge_response,
             )
 
-            if tokens.get("ChallengeName") == self.NEW_PASSWORD_REQUIRED_CHALLENGE:
+            if (
+                tokens.get("ChallengeName")
+                == self.NEW_PASSWORD_REQUIRED_CHALLENGE
+            ):
                 raise Exception("Change password before authenticating")
 
             return tokens
@@ -461,7 +480,9 @@ class AWSSRP(object):
             ClientId=self.client_id,
         )
         if response["ChallengeName"] == self.PASSWORD_VERIFIER_CHALLENGE:
-            challenge_response = self.process_challenge(response["ChallengeParameters"])
+            challenge_response = self.process_challenge(
+                response["ChallengeParameters"]
+            )
             tokens = boto_client.respond_to_auth_challenge(
                 ClientId=self.client_id,
                 ChallengeName=self.PASSWORD_VERIFIER_CHALLENGE,
@@ -524,10 +545,14 @@ class Auth(object):
             keys = dict()
 
         self.username = (
-            kwargs.get("user") or os.environ.get("TRAINML_USER") or keys.get("user")
+            kwargs.get("user")
+            or os.environ.get("TRAINML_USER")
+            or keys.get("user")
         )
         self.password = (
-            kwargs.get("key") or os.environ.get("TRAINML_KEY") or keys.get("key")
+            kwargs.get("key")
+            or os.environ.get("TRAINML_KEY")
+            or keys.get("key")
         )
         self.client = boto3.client("cognito-idp", region_name=self.region)
         self.id_token = None

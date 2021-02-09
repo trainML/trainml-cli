@@ -37,7 +37,9 @@ class Jobs(object):
     ):
         gpu_type_task = asyncio.create_task(self.trainml.gpu_types.get())
         my_datasets_task = asyncio.create_task(self.trainml.datasets.list())
-        public_datasets_task = asyncio.create_task(self.trainml.datasets.list_public())
+        public_datasets_task = asyncio.create_task(
+            self.trainml.datasets.list_public()
+        )
 
         gpu_types, my_datasets, public_datasets = await asyncio.gather(
             gpu_type_task, my_datasets_task, public_datasets_task
@@ -54,32 +56,46 @@ class Jobs(object):
         for dataset in data.get("datasets"):
             if "id" in dataset.keys():
                 datasets.append(
-                    dict(dataset_uuid=dataset.get("id"), type=dataset.get("type"))
+                    dict(
+                        dataset_uuid=dataset.get("id"),
+                        type=dataset.get("type"),
+                    )
                 )
             elif "name" in dataset.keys():
                 if dataset.get("type") == "existing":
                     selected_dataset = next(
-                        (d for d in my_datasets if d.name == dataset.get("name")),
+                        (
+                            d
+                            for d in my_datasets
+                            if d.name == dataset.get("name")
+                        ),
                         None,
                     )
                     if not selected_dataset:
                         raise ValueError(f"Dataset {dataset} Not Found")
                     datasets.append(
-                        dict(dataset_uuid=selected_dataset.id, type=dataset.get("type"))
+                        dict(
+                            dataset_uuid=selected_dataset.id,
+                            type=dataset.get("type"),
+                        )
                     )
                 elif dataset.get("type") == "public":
                     selected_dataset = next(
-                        (d for d in public_datasets if d.name == dataset.get("name")),
+                        (
+                            d
+                            for d in public_datasets
+                            if d.name == dataset.get("name")
+                        ),
                         None,
                     )
                     if not selected_dataset:
                         raise ValueError(f"Dataset {dataset} Not Found")
-                        datasets.append(
-                            dict(
-                                dataset_uuid=selected_dataset.id,
-                                type=dataset.get("type"),
-                            )
+                    datasets.append(
+                        dict(
+                            dataset_uuid=selected_dataset.id,
+                            type=dataset.get("type"),
                         )
+                    )
                 else:
                     raise ValueError(
                         "Invalid dataset specification, 'type' must be in ['existing','public']"
@@ -106,7 +122,9 @@ class Jobs(object):
             source_job_uuid=kwargs.get("source_job_uuid"),
         )
         payload = {
-            k: v for k, v in config.items() if v or k in ["worker_commands", "model"]
+            k: v
+            for k, v in config.items()
+            if v or k in ["worker_commands", "model"]
         }
         logging.info(f"Creating Job {name}")
         logging.debug(f"Job payload: {payload}")
@@ -181,13 +199,16 @@ class Job:
 
     async def attach(self):
         worker_numbers = {
-            w.get("job_worker_uuid"): ind + 1 for ind, w in enumerate(self._workers)
+            w.get("job_worker_uuid"): ind + 1
+            for ind, w in enumerate(self._workers)
         }
 
         def msg_handler(msg):
             data = json.loads(msg.data)
             if data.get("type") == "subscription":
-                timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+                timestamp = datetime.fromtimestamp(
+                    int(data.get("time")) / 1000
+                )
                 if len(self._workers) > 1:
                     print(
                         f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: Worker {worker_numbers.get(data.get('stream'))} - {data.get('msg').rstrip()}"
@@ -215,7 +236,8 @@ class Job:
             or self._job.get("resources").get("disk_size"),
             worker_count=kwargs.get("worker_count") or len(self._workers),
             worker_commands=kwargs.get("worker_commands"),
-            environment=kwargs.get("environment") or self._job.get("environment"),
+            environment=kwargs.get("environment")
+            or self._job.get("environment"),
             data=kwargs.get("data") or self._job.get("data"),
             vpn=kwargs.get("vpn") or self._job.get("vpn"),
             source_job_uuid=self.id,

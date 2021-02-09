@@ -14,7 +14,9 @@ async def notebook_job(trainml):
         gpu_count=1,
         disk_size=1,
         data=dict(
-            datasets=[dict(id="ba4f4253-eeaa-4a94-b40d-6a3dfa943ab7", type="public")]
+            datasets=[
+                dict(id="ba4f4253-eeaa-4a94-b40d-6a3dfa943ab7", type="public")
+            ]
         ),
         model=dict(git_uri="git@github.com:trainML/test-private.git"),
     )
@@ -64,7 +66,9 @@ class GetJobTests:
 
     def test_job_repr(self, notebook_job):
         string = repr(notebook_job)
-        regex = r"^Job\( trainml , {.*'job_uuid': '" + notebook_job.id + r"'.*}\)$"
+        regex = (
+            r"^Job\( trainml , {.*'job_uuid': '" + notebook_job.id + r"'.*}\)$"
+        )
         assert isinstance(string, str)
         assert re.match(regex, string)
 

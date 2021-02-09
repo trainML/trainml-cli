@@ -35,3 +35,4 @@ class DatasetError(Exception):
 
     def __str__(self):
         return "JobError({self.status}, {self.message!r})".format(self=self)
+        
