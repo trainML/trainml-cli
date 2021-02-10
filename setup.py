@@ -1,14 +1,23 @@
 import pathlib
+import re
 from setuptools import setup, find_packages
 
 HERE = pathlib.Path(__file__).parent
+
+with (HERE / "trainml" / "__init__.py").open() as fp:
+    try:
+        version = re.findall(r'^__version__ = "([^"]+)"\r?$', fp.read(), re.M)[
+            0
+        ]
+    except IndexError:
+        raise RuntimeError("Unable to determine version.")
 
 README = (HERE / "README.md").read_text()
 
 
 setup(
     name="trainml",
-    version="0.1.1",
+    version=version,
     description="trainML client SDK and command line utilities",
     long_description=README,
     long_description_content_type="text/markdown",
