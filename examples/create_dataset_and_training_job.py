@@ -19,7 +19,7 @@ job = asyncio.run(
     trainml.jobs.create(
         name="Test CLI Training Job",
         type="headless",
-        gpu_type="RTX 2070 Super",
+        gpu_type="RTX 2080 Ti",
         gpu_count=1,
         disk_size=10,
         worker_count=1,

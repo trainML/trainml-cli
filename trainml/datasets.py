@@ -60,6 +60,7 @@ class Dataset:
         self._dataset = kwargs
         self._id = self._dataset.get("id", self._dataset.get("dataset_uuid"))
         self._status = self._dataset.get("status")
+        self._provider = self._dataset.get("provider")
         self._name = self._dataset.get("name")
 
     @property
@@ -69,6 +70,10 @@ class Dataset:
     @property
     def status(self) -> str:
         return self._status
+
+    @property
+    def provider(self) -> str:
+        return self._provider
 
     @property
     def name(self) -> str:

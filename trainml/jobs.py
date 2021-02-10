@@ -7,6 +7,66 @@ from datetime import datetime
 from .exceptions import JobError
 
 
+def _clean_datasets_selection(
+    requested_datasets, provider, my_datasets, public_datasets
+):
+    datasets = []
+    for dataset in requested_datasets:
+        if "id" in dataset.keys():
+            datasets.append(
+                dict(
+                    dataset_uuid=dataset.get("id"),
+                    type=dataset.get("type"),
+                )
+            )
+        elif "name" in dataset.keys():
+            if dataset.get("type") == "existing":
+                selected_dataset = next(
+                    (
+                        d
+                        for d in my_datasets
+                        if d.name == dataset.get("name")
+                        and d.provider == provider
+                    ),
+                    None,
+                )
+                if not selected_dataset:
+                    raise ValueError(f"Dataset {dataset} Not Found")
+                datasets.append(
+                    dict(
+                        dataset_uuid=selected_dataset.id,
+                        type=dataset.get("type"),
+                    )
+                )
+            elif dataset.get("type") == "public":
+                selected_dataset = next(
+                    (
+                        d
+                        for d in public_datasets
+                        if d.name == dataset.get("name")
+                        and d.provider == provider
+                    ),
+                    None,
+                )
+                if not selected_dataset:
+                    raise ValueError(f"Dataset {dataset} Not Found")
+                datasets.append(
+                    dict(
+                        dataset_uuid=selected_dataset.id,
+                        type=dataset.get("type"),
+                    )
+                )
+            else:
+                raise ValueError(
+                    "Invalid dataset specification, 'type' must be in ['existing','public']"
+                )
+        else:
+            raise ValueError(
+                "Invalid dataset specification, either 'id' or 'name' must be provided"
+            )
+    return datasets
+
+
 class Jobs(object):
     def __init__(self, trainml):
         self.trainml = trainml
@@ -52,58 +112,13 @@ class Jobs(object):
         if not selected_gpu_type:
             raise ValueError("GPU Type Not Found")
 
-        datasets = []
-        for dataset in data.get("datasets"):
-            if "id" in dataset.keys():
-                datasets.append(
-                    dict(
-                        dataset_uuid=dataset.get("id"),
-                        type=dataset.get("type"),
-                    )
-                )
-            elif "name" in dataset.keys():
-                if dataset.get("type") == "existing":
-                    selected_dataset = next(
-                        (
-                            d
-                            for d in my_datasets
-                            if d.name == dataset.get("name")
-                        ),
-                        None,
-                    )
-                    if not selected_dataset:
-                        raise ValueError(f"Dataset {dataset} Not Found")
-                    datasets.append(
-                        dict(
-                            dataset_uuid=selected_dataset.id,
-                            type=dataset.get("type"),
-                        )
-                    )
-                elif dataset.get("type") == "public":
-                    selected_dataset = next(
-                        (
-                            d
-                            for d in public_datasets
-                            if d.name == dataset.get("name")
-                        ),
-                        None,
-                    )
-                    if not selected_dataset:
-                        raise ValueError(f"Dataset {dataset} Not Found")
-                    datasets.append(
-                        dict(
-                            dataset_uuid=selected_dataset.id,
-                            type=dataset.get("type"),
-                        )
-                    )
-                else:
-                    raise ValueError(
-                        "Invalid dataset specification, 'type' must be in ['existing','public']"
-                    )
-            else:
-                raise ValueError(
-                    "Invalid dataset specification, either 'id' or 'name' must be provided"
-                )
+        datasets = _clean_datasets_selection(
+            data.get("datasets"),
+            selected_gpu_type.provider,
+            my_datasets,
+            public_datasets,
+        )
+        data["datasets"] = datasets
 
         config = dict(
             name=name,
@@ -146,6 +161,7 @@ class Job:
         self._job = kwargs
         self._id = self._job.get("id", self._job.get("job_uuid"))
         self._name = self._job.get("name")
+        self._provider = self._job.get("provider")
         self._status = self._job.get("status")
         self._type = self._job.get("type")
         self._workers = self._job.get("workers")
@@ -161,6 +177,10 @@ class Job:
     @property
     def status(self) -> str:
         return self._status
+
+    @property
+    def provider(self) -> str:
+        return self._provider
 
     @property
     def type(self) -> str:

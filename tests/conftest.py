@@ -1,7 +1,9 @@
 import asyncio
 from pytest import fixture
+from unittest.mock import Mock
 
 from trainml.trainml import TrainML
+from trainml.datasets import Dataset
 
 
 ENVS = {
@@ -56,3 +58,101 @@ def event_loop():
 def trainml(env):
     trainml = TrainML(**env)
     return trainml
+
+
+@fixture(scope="session")
+def my_datasets():
+    trainml = Mock()
+    return [
+        Dataset(
+            trainml,
+            dataset_uuid="1",
+            name="first one",
+            status="ready",
+            provider="trainml",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="2",
+            name="second one",
+            status="ready",
+            provider="trainml",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="3",
+            name="first one",
+            status="ready",
+            provider="gcp",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="4",
+            name="other one",
+            status="ready",
+            provider="gcp",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="5",
+            name="not ready",
+            status="new",
+            provider="trainml",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="6",
+            name="failed",
+            status="failed",
+            provider="trainml",
+        ),
+    ]
+
+
+@fixture(scope="session")
+def public_datasets():
+    trainml = Mock()
+    return [
+        Dataset(
+            trainml,
+            dataset_uuid="11",
+            name="first one",
+            status="ready",
+            provider="trainml",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="12",
+            name="second one",
+            status="ready",
+            provider="trainml",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="13",
+            name="first one",
+            status="ready",
+            provider="gcp",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="14",
+            name="other one",
+            status="ready",
+            provider="gcp",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="15",
+            name="not ready",
+            status="new",
+            provider="trainml",
+        ),
+        Dataset(
+            trainml,
+            dataset_uuid="16",
+            name="failed",
+            status="failed",
+            provider="trainml",
+        ),
+    ]

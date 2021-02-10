@@ -1,6 +1,8 @@
-from pytest import mark, fixture
+from pytest import mark, fixture, raises
 import re
 import logging
+
+import trainml.jobs as specimen
 
 pytestmark = mark.jobs
 
@@ -8,7 +10,7 @@ pytestmark = mark.jobs
 @fixture(scope="module")
 async def notebook_job(trainml):
     job = await trainml.jobs.create(
-        name="CLI Automated Test Notebook",
+        name="CLI Automated Test Notebook For Coverting",
         type="interactive",
         gpu_type="GTX 1060",
         gpu_count=1,
@@ -31,7 +33,7 @@ async def notebook_job(trainml):
 @fixture(scope="class")
 async def job(trainml):
     job = await trainml.jobs.create(
-        name="CLI Automated Test Notebook",
+        name="CLI Automated Test Empty Notebook",
         type="interactive",
         gpu_type="GTX 1060",
         gpu_count=1,
@@ -56,6 +58,7 @@ class GetJobTests:
         assert isinstance(notebook_job.id, str)
         assert isinstance(notebook_job.name, str)
         assert isinstance(notebook_job.status, str)
+        assert isinstance(notebook_job.provider, str)
         assert isinstance(notebook_job.type, str)
 
     def test_job_str(self, notebook_job):
@@ -128,3 +131,97 @@ class JobLifeCycleTests:
         await job.remove()
         job = await job.waitFor("archived", 60)
         assert job is None
+
+
+class CleanDatasetSelectionTests:
+    @mark.parametrize(
+        "datasets,provider,expected",
+        [
+            (
+                [dict(id="1", type="existing")],
+                "trainml",
+                [dict(dataset_uuid="1", type="existing")],
+            ),
+            (
+                [dict(name="first one", type="existing")],
+                "trainml",
+                [dict(dataset_uuid="1", type="existing")],
+            ),
+            (
+                [dict(name="first one", type="existing")],
+                "gcp",
+                [dict(dataset_uuid="3", type="existing")],
+            ),
+            (
+                [dict(name="first one", type="public")],
+                "trainml",
+                [dict(dataset_uuid="11", type="public")],
+            ),
+            (
+                [
+                    dict(id="1", type="existing"),
+                    dict(name="second one", type="existing"),
+                    dict(id="11", type="public"),
+                    dict(name="second one", type="public"),
+                ],
+                "trainml",
+                [
+                    dict(dataset_uuid="1", type="existing"),
+                    dict(dataset_uuid="2", type="existing"),
+                    dict(dataset_uuid="11", type="public"),
+                    dict(dataset_uuid="12", type="public"),
+                ],
+            ),
+        ],
+    )
+    def test_clean_datasets_selection_successful(
+        self, datasets, provider, expected, my_datasets, public_datasets
+    ):
+        result = specimen._clean_datasets_selection(
+            datasets, provider, my_datasets, public_datasets
+        )
+        assert result == expected
+
+    def test_existing_dataset_by_name_not_found(
+        self, my_datasets, public_datasets
+    ):
+        with raises(ValueError):
+            specimen._clean_datasets_selection(
+                [dict(name="Not Found", type="existing")],
+                "trainml",
+                my_datasets,
+                public_datasets,
+            )
+
+    def test_public_dataset_by_name_not_found(
+        self, my_datasets, public_datasets
+    ):
+        with raises(ValueError):
+            specimen._clean_datasets_selection(
+                [dict(name="Not Found", type="public")],
+                "trainml",
+                my_datasets,
+                public_datasets,
+            )
+
+    def test_invalid_dataset_type_specified(
+        self, my_datasets, public_datasets
+    ):
+        with raises(ValueError):
+            specimen._clean_datasets_selection(
+                [dict(name="Not Found", type="invalid")],
+                "trainml",
+                my_datasets,
+                public_datasets,
+            )
+
+    def test_invalid_dataset_identifier_specified(
+        self, my_datasets, public_datasets
+    ):
+        with raises(ValueError):
+            specimen._clean_datasets_selection(
+                [dict(dataset_id="Not Found", type="invalid")],
+                "trainml",
+                my_datasets,
+                public_datasets,
+            )
