@@ -23,6 +23,7 @@ def dataset(mock_trainml):
         name="first one",
         status="new",
         provider="trainml",
+        size=100000,
         createdAt="2020-12-31T23:59:59.000Z",
     )
 
@@ -170,6 +171,7 @@ class DatasetTests:
         assert isinstance(dataset.status, str)
         assert isinstance(dataset.provider, str)
         assert isinstance(dataset.name, str)
+        assert isinstance(dataset.size, int)
 
     def test_dataset_str(self, dataset):
         string = str(dataset)

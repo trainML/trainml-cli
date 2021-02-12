@@ -62,6 +62,7 @@ class Dataset:
         self._status = self._dataset.get("status")
         self._provider = self._dataset.get("provider")
         self._name = self._dataset.get("name")
+        self._size = self._dataset.get("size")
 
     @property
     def id(self) -> str:
@@ -78,6 +79,10 @@ class Dataset:
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def size(self) -> int:
+        return self._size
 
     def __str__(self):
         return json.dumps({k: v for k, v in self._dataset.items()})

@@ -1,6 +1,6 @@
 import re
+import sys
 from pytest import mark, fixture
-
 
 pytestmark = [mark.integration, mark.datasets]
 
@@ -8,24 +8,14 @@ pytestmark = [mark.integration, mark.datasets]
 @fixture(scope="module")
 async def dataset(trainml):
     dataset = await trainml.datasets.create(
-        name="CLI Automated AWS",
+        name="CLI Automated",
         source_type="aws",
         source_uri="s3://trainml-examples/data/cifar10",
-        wait=True,
     )
+    dataset = await dataset.wait_for("ready", 60)
     yield dataset
     await dataset.remove()
-
-
-@fixture(scope="class")
-async def kaggle_dataset(trainml):
-    dataset = await trainml.datasets.create(
-        name="CLI Automated Kaggle",
-        source_type="kaggle",
-        source_uri="lish-moa",
-        source_options=dict(type="competition"),
-    )
-    yield dataset
+    dataset = await dataset.wait_for("archived", 60)
 
 
 @mark.asyncio
@@ -49,6 +39,8 @@ class GetDatasetTests:
         assert isinstance(dataset.id, str)
         assert isinstance(dataset.status, str)
         assert isinstance(dataset.name, str)
+        assert isinstance(dataset.provider, str)
+        assert isinstance(dataset.size, int)
 
     def test_dataset_str(self, dataset):
         string = str(dataset)
@@ -69,14 +61,76 @@ class GetDatasetTests:
 
 @mark.create
 @mark.asyncio
-class DatasetLifeCycleTests:
-    async def test_wait_for_ready(self, kaggle_dataset):
-        assert kaggle_dataset.status != "ready"
-        dataset = await kaggle_dataset.wait_for("ready", 60)
-        assert dataset.status == "ready"
+class DatasetTypeTests:
+    async def test_dataset_aws(self, trainml, capsys):
+        dataset = await trainml.datasets.create(
+            name="CLI Automated AWS",
+            source_type="aws",
+            source_uri="s3://trainml-examples/data/cifar10",
+            wait=True,
+        )
+        await dataset.remove()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert (
+            "Syncing from s3://trainml-examples/data/cifar10" in captured.out
+        )
+        assert (
+            "download: s3://trainml-examples/data/cifar10/data_batch_4.bin to ./data_batch_4.bin"
+            in captured.out
+        )
+        assert "Download complete" in captured.out
 
-    async def test_remove_dataset(self, kaggle_dataset):
-        assert kaggle_dataset.status == "ready"
-        await kaggle_dataset.remove()
-        dataset = await kaggle_dataset.wait_for("archived", 60)
-        assert dataset is None
+    async def test_dataset_kaggle(self, trainml, capsys):
+        dataset = await trainml.datasets.create(
+            name="CLI Automated Kaggle",
+            source_type="kaggle",
+            source_uri="lish-moa",
+            source_options=dict(type="competition"),
+            wait=True,
+        )
+        await dataset.remove()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert "Unzipping lish-moa.zip" in captured.out
+        assert "inflating: train_features.csv" in captured.out
+        assert "Download complete" in captured.out
+
+    async def test_dataset_gcp(self, trainml, capsys):
+        dataset = await trainml.datasets.create(
+            name="CLI Automated GCP",
+            source_type="gcp",
+            source_uri="gs://trainml-example/data/ml-100k",
+            wait=True,
+        )
+        await dataset.remove()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert (
+            "Copying gs://trainml-example/data/ml-100k/u.data..."
+            in captured.out
+        )
+        assert "Download complete" in captured.out
+
+    async def test_dataset_web(self, trainml, capsys):
+        dataset = await trainml.datasets.create(
+            name="CLI Automated Web",
+            source_type="web",
+            source_uri="http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz",
+            wait=True,
+        )
+        await dataset.remove()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert (
+            "Download and extract gzip http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
+            in captured.out
+        )
+        assert (
+            '[9912422/9912422] -> "train-images-idx3-ubyte.gz"' in captured.out
+        )
+        assert "Download complete" in captured.out
