@@ -83,7 +83,7 @@ class Dataset:
         return json.dumps({k: v for k, v in self._dataset.items()})
 
     def __repr__(self):
-        return f"Dataset( trainml , {self._dataset.__repr__()})"
+        return f"Dataset( trainml , **{self._dataset.__repr__()})"
 
     def __bool__(self):
         return bool(self._id)
@@ -97,29 +97,29 @@ class Dataset:
     async def remove(self):
         await self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")
 
-    async def attach(self):
-        def msg_handler(msg):
-            data = json.loads(msg.data)
-            if data.get("type") == "subscription":
-                timestamp = datetime.fromtimestamp(
-                    int(data.get("time")) / 1000
-                )
-                print(
-                    f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
-                )
+    def _ws_msg_handler(self, msg):
+        data = json.loads(msg.data)
+        if data.get("type") == "subscription":
+            timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+            print(
+                f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
+            )
 
-        await self.trainml._ws_subscribe("dataset", self.id, msg_handler)
+    async def attach(self):
+        await self.trainml._ws_subscribe(
+            "dataset", self.id, self._ws_msg_handler
+        )
 
     async def refresh(self):
         resp = await self.trainml._query(f"/dataset/pub/{self.id}", "GET")
         self.__init__(self.trainml, **resp)
         return self
 
-    async def waitFor(self, status, timeout=300):
+    async def wait_for(self, status, timeout=300):
         valid_statuses = ["ready", "archived"]
         if not status in valid_statuses:
             raise ValueError(
-                f"Invalid waitFor status {status}.  Valid statuses are: {valid_statuses}"
+                f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}"
             )
         if self.status == status:
             return

@@ -2,10 +2,10 @@ import trainml
 import asyncio
 
 
-trainml = trainml.TrainML()
+trainml_client = trainml.TrainML()
 
 dataset = asyncio.run(
-    trainml.datasets.create(
+    trainml_client.datasets.create(
         name="Test CLI Dataset",
         source_type="aws",
         source_uri="s3://trainml-examples/data/cifar10",
@@ -16,7 +16,7 @@ dataset = asyncio.run(
 print(dataset)
 
 job = asyncio.run(
-    trainml.jobs.create(
+    trainml_client.jobs.create(
         name="Test CLI Training Job",
         type="headless",
         gpu_type="RTX 2080 Ti",

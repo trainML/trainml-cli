@@ -1,7 +1,23 @@
 # Running the tests
 
+### Run all tests
+
 ```
 pytest --cov-report term-missing --cov=trainml --dist=loadscope -nauto --env=<dev, staging, prod>
+```
+
+### Run unit tests
+
+```
+pytest --cov-report term-missing --cov=trainml -nauto -m unit
+```
+
+### Run integration tests
+
+Integration test require a valid [trainML account](https://app.trainml.ai) with non-zero credits.
+
+```
+pytest --cov-report term-missing --cov=trainml --dist=loadscope -nauto --env=<dev, staging, prod> -m integration
 ```
 
 ## Authentication

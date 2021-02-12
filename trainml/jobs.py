@@ -4,7 +4,7 @@ import math
 import logging
 from datetime import datetime
 
-from .exceptions import JobError
+from .exceptions import ApiError, JobError
 
 
 def _clean_datasets_selection(
@@ -95,7 +95,7 @@ class Jobs(object):
         vpn=dict(net_prefix_type_id=1),
         **kwargs,
     ):
-        gpu_type_task = asyncio.create_task(self.trainml.gpu_types.get())
+        gpu_type_task = asyncio.create_task(self.trainml.gpu_types.list())
         my_datasets_task = asyncio.create_task(self.trainml.datasets.list())
         public_datasets_task = asyncio.create_task(
             self.trainml.datasets.list_public()
@@ -151,8 +151,8 @@ class Jobs(object):
             job = await self.get(job.id)
         return job
 
-    def remove(self, id):
-        self.trainml._query(f"/job/{id}", "DELETE", dict(force=True))
+    async def remove(self, id):
+        await self.trainml._query(f"/job/{id}", "DELETE", dict(force=True))
 
 
 class Job:
@@ -217,7 +217,7 @@ class Job:
         self.__init__(self.trainml, **resp)
         return self
 
-    async def attach(self):
+    def _get_msg_handler(self):
         worker_numbers = {
             w.get("job_worker_uuid"): ind + 1
             for ind, w in enumerate(self._workers)
@@ -238,7 +238,12 @@ class Job:
                         f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
                     )
 
-        await self.trainml._ws_subscribe("job", self.id, msg_handler)
+        return msg_handler
+
+    async def attach(self):
+        await self.trainml._ws_subscribe(
+            "job", self.id, self._get_msg_handler()
+        )
 
     async def copy(self, name, **kwargs):
         logging.debug(f"copy request - name: {name} ; kwargs: {kwargs}")
@@ -266,11 +271,11 @@ class Job:
         logging.debug(f"copy result: {job}")
         return job
 
-    async def waitFor(self, status, timeout=300):
+    async def wait_for(self, status, timeout=300):
         valid_statuses = ["running", "stopped", "archived"]
         if not status in valid_statuses:
             raise ValueError(
-                f"Invalid waitFor status {status}.  Valid statuses are: {valid_statuses}"
+                f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}"
             )
         if self.status == status:
             return
@@ -279,11 +284,14 @@ class Job:
         count = 0
         while count < retry_count:
             await asyncio.sleep(POLL_INTERVAL)
-            await self.refresh()
+            try:
+                await self.refresh()
+            except ApiError as e:
+                if status == "archived" and e.status == 404:
+                    return
+                raise e
             if self.status == status:
                 return self
-            elif not self and status == "archived":
-                return
             elif self.status == "failed":
                 raise JobError(self.status, self)
             else:

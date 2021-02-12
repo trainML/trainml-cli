@@ -1,12 +1,13 @@
-from pytest import mark, fixture
 import re
+from pytest import mark, fixture
 
-pytestmark = mark.gpu_types
+
+pytestmark = [mark.integration, mark.gpu_types]
 
 
 @fixture(scope="module")
 async def gpu_types(trainml):
-    gpu_types = await trainml.gpu_types.get()
+    gpu_types = await trainml.gpu_types.list()
     return gpu_types
 
 
@@ -51,6 +52,6 @@ async def test_gpu_type_str(gpu_type):
 @mark.asyncio
 async def test_gpu_type_repr(gpu_type):
     string = repr(gpu_type)
-    regex = r"^GpuType\( trainml , {.*'id': '" + gpu_type.id + r"'.*}\)$"
+    regex = r"^GpuType\( trainml , \*\*{.*'id': '" + gpu_type.id + r"'.*}\)$"
     assert isinstance(string, str)
     assert re.match(regex, string)

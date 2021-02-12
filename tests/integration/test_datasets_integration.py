@@ -1,7 +1,8 @@
-from pytest import mark, fixture
 import re
+from pytest import mark, fixture
 
-pytestmark = mark.datasets
+
+pytestmark = [mark.integration, mark.datasets]
 
 
 @fixture(scope="module")
@@ -58,7 +59,7 @@ class GetDatasetTests:
     def test_dataset_repr(self, dataset):
         string = repr(dataset)
         regex = (
-            r"^Dataset\( trainml , {.*'dataset_uuid': '"
+            r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '"
             + dataset.id
             + r"'.*}\)$"
         )
@@ -71,11 +72,11 @@ class GetDatasetTests:
 class DatasetLifeCycleTests:
     async def test_wait_for_ready(self, kaggle_dataset):
         assert kaggle_dataset.status != "ready"
-        dataset = await kaggle_dataset.waitFor("ready", 60)
+        dataset = await kaggle_dataset.wait_for("ready", 60)
         assert dataset.status == "ready"
 
     async def test_remove_dataset(self, kaggle_dataset):
         assert kaggle_dataset.status == "ready"
         await kaggle_dataset.remove()
-        dataset = await kaggle_dataset.waitFor("archived", 60)
+        dataset = await kaggle_dataset.wait_for("archived", 60)
         assert dataset is None

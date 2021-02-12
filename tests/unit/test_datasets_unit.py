@@ -1,0 +1,376 @@
+import re
+import json
+from unittest.mock import AsyncMock
+from pytest import mark, fixture, raises
+from aiohttp import WSMessage, WSMsgType
+
+import trainml.datasets as specimen
+from trainml.exceptions import ApiError, DatasetError
+
+pytestmark = [mark.unit, mark.datasets]
+
+
+@fixture
+def datasets(mock_trainml):
+    return specimen.Datasets(mock_trainml)
+
+
+@fixture
+def dataset(mock_trainml):
+    return specimen.Dataset(
+        mock_trainml,
+        dataset_uuid="1",
+        name="first one",
+        status="new",
+        provider="trainml",
+        createdAt="2020-12-31T23:59:59.000Z",
+    )
+
+
+class DatasetsTests:
+    @mark.asyncio
+    async def test_get_dataset(
+        self,
+        datasets,
+        mock_trainml,
+    ):
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await datasets.get("1234")
+        mock_trainml._query.assert_called_once_with("/dataset/pub/1234", "GET")
+
+    @mark.asyncio
+    async def test_list_datasets(
+        self,
+        datasets,
+        mock_trainml,
+    ):
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await datasets.list()
+        mock_trainml._query.assert_called_once_with("/dataset/pub", "GET")
+
+    @mark.asyncio
+    async def test_list_public_datasets(self, datasets, mock_trainml):
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await datasets.list_public()
+        mock_trainml._query.assert_called_once_with("/dataset/public", "GET")
+
+    @mark.asyncio
+    async def test_remove_dataset(
+        self,
+        datasets,
+        mock_trainml,
+    ):
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await datasets.remove("4567")
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub/4567", "DELETE"
+        )
+
+    @mark.asyncio
+    async def test_create_dataset_simple(self, datasets, mock_trainml):
+        requested_config = dict(
+            name="new dataset",
+            source_type="aws",
+            source_uri="s3://trainml-examples/data/cifar10",
+        )
+        expected_payload = dict(
+            name="new dataset",
+            source_type="aws",
+            source_uri="s3://trainml-examples/data/cifar10",
+        )
+        api_response = {
+            "customer_uuid": "cus-id-1",
+            "dataset_uuid": "data-id-1",
+            "name": "new dataset",
+            "provider": "trainml",
+            "status": "new",
+            "source_type": "aws",
+            "source_uri": "s3://trainml-examples/data/cifar10",
+            "createdAt": "2020-12-20T16:46:23.909Z",
+        }
+
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await datasets.create(**requested_config)
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub", "POST", None, expected_payload
+        )
+        assert response.id == "data-id-1"
+        assert response.provider == "trainml"
+
+    @mark.asyncio
+    async def test_create_dataset_missing_disk_size_error(
+        self, datasets, mock_trainml
+    ):
+        requested_config = dict(
+            name="new dataset",
+            provider="gcp",
+            source_type="aws",
+            source_uri="s3://trainml-examples/data/cifar10",
+        )
+        api_response = None
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        with raises(AttributeError):
+            await datasets.create(**requested_config)
+        mock_trainml._query.assert_not_called()
+
+    @mark.asyncio
+    async def test_create_dataset_and_wait(
+        self,
+        datasets,
+        mock_trainml,
+    ):
+        requested_config = dict(
+            name="new dataset",
+            source_type="aws",
+            source_uri="s3://trainml-examples/data/cifar10",
+            wait=True,
+        )
+        api_response_1 = {
+            "customer_uuid": "cus-id-1",
+            "dataset_uuid": "data-id-1",
+            "name": "new dataset",
+            "provider": "trainml",
+            "status": "new",
+            "source_type": "aws",
+            "source_uri": "s3://trainml-examples/data/cifar10",
+            "createdAt": "2020-12-20T16:46:23.909Z",
+        }
+
+        api_response_2 = {
+            "customer_uuid": "cus-id-1",
+            "dataset_uuid": "data-id-1",
+            "name": "new dataset",
+            "provider": "trainml",
+            "status": "ready",
+            "source_type": "aws",
+            "source_uri": "s3://trainml-examples/data/cifar10",
+            "size": 1000000,
+            "createdAt": "2020-12-20T16:46:23.909Z",
+        }
+
+        mock_trainml._query = AsyncMock()
+        mock_trainml._query.side_effect = [api_response_1, api_response_2]
+        mock_trainml._ws_subscribe = AsyncMock(return_value=None)
+
+        response = await datasets.create(**requested_config)
+
+        mock_trainml._query.assert_called()
+        mock_trainml._ws_subscribe.assert_called_once()
+        assert response.id == "data-id-1"
+        assert response.status == "ready"
+
+
+class DatasetTests:
+    def test_dataset_properties(self, dataset):
+        assert isinstance(dataset.id, str)
+        assert isinstance(dataset.status, str)
+        assert isinstance(dataset.provider, str)
+        assert isinstance(dataset.name, str)
+
+    def test_dataset_str(self, dataset):
+        string = str(dataset)
+        regex = r"^{.*\"dataset_uuid\": \"" + dataset.id + r"\".*}$"
+        assert isinstance(string, str)
+        assert re.match(regex, string)
+
+    def test_dataset_repr(self, dataset):
+        string = repr(dataset)
+        regex = (
+            r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '"
+            + dataset.id
+            + r"'.*}\)$"
+        )
+        assert isinstance(string, str)
+        assert re.match(regex, string)
+
+    @mark.asyncio
+    async def test_dataset_get_connection_utility_url(
+        self, dataset, mock_trainml
+    ):
+
+        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await dataset.get_connection_utility_url()
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub/1/download", "GET"
+        )
+        assert response == api_response
+
+    @mark.asyncio
+    async def test_dataset_remove(self, dataset, mock_trainml):
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await dataset.remove()
+        mock_trainml._query.assert_called_once_with("/dataset/pub/1", "DELETE")
+
+    def test_dataset_ws_msg_handler(self, dataset, capsys):
+        msg = WSMessage(
+            type=WSMsgType.TEXT,
+            data=json.dumps(
+                {
+                    "msg": "download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n",
+                    "time": 1613079345318,
+                    "type": "subscription",
+                    "stream": "worker-id-1",
+                    "job_worker_uuid": "worker-id-1",
+                }
+            ),
+            extra=None,
+        )
+        dataset._ws_msg_handler(msg)
+        captured = capsys.readouterr()
+        assert (
+            captured.out
+            == "02/11/2021, 15:35:45: download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n"
+        )
+
+    @mark.asyncio
+    async def test_dataset_attach(self, dataset, mock_trainml):
+        api_response = None
+        mock_trainml._ws_subscribe = AsyncMock(return_value=api_response)
+        await dataset.attach()
+        mock_trainml._ws_subscribe.assert_called_once_with(
+            "dataset", dataset.id, dataset._ws_msg_handler
+        )
+
+    @mark.asyncio
+    async def test_dataset_refresh(self, dataset, mock_trainml):
+        api_response = {
+            "customer_uuid": "cus-id-1",
+            "dataset_uuid": "data-id-1",
+            "name": "new dataset",
+            "provider": "trainml",
+            "status": "ready",
+            "source_type": "aws",
+            "source_uri": "s3://trainml-examples/data/cifar10",
+            "createdAt": "2020-12-20T16:46:23.909Z",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await dataset.refresh()
+        mock_trainml._query.assert_called_once_with(f"/dataset/pub/1", "GET")
+        assert dataset.id == "data-id-1"
+        assert response.id == "data-id-1"
+
+    @mark.asyncio
+    async def test_dataset_wait_for_successful(self, dataset, mock_trainml):
+        api_response = {
+            "customer_uuid": "cus-id-1",
+            "dataset_uuid": "data-id-1",
+            "name": "new dataset",
+            "provider": "trainml",
+            "status": "ready",
+            "source_type": "aws",
+            "source_uri": "s3://trainml-examples/data/cifar10",
+            "createdAt": "2020-12-20T16:46:23.909Z",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await dataset.wait_for("ready")
+        mock_trainml._query.assert_called_once_with(f"/dataset/pub/1", "GET")
+        assert dataset.id == "data-id-1"
+        assert response.id == "data-id-1"
+
+    @mark.asyncio
+    async def test_dataset_wait_for_current_status(self, mock_trainml):
+        dataset = specimen.Dataset(
+            mock_trainml,
+            dataset_uuid="1",
+            name="first one",
+            status="ready",
+            provider="trainml",
+            createdAt="2020-12-31T23:59:59.000Z",
+        )
+        api_response = None
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await dataset.wait_for("ready")
+        mock_trainml._query.assert_not_called()
+
+    @mark.asyncio
+    async def test_dataset_wait_for_incorrect_status(
+        self, dataset, mock_trainml
+    ):
+        api_response = None
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        with raises(ValueError):
+            await dataset.wait_for("stopped")
+        mock_trainml._query.assert_not_called()
+
+    @mark.asyncio
+    async def test_dataset_wait_for_with_delay(self, dataset, mock_trainml):
+        api_response_initial = dict(
+            dataset_uuid="1",
+            name="first one",
+            status="new",
+            provider="trainml",
+            createdAt="2020-12-31T23:59:59.000Z",
+        )
+        api_response_final = dict(
+            dataset_uuid="1",
+            name="first one",
+            status="ready",
+            provider="trainml",
+            createdAt="2020-12-31T23:59:59.000Z",
+        )
+        mock_trainml._query = AsyncMock()
+        mock_trainml._query.side_effect = [
+            api_response_initial,
+            api_response_initial,
+            api_response_final,
+        ]
+        response = await dataset.wait_for("ready")
+        assert dataset.status == "ready"
+        assert response.status == "ready"
+
+    @mark.asyncio
+    async def test_dataset_wait_for_timeout(self, dataset, mock_trainml):
+        api_response = dict(
+            dataset_uuid="1",
+            name="first one",
+            status="new",
+            provider="trainml",
+            createdAt="2020-12-31T23:59:59.000Z",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        with raises(TimeoutError):
+            await dataset.wait_for("ready", 10)
+        mock_trainml._query.assert_called()
+
+    @mark.asyncio
+    async def test_dataset_wait_for_dataset_failed(
+        self, dataset, mock_trainml
+    ):
+        api_response = dict(
+            dataset_uuid="1",
+            name="first one",
+            status="failed",
+            provider="trainml",
+            createdAt="2020-12-31T23:59:59.000Z",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        with raises(DatasetError):
+            await dataset.wait_for("ready")
+        mock_trainml._query.assert_called()
+
+    @mark.asyncio
+    async def test_dataset_wait_for_archived_succeeded(
+        self, dataset, mock_trainml
+    ):
+        mock_trainml._query = AsyncMock(
+            side_effect=ApiError(404, dict(errorMessage="Dataset Not Found"))
+        )
+        await dataset.wait_for("archived")
+        mock_trainml._query.assert_called()
+
+    @mark.asyncio
+    async def test_dataset_wait_for_unexpected_api_error(
+        self, dataset, mock_trainml
+    ):
+        mock_trainml._query = AsyncMock(
+            side_effect=ApiError(404, dict(errorMessage="Dataset Not Found"))
+        )
+        with raises(ApiError):
+            await dataset.wait_for("ready")
+        mock_trainml._query.assert_called()

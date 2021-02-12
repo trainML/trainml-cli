@@ -1,12 +1,12 @@
-from pytest import mark, fixture
 import re
+from pytest import mark, fixture
 
-pytestmark = mark.environments
+pytestmark = [mark.unit, mark.environments]
 
 
 @fixture(scope="module")
 async def environments(trainml):
-    environments = await trainml.environments.get()
+    environments = await trainml.environments.list()
     return environments
 
 
@@ -46,7 +46,9 @@ def test_environment_str(environment):
 def test_environment_repr(environment):
     string = repr(environment)
     regex = (
-        r"^Environment\( trainml , {.*'id': '" + environment.id + r"'.*}\)$"
+        r"^Environment\( trainml , \*\*{.*'id': '"
+        + environment.id
+        + r"'.*}\)$"
     )
     assert isinstance(string, str)
     assert re.match(regex, string)

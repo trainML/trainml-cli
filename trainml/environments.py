@@ -6,7 +6,7 @@ class Environments(object):
     def __init__(self, trainml):
         self.trainml = trainml
 
-    async def get(self):
+    async def list(self):
         resp = await self.trainml._query(f"/job/environments", "GET")
         environments = [
             Environment(self.trainml, **environment) for environment in resp
@@ -55,4 +55,4 @@ class Environment:
         )
 
     def __repr__(self):
-        return f"Environment( trainml , {self._environment.__repr__()})"
+        return f"Environment( trainml , **{self._environment.__repr__()})"

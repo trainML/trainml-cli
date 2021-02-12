@@ -10,5 +10,7 @@ markers = [
     "gpu_types: Gpu Type tests",
     "environments: Environment tests",
     "datasets: Datasets tests",
-    "jobs: Jobs tests"
+    "jobs: Jobs tests",
+    "unit: All unit tests (no trainML environment required)",
+    "integration: All integration tests (trainML environment required)"
 ]

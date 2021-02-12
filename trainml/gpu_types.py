@@ -6,7 +6,7 @@ class GpuTypes(object):
     def __init__(self, trainml):
         self.trainml = trainml
 
-    async def get(self):
+    async def list(self):
         resp = await self.trainml._query(f"/gpu/pub/types", "GET")
         gpu_types = [GpuType(self.trainml, **gpu_type) for gpu_type in resp]
         return gpu_types
@@ -52,7 +52,7 @@ class GpuType:
         )
 
     def __repr__(self):
-        return f"GpuType( trainml , {self._gpu_type.__repr__()})"
+        return f"GpuType( trainml , **{self._gpu_type.__repr__()})"
 
     async def refresh(self):
         resp = await self.trainml._query(f"/gpu/pub/types/{self.id}", "GET")
