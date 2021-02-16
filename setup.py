@@ -34,6 +34,7 @@ setup(
     include_package_data=True,
     python_requires=">=3.8",
     install_requires=[
+        "aiodocker",
         "aiohttp",
         "boto3",
         "python-jose[cryptography]",

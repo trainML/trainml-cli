@@ -5,6 +5,7 @@ import asyncio
 from datetime import datetime
 
 from .exceptions import DatasetError, ApiError
+from .connections import Connection
 
 
 class Datasets(object):
@@ -45,9 +46,6 @@ class Datasets(object):
         dataset = Dataset(self.trainml, **resp)
         logging.info(f"Created Dataset {name} with id {dataset.id}")
 
-        if kwargs.get("wait"):
-            await dataset.attach()
-            dataset = await self.get(dataset.id)
         return dataset
 
     async def remove(self, id):
@@ -98,6 +96,36 @@ class Dataset:
             f"/dataset/pub/{self._id}/download", "GET"
         )
         return resp
+
+    def get_connection_details(self):
+        if self._dataset.get("vpn"):
+            details = dict(
+                cidr=self._dataset.get("vpn").get("cidr"),
+                ssh_port=self._dataset.get("vpn")
+                .get("client")
+                .get("ssh_port"),
+                input_path=self._dataset.get("source_uri")
+                if self._dataset.get("source_type") == "local"
+                else None,
+                output_path=None,
+            )
+        else:
+            details = dict()
+        return details
+
+    async def connect(self):
+        connection = Connection(
+            self.trainml, entity_type="dataset", id=self.id, entity=self
+        )
+        await connection.start()
+        return connection.status
+
+    async def disconnect(self):
+        connection = Connection(
+            self.trainml, entity_type="dataset", id=self.id, entity=self
+        )
+        await connection.remove()  # dataset connections are only used once
+        return connection.status
 
     async def remove(self):
         await self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")

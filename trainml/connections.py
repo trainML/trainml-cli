@@ -1,0 +1,412 @@
+import json
+import os
+import shutil
+import asyncio
+import aiohttp
+import aiodocker
+import zipfile
+import re
+from datetime import datetime
+
+from .exceptions import ConnectionError, ApiError
+from aiodocker.exceptions import DockerError
+
+CONFIG_DIR = os.path.expanduser(
+    os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+)
+CONNECTIONS_DIR = f"{CONFIG_DIR}/connections"
+VPN_IMAGE = "trainml/tinc:no-upnp"
+STORAGE_IMAGE = "trainml/local-storage"
+os.makedirs(
+    CONNECTIONS_DIR,
+    exist_ok=True,
+)
+STATUSES = dict(
+    UNKNOWN="unknown",
+    NEW="new",
+    CONNECTING="connecting",
+    CONNECTED="connected",
+    NOT_CONNECTED="not connected",
+    STOPPED="stopped",
+    REMOVED="removed",
+)
+
+
+class Connections(object):
+    def __init__(self, trainml):
+        self.trainml = trainml
+
+    async def list(self):
+        con_dirs = os.listdir(CONNECTIONS_DIR)
+        connections = []
+        con_tasks = []
+        for con_dir in con_dirs:
+            try:
+                con_type, con_id = con_dir.split("_")
+            except ValueError:
+                # unintelligible directory
+                continue
+            connection = Connection(self.trainml, con_type, con_id)
+            connections.append(connection)
+            con_task = asyncio.create_task(connection.check())
+            con_tasks.append(con_task)
+        await asyncio.gather(*con_tasks)
+        return connections
+
+    async def cleanup(self):
+        con_dirs = os.listdir(CONNECTIONS_DIR)
+        vpn_containers_target = []
+        storage_containers_target = []
+        for con_dir in con_dirs:
+            try:
+                with open(f"{CONNECTIONS_DIR}/{con_dir}/vpn_id", "r") as f:
+                    vpn_id = f.read()
+                vpn_containers_target.append(vpn_id)
+            except OSError:
+                continue
+
+            try:
+                with open(f"{CONNECTIONS_DIR}/{con_dir}/storage_id", "r") as f:
+                    storage_id = f.read()
+                storage_containers_target.append(storage_id)
+            except OSError:
+                continue
+
+        docker = aiodocker.Docker()
+        vpn_containers_task = asyncio.create_task(
+            docker.containers.list(
+                all=True,
+                filters=json.dumps(
+                    dict(label=["service=trainml", "type=vpn"])
+                ),
+            )
+        )
+        storage_containers_task = asyncio.create_task(
+            docker.containers.list(
+                all=True,
+                filters=json.dumps(
+                    dict(label=["service=trainml", "type=storage"])
+                ),
+            )
+        )
+        vpn_containers, storage_containers = await asyncio.gather(
+            vpn_containers_task, storage_containers_task
+        )
+        vpn_tasks = [
+            asyncio.create_task(container.delete(force=True))
+            for container in vpn_containers
+            if container.id not in vpn_containers_target
+        ]
+        storage_tasks = [
+            asyncio.create_task(container.delete(force=True))
+            for container in storage_containers
+            if container.id not in storage_containers_target
+        ]
+        await asyncio.gather(*vpn_tasks, *storage_tasks)
+        await docker.close()
+
+
+class Connection:
+    def __init__(self, trainml, entity_type, id, entity=None, **kwargs):
+        self.trainml = trainml
+        self._id = id
+        self._type = entity_type
+        self._status = STATUSES.get("UNKNOWN")
+        self._entity = entity
+        self._dir = f"{CONNECTIONS_DIR}/{entity_type}_{id}"
+        os.makedirs(
+            self._dir,
+            exist_ok=True,
+        )
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def type(self) -> str:
+        return self._type
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    def __str__(self):
+        return f"Connection for {self.type} - {self.id}: {self.status}"
+
+    def __repr__(self):
+        return f"Connection( trainml , {self.id}, {self.type})"
+
+    async def _get_entity(self):
+        try:
+            if self.type == "dataset":
+                self._entity = await self.trainml.datasets.get(self.id)
+            elif self.type == "job":
+                self._entity = await self.trainml.jobs.get(self.id)
+            else:
+                raise TypeError(
+                    "Connection type must be in: ['dataset', 'job']"
+                )
+        except ApiError as e:
+            if e.status == 404:
+                await self.remove()
+
+    async def _download_connection_details(self):
+        zip_file = f"{self._dir}/details.zip"
+        url = await self._entity.get_connection_utility_url()
+        async with aiohttp.ClientSession() as session:
+            async with session.request("GET", url) as resp:
+                with open(
+                    zip_file,
+                    "wb",
+                ) as fd:
+                    content = await resp.read()
+                    fd.write(content)
+        with zipfile.ZipFile(zip_file, "r") as zipf:
+            for info in zipf.infolist():
+                extracted_path = zipf.extract(info, self._dir)
+                if info.create_system == 3 and os.path.isfile(
+                    extracted_path
+                ):  ## 3 - ZIP_UNIX_SYSTEM
+                    unix_attributes = info.external_attr >> 16
+                    if unix_attributes:
+                        os.chmod(extracted_path, unix_attributes)
+
+        os.remove(zip_file)
+
+    async def _test_connection(self, container):
+        entity_details = self._entity.get_connection_details()
+        if not entity_details:
+            return False
+        net = _parse_cidr(entity_details.get("cidr"))
+        target_ip = f"{net.get('first_octet')}.{net.get('second_octet')}.{net.get('third_octet')}.254"
+
+        ping = await container.exec(
+            ["ping", "-c", "1", target_ip],
+            stdout=True,
+            stderr=True,
+        )
+        stream = ping.start()
+        await stream.read_out()
+        data = await ping.inspect()
+        while data["ExitCode"] is None:
+            await stream.read_out()
+            data = await ping.inspect()
+        await stream.close()
+        if data["ExitCode"] == 0:
+            return True
+        return False
+
+    async def check(self):
+        if not self._entity:
+            await self._get_entity()
+        if not os.path.isdir(f"{self._dir}/data"):
+            self._status = STATUSES.get("NEW")
+            return
+
+        try:
+            with open(f"{self._dir}/vpn_id", "r") as f:
+                vpn_id = f.read()
+        except OSError as e:
+            self._status = STATUSES.get("STOPPED")
+            return
+
+        docker = aiodocker.Docker()
+        try:
+            container = await docker.containers.get(vpn_id)
+        except DockerError as e:
+            if e.status == 404:
+                self._status = STATUSES.get("STOPPED")
+                await docker.close()
+                return
+            raise e
+
+        data = await container.show()
+        if not data["State"]["Running"]:
+            self._status = STATUSES.get("STOPPED")
+            await container.delete()
+            os.remove(f"{self._dir}/vpn_id")
+            try:
+                with open(f"{self._dir}/storage_id", "r") as f:
+                    storage_id = f.read()
+                try:
+                    storage_container = await docker.containers.get(storage_id)
+                    await storage_container.delete(force=True)
+                except DockerError as e:
+                    if e.status != 404:
+                        raise e
+            except OSError as e:
+                pass
+            await docker.close()
+            return
+
+        connected = await self._test_connection(container)
+        await docker.close()
+        if connected:
+            self._status = STATUSES.get("CONNECTED")
+        else:
+            self._status = STATUSES.get("NOT_CONNECTED")
+
+    async def start(self):
+        self._status = STATUSES.get("CONNECTING")
+        if not self._entity:
+            await self._get_entity()
+        if not os.path.isdir(f"{self._dir}/data"):
+            await self._download_connection_details()
+
+        docker = aiodocker.Docker()
+        await asyncio.gather(
+            docker.pull(VPN_IMAGE), docker.pull(STORAGE_IMAGE)
+        )
+        entity_details = self._entity.get_connection_details()
+        if entity_details.get("input_path") or entity_details.get(
+            "output_path"
+        ):
+            storage_container = await docker.containers.run(
+                _get_storage_container_config(
+                    self.id,
+                    entity_details.get("cidr"),
+                    f"{self._dir}/data",
+                    entity_details.get("ssh_port"),
+                    input_path=entity_details.get("input_path"),
+                    output_path=entity_details.get("output_path"),
+                )
+            )
+            with open(f"{self._dir}/storage_id", "w") as f:
+                f.write(storage_container.id)
+
+        vpn_container = await docker.containers.run(
+            _get_vpn_container_config(
+                self.id, entity_details.get("cidr"), f"{self._dir}/data"
+            )
+        )
+
+        with open(f"{self._dir}/vpn_id", "w") as f:
+            f.write(vpn_container.id)
+
+        count = 0
+        while count <= 30:
+            res = await self._test_connection(vpn_container)
+            if res:
+                break
+            count += 1
+        await docker.close()
+        if count > 30:
+            self._status = STATUSES.get("NOT_CONNECTED")
+            raise ConnectionError(f"Unable to connect {self.type} {self.id}")
+        self._status = STATUSES.get("CONNECTED")
+
+    async def stop(self):
+        if not self._entity:
+            await self._get_entity()
+
+        docker = aiodocker.Docker()
+        tasks = []
+        try:
+            with open(f"{self._dir}/vpn_id", "r") as f:
+                vpn_id = f.read()
+            vpn_container = await docker.containers.get(vpn_id)
+            vpn_delete_task = asyncio.create_task(
+                vpn_container.delete(force=True)
+            )
+            tasks.append(vpn_delete_task)
+            os.remove(f"{self._dir}/vpn_id")
+        except OSError:
+            pass
+
+        storage_delete_task = None
+        try:
+            with open(f"{self._dir}/storage_id", "r") as f:
+                storage_id = f.read()
+            storage_container = await docker.containers.get(storage_id)
+            storage_delete_task = asyncio.create_task(
+                storage_container.delete(force=True)
+            )
+            tasks.append(storage_delete_task)
+            os.remove(f"{self._dir}/storage_id")
+        except OSError:
+            pass
+
+        await asyncio.gather(*tasks)
+        await docker.close()
+        self._status = STATUSES.get("STOPPED")
+
+    async def remove(self):
+        if self.status == STATUSES.get("UNKNOWN"):
+            await self.check()
+        if self.status in [
+            STATUSES.get("CONNECTED"),
+            STATUSES.get("NOT_CONNECTED"),
+        ]:
+            await self.stop()
+        self._status = STATUSES.get("REMOVED")
+        shutil.rmtree(self._dir)
+
+
+def _parse_cidr(cidr):
+    res = re.match(
+        r"(?P<first_octet>[0-9]{1,3})\.(?P<second_octet>[0-9]{1,3})\.(?P<third_octet>[0-9]{1,3})\.(?P<fourth_octet>[0-9]{1,3})/(?P<mask_length>[0-9]{1,2})",
+        cidr,
+    )
+    net = res.groupdict()
+    return net
+
+
+def _get_vpn_container_config(id, cidr, data_dir):
+    config = dict(
+        Image=VPN_IMAGE,
+        Hostname=id,
+        Cmd=[],
+        AttachStdin=False,
+        AttachStdout=False,
+        AttachStderr=False,
+        Tty=False,
+        Env=[
+            f"NETWORK={id}",
+            "DEBUG=1",
+        ],
+        HostConfig=dict(
+            Init=True,
+            Binds=[f"{data_dir}:/etc/tinc:rw"],
+            NetworkMode="host",
+            CapAdd=["NET_ADMIN"],
+            Sysctls={
+                "net.ipv4.tcp_mtu_probing": "1",
+                "net.ipv4.tcp_base_mss": "1024",
+            },
+        ),
+        Labels=dict(type="vpn", service="trainml", id=id),
+    )
+    return config
+
+
+def _get_storage_container_config(
+    id, cidr, data_dir, ssh_port, input_path=None, output_path=None
+):
+    Binds = [f"{data_dir}/.ssh:/opt/ssh"]
+    if input_path:
+        Binds.append(f"{os.path.expanduser(input_path)}:/opt/data:ro")
+    if output_path:
+        Binds.append(f"{os.path.expanduser(output_path)}:/opt/output:rw")
+    config = dict(
+        Image=STORAGE_IMAGE,
+        Hostname=id,
+        Cmd=[],
+        AttachStdin=False,
+        AttachStdout=False,
+        AttachStderr=False,
+        Tty=False,
+        Env=[
+            f"VPN_CIDR={cidr}",
+        ],
+        ExposedPorts={f"22/tcp": {}},
+        HostConfig=dict(
+            Init=True,
+            Binds=Binds,
+            PortBindings={
+                f"22/tcp": [dict(HostPort=f"{ssh_port}", HostIP="0.0.0.0")],
+            },
+        ),
+        Labels=dict(type="storage", service="trainml", id=id),
+    )
+    return config

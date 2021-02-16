@@ -35,3 +35,15 @@ class DatasetError(Exception):
 
     def __str__(self):
         return "DatasetError({self.status}, {self.message})".format(self=self)
+
+
+class ConnectionError(Exception):
+    def __init__(self, message, *args):
+        super().__init__(message, *args)
+        self.message = message
+
+    def __repr__(self):
+        return "DatasetError({self.message})".format(self=self)
+
+    def __str__(self):
+        return "DatasetError({self.message})".format(self=self)

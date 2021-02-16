@@ -9,6 +9,7 @@ from .jobs import Jobs
 from .gpu_types import GpuTypes
 from .environments import Environments
 from .exceptions import ApiError
+from .connections import Connections
 
 CONFIG_DIR = os.path.expanduser(
     os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
@@ -34,6 +35,7 @@ class TrainML(object):
         self.jobs = Jobs(self)
         self.gpu_types = GpuTypes(self)
         self.environments = Environments(self)
+        self.connections = Connections(self)
         self.api_url = (
             kwargs.get("api_url")
             or os.environ.get("TRAINML_API_URL")
@@ -110,5 +112,6 @@ class TrainML(object):
                         aiohttp.WSMsgType.CLOSED,
                         aiohttp.WSMsgType.ERROR,
                     ):
+                        await ws.close()
                         break
                     msg_handler(msg)

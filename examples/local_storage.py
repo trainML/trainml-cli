@@ -1,29 +1,31 @@
-from trainml.trainml import TrainML
+import trainml
 import asyncio
 
 
-trainml_client = TrainML()
+trainml_client = trainml.TrainML()
 
 # Create the dataset
 dataset = asyncio.run(
     trainml_client.datasets.create(
-        name="Example Dataset",
-        source_type="aws",
-        source_uri="s3://trainml-examples/data/cifar10",
+        name="Local Dataset",
+        source_type="local",
+        source_uri="~/tensorflow-example/data",
     )
 )
 
 print(dataset)
 
-# Watch the log output, attach will return when data transfer is complete
+# Connect to the dataset and watch the logs
+asyncio.run(dataset.connect())
 asyncio.run(dataset.attach())
+asyncio.run(dataset.disconnect())
 
-# Create the job
+# # Create the job
 job = asyncio.run(
     trainml_client.jobs.create(
-        name="Example Training Job",
+        name="Training Job with Local Output",
         type="headless",
-        gpu_type="RTX 2080 Ti",
+        gpu_type="GTX 1060",
         gpu_count=1,
         disk_size=10,
         worker_count=1,
@@ -32,13 +34,21 @@ job = asyncio.run(
         ],
         data=dict(
             datasets=[dict(id=dataset.id, type="existing")],
-            output_uri="s3://trainml-examples/output/resnet_cifar10",
-            output_type="aws",
+            output_uri="~/tensorflow-example/output",
+            output_type="local",
         ),
         model=dict(git_uri="git@github.com:trainML/test-private.git"),
     )
 )
 print(job)
 
-# Watch the log output, attach will return when the training job stops
+# # Connect to the job once it's running and attach to watch the logs
+asyncio.run(job.wait_for("running"))
+asyncio.run(job.connect())
 asyncio.run(job.attach())
+
+
+# ## Cleanup resources
+asyncio.run(job.disconnect())
+asyncio.run(job.remove())
+asyncio.run(dataset.remove())

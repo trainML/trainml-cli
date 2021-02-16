@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 
 from .exceptions import ApiError, JobError
+from .connections import Connection
 
 
 def _clean_datasets_selection(
@@ -146,9 +147,6 @@ class Jobs(object):
         resp = await self.trainml._query("/job", "POST", None, payload)
         job = Job(self.trainml, **resp)
         logging.info(f"Created Job {name} with id {job.id}")
-        if kwargs.get("wait"):
-            await job.attach()
-            job = await self.get(job.id)
         return job
 
     async def remove(self, id):
@@ -209,7 +207,37 @@ class Job:
         resp = await self.trainml._query(f"/job/{self._id}/download", "GET")
         return resp
 
+    def get_connection_details(self):
+        details = dict(
+            cidr=self._job.get("vpn").get("cidr"),
+            ssh_port=self._job.get("vpn").get("client").get("ssh_port"),
+            input_path=None,
+            output_path=self._job.get("data").get("output_uri")
+            if self._job.get("data").get("output_type") == "local"
+            else None,
+        )
+        return details
+
+    async def connect(self):
+        connection = Connection(
+            self.trainml, entity_type="job", id=self.id, entity=self
+        )
+        await connection.start()
+        return connection.status
+
+    async def disconnect(self):
+        connection = Connection(
+            self.trainml, entity_type="job", id=self.id, entity=self
+        )
+        await connection.stop()
+        return connection.status
+
     async def remove(self):
+        if self._job.get("data").get("output_type") == "local":
+            connection = Connection(
+                self.trainml, entity_type="job", id=self.id, entity=self
+            )
+            await connection.remove()
         await self.trainml._query(f"/job/{self._id}", "DELETE")
 
     async def refresh(self):

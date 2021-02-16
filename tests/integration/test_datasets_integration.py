@@ -67,8 +67,8 @@ class DatasetTypeTests:
             name="CLI Automated AWS",
             source_type="aws",
             source_uri="s3://trainml-examples/data/cifar10",
-            wait=True,
         )
+        await dataset.attach()
         await dataset.remove()
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
@@ -88,8 +88,8 @@ class DatasetTypeTests:
             source_type="kaggle",
             source_uri="lish-moa",
             source_options=dict(type="competition"),
-            wait=True,
         )
+        await dataset.attach()
         await dataset.remove()
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
@@ -103,8 +103,8 @@ class DatasetTypeTests:
             name="CLI Automated GCP",
             source_type="gcp",
             source_uri="gs://trainml-example/data/ml-100k",
-            wait=True,
         )
+        await dataset.attach()
         await dataset.remove()
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
@@ -120,8 +120,8 @@ class DatasetTypeTests:
             name="CLI Automated Web",
             source_type="web",
             source_uri="http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz",
-            wait=True,
         )
+        await dataset.attach()
         await dataset.remove()
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
@@ -134,3 +134,20 @@ class DatasetTypeTests:
             '[9912422/9912422] -> "train-images-idx3-ubyte.gz"' in captured.out
         )
         assert "Download complete" in captured.out
+
+    async def test_dataset_local(self, trainml, capsys):
+        dataset = await trainml.datasets.create(
+            name="CLI Automated Local",
+            source_type="local",
+            source_uri="~/tensorflow-example/data",
+        )
+        await dataset.connect()
+        await dataset.attach()
+        await dataset.disconnect()
+        await dataset.remove()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert "Starting data upload from local" in captured.out
+        assert "data_batch_1.bin  30733788 bytes" in captured.out
+        assert "Upload complete" in captured.out
