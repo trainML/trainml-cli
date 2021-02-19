@@ -11,16 +11,9 @@ from datetime import datetime
 from .exceptions import ConnectionError, ApiError
 from aiodocker.exceptions import DockerError
 
-CONFIG_DIR = os.path.expanduser(
-    os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
-)
-CONNECTIONS_DIR = f"{CONFIG_DIR}/connections"
+
 VPN_IMAGE = "trainml/tinc:no-upnp"
 STORAGE_IMAGE = "trainml/local-storage"
-os.makedirs(
-    CONNECTIONS_DIR,
-    exist_ok=True,
-)
 STATUSES = dict(
     UNKNOWN="unknown",
     NEW="new",
@@ -35,9 +28,17 @@ STATUSES = dict(
 class Connections(object):
     def __init__(self, trainml):
         self.trainml = trainml
+        CONFIG_DIR = os.path.expanduser(
+            os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+        )
+        self.dir = f"{CONFIG_DIR}/connections"
+        os.makedirs(
+            self.dir,
+            exist_ok=True,
+        )
 
     async def list(self):
-        con_dirs = os.listdir(CONNECTIONS_DIR)
+        con_dirs = os.listdir(self.dir)
         connections = []
         con_tasks = []
         for con_dir in con_dirs:
@@ -54,10 +55,14 @@ class Connections(object):
         return connections
 
     async def cleanup(self):
-        con_dirs = os.listdir(CONNECTIONS_DIR)
+        con_dirs = os.listdir(self.dir)
         await asyncio.gather(
-            asyncio.create_task(_cleanup_containers(con_dirs, "vpn")),
-            asyncio.create_task(_cleanup_containers(con_dirs, "storage")),
+            asyncio.create_task(
+                _cleanup_containers(self.dir, con_dirs, "vpn")
+            ),
+            asyncio.create_task(
+                _cleanup_containers(self.dir, con_dirs, "storage")
+            ),
         )
 
 
@@ -68,6 +73,10 @@ class Connection:
         self._type = entity_type
         self._status = STATUSES.get("UNKNOWN")
         self._entity = entity
+        CONFIG_DIR = os.path.expanduser(
+            os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+        )
+        CONNECTIONS_DIR = f"{CONFIG_DIR}/connections"
         self._dir = f"{CONNECTIONS_DIR}/{entity_type}_{id}"
         os.makedirs(
             self._dir,
@@ -93,18 +102,12 @@ class Connection:
         return f"Connection( trainml , {self.id}, {self.type})"
 
     async def _get_entity(self):
-        try:
-            if self.type == "dataset":
-                self._entity = await self.trainml.datasets.get(self.id)
-            elif self.type == "job":
-                self._entity = await self.trainml.jobs.get(self.id)
-            else:
-                raise TypeError(
-                    "Connection type must be in: ['dataset', 'job']"
-                )
-        except ApiError as e:
-            if e.status == 404:
-                await self.remove()
+        if self.type == "dataset":
+            self._entity = await self.trainml.datasets.get(self.id)
+        elif self.type == "job":
+            self._entity = await self.trainml.jobs.get(self.id)
+        else:
+            raise TypeError("Connection type must be in: ['dataset', 'job']")
 
     async def _download_connection_details(self):
         zip_file = f"{self._dir}/details.zip"
@@ -154,7 +157,15 @@ class Connection:
 
     async def check(self):
         if not self._entity:
-            await self._get_entity()
+            try:
+                await self._get_entity()
+            except ApiError as e:
+                if e.status == 404:
+                    self._status = STATUSES.get("REMOVED")
+                    self._status = STATUSES.get("REMOVED")
+                    shutil.rmtree(self._dir)
+                else:
+                    raise e
         if not os.path.isdir(f"{self._dir}/data"):
             self._status = STATUSES.get("NEW")
             return
@@ -313,11 +324,11 @@ class Connection:
         shutil.rmtree(self._dir)
 
 
-async def _cleanup_containers(con_dirs, type):
+async def _cleanup_containers(path, con_dirs, type):
     containers_target = []
     for con_dir in con_dirs:
         try:
-            with open(f"{CONNECTIONS_DIR}/{con_dir}/{type}_id", "r") as f:
+            with open(f"{path}/{con_dir}/{type}_id", "r") as f:
                 id = f.read()
             containers_target.append(id)
         except OSError:
@@ -328,15 +339,13 @@ async def _cleanup_containers(con_dirs, type):
         all=True,
         filters=json.dumps(dict(label=["service=trainml", f"type={type}"])),
     )
-    print(containers_target)
-    print(containers)
-    [print(container.id) for container in containers]
+
     tasks = [
         asyncio.create_task(container.delete(force=True))
         for container in containers
         if container.id not in containers_target
     ]
-    print(tasks)
+
     await asyncio.gather(*tasks)
     await docker.close()
 

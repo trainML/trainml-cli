@@ -1,8 +1,8 @@
-import trainml
+from trainml.trainml import TrainML
 import asyncio
 
 
-trainml_client = trainml.TrainML()
+trainml_client = TrainML()
 
 # Create the dataset
 dataset = asyncio.run(

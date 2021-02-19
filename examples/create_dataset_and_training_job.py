@@ -23,7 +23,7 @@ job = asyncio.run(
     trainml_client.jobs.create(
         name="Example Training Job",
         type="headless",
-        gpu_type="RTX 2080 Ti",
+        gpu_type="GTX 1060",
         gpu_count=1,
         disk_size=10,
         worker_count=1,

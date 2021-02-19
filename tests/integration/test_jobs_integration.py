@@ -1,6 +1,8 @@
 import re
 import sys
 import logging
+import tempfile
+import os
 from pytest import mark, fixture, raises
 
 pytestmark = [mark.integration, mark.jobs]
@@ -171,3 +173,49 @@ class JobEnvironmentTests:
         assert "adding: train.log" in captured.out
         assert "gs://trainml-example/output/mnist" in captured.out
         assert "Operation completed over 1 objects" in captured.out
+
+    async def test_job_mxnet(self, trainml, capsys):
+        temp_dir = tempfile.TemporaryDirectory()
+        job = await trainml.jobs.create(
+            "CLI Automated MXNet Test",
+            type="headless",
+            gpu_type="GTX 1060",
+            gpu_count=1,
+            disk_size=1,
+            worker_count=1,
+            worker_commands=[
+                "python scripts/classification/cifar/train_cifar10.py --model cifar_resnet56_v2 --num-gpus 1 --save-dir $TRAINML_OUTPUT_PATH --num-epochs 2 --batch-size 1024"
+            ],
+            environment=dict(
+                type="MXNET_PY38_17",
+                env=[dict(key="MXNET_CUDNN_AUTOTUNE_DEFAULT", value="0")],
+            ),
+            data=dict(
+                datasets=[],
+                output_uri=temp_dir.name,
+                output_type="local",
+            ),
+            model=dict(git_uri="https://github.com/dmlc/gluon-cv.git"),
+        )
+        await job.wait_for("running")
+        await job.connect()
+        await job.attach()
+        await job.refresh()
+        assert job.status == "stopped"
+        await job.disconnect()
+        await job.remove()
+        upload_contents = os.listdir(temp_dir.name)
+        result = any(
+            "CLI_Automated_MXNet_Test_1" in content
+            for content in upload_contents
+        )
+        assert result is not None
+        temp_dir.cleanup()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert "INFO:root:[Epoch 0]" in captured.out
+        assert "INFO:root:[Epoch 1]" in captured.out
+        assert "adding: cifar10-cifar_resnet56_v2" in captured.out
+        assert "Starting send CLI_Automated_MXNet_Test_1" in captured.out
+        assert "Send complete" in captured.out

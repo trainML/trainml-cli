@@ -1,3 +1,4 @@
+aiodocker
 aiohttp
 boto3
 python-jose[cryptography]

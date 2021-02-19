@@ -1,7 +1,7 @@
 import re
 from pytest import mark, fixture
 
-pytestmark = [mark.unit, mark.environments]
+pytestmark = [mark.integration, mark.environments]
 
 
 @fixture(scope="module")

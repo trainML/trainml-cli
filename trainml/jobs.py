@@ -208,9 +208,12 @@ class Job:
         return resp
 
     def get_connection_details(self):
+
         details = dict(
             cidr=self._job.get("vpn").get("cidr"),
-            ssh_port=self._job.get("vpn").get("client").get("ssh_port"),
+            ssh_port=self._job.get("vpn").get("client").get("ssh_port")
+            if self._job.get("vpn").get("client")
+            else None,
             input_path=None,
             output_path=self._job.get("data").get("output_uri")
             if self._job.get("data").get("output_type") == "local"

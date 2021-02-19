@@ -1,5 +1,6 @@
 import re
 import json
+import os
 from unittest.mock import (
     Mock,
     AsyncMock,
@@ -96,8 +97,16 @@ class ConnectionsTests:
             ) as mock_cleanup:
                 await connections.cleanup()
                 assert mock_cleanup.mock_calls == [
-                    call(dir_list, "vpn"),
-                    call(dir_list, "storage"),
+                    call(
+                        os.path.expanduser("~/.trainml/connections"),
+                        dir_list,
+                        "vpn",
+                    ),
+                    call(
+                        os.path.expanduser("~/.trainml/connections"),
+                        dir_list,
+                        "storage",
+                    ),
                 ]
 
     @mark.asyncio
@@ -119,7 +128,11 @@ class ConnectionsTests:
                 docker = mock_docker.return_value
                 docker.containers = AsyncMock()
                 docker.containers.list = AsyncMock(return_value=containers)
-                await specimen._cleanup_containers(["dir_1"], "job")
+                await specimen._cleanup_containers(
+                    os.path.expanduser("~/.trainml/connections"),
+                    ["dir_1"],
+                    "job",
+                )
                 docker.containers.list.assert_called_once_with(
                     all=True,
                     filters=json.dumps(

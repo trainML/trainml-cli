@@ -11,13 +11,12 @@ from .environments import Environments
 from .exceptions import ApiError
 from .connections import Connections
 
-CONFIG_DIR = os.path.expanduser(
-    os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
-)
-
 
 class TrainML(object):
     def __init__(self, **kwargs):
+        CONFIG_DIR = os.path.expanduser(
+            os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+        )
         try:
             with open(f"{CONFIG_DIR}/environment.json", "r") as file:
                 env_str = file.read().replace("\n", "")
