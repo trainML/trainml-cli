@@ -11,6 +11,7 @@ markers = [
     "environments: Environment tests",
     "datasets: Datasets tests",
     "jobs: Jobs tests",
+    "connections: Connections tests",
     "unit: All unit tests (no trainML environment required)",
     "integration: All integration tests (trainML environment required)"
 ]

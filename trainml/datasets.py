@@ -104,9 +104,7 @@ class Dataset:
                 ssh_port=self._dataset.get("vpn")
                 .get("client")
                 .get("ssh_port"),
-                input_path=self._dataset.get("source_uri")
-                if self._dataset.get("source_type") == "local"
-                else None,
+                input_path=self._dataset.get("source_uri"),
                 output_path=None,
             )
         else:

@@ -4,8 +4,8 @@ import math
 import logging
 from datetime import datetime
 
-from .exceptions import ApiError, JobError
-from .connections import Connection
+from trainml.exceptions import ApiError, JobError
+from trainml.connections import Connection
 
 
 def _clean_datasets_selection(

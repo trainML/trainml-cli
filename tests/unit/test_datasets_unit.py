@@ -1,6 +1,6 @@
 import re
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from pytest import mark, fixture, raises
 from aiohttp import WSMessage, WSMsgType
 
@@ -118,52 +118,6 @@ class DatasetsTests:
             await datasets.create(**requested_config)
         mock_trainml._query.assert_not_called()
 
-    @mark.asyncio
-    async def test_create_dataset_and_wait(
-        self,
-        datasets,
-        mock_trainml,
-    ):
-        requested_config = dict(
-            name="new dataset",
-            source_type="aws",
-            source_uri="s3://trainml-examples/data/cifar10",
-            wait=True,
-        )
-        api_response_1 = {
-            "customer_uuid": "cus-id-1",
-            "dataset_uuid": "data-id-1",
-            "name": "new dataset",
-            "provider": "trainml",
-            "status": "new",
-            "source_type": "aws",
-            "source_uri": "s3://trainml-examples/data/cifar10",
-            "createdAt": "2020-12-20T16:46:23.909Z",
-        }
-
-        api_response_2 = {
-            "customer_uuid": "cus-id-1",
-            "dataset_uuid": "data-id-1",
-            "name": "new dataset",
-            "provider": "trainml",
-            "status": "ready",
-            "source_type": "aws",
-            "source_uri": "s3://trainml-examples/data/cifar10",
-            "size": 1000000,
-            "createdAt": "2020-12-20T16:46:23.909Z",
-        }
-
-        mock_trainml._query = AsyncMock()
-        mock_trainml._query.side_effect = [api_response_1, api_response_2]
-        mock_trainml._ws_subscribe = AsyncMock(return_value=None)
-
-        response = await datasets.create(**requested_config)
-
-        mock_trainml._query.assert_called()
-        mock_trainml._ws_subscribe.assert_called_once()
-        assert response.id == "data-id-1"
-        assert response.status == "ready"
-
 
 class DatasetTests:
     def test_dataset_properties(self, dataset):
@@ -189,6 +143,11 @@ class DatasetTests:
         assert isinstance(string, str)
         assert re.match(regex, string)
 
+    def test_dataset_bool(self, dataset, mock_trainml):
+        empty_dataset = specimen.Dataset(mock_trainml)
+        assert bool(dataset)
+        assert not bool(empty_dataset)
+
     @mark.asyncio
     async def test_dataset_get_connection_utility_url(
         self, dataset, mock_trainml
@@ -201,6 +160,67 @@ class DatasetTests:
             "/dataset/pub/1/download", "GET"
         )
         assert response == api_response
+
+    def test_dataset_get_connection_details_no_vpn(self, dataset):
+        details = dataset.get_connection_details()
+        expected_details = dict()
+        assert details == expected_details
+
+    def test_dataset_get_connection_details_local_data(self, mock_trainml):
+        dataset = specimen.Dataset(
+            mock_trainml,
+            dataset_uuid="1",
+            name="first one",
+            status="new",
+            provider="trainml",
+            size=100000,
+            createdAt="2020-12-31T23:59:59.000Z",
+            source_type="local",
+            source_uri="~/tensorflow-example/data",
+            vpn={
+                "status": "new",
+                "cidr": "10.106.171.0/24",
+                "client": {
+                    "port": "36017",
+                    "id": "cus-id-1",
+                    "address": "10.106.171.253",
+                    "ssh_port": 46600,
+                },
+                "net_prefix_type_id": 1,
+            },
+        )
+        details = dataset.get_connection_details()
+        expected_details = dict(
+            cidr="10.106.171.0/24",
+            ssh_port=46600,
+            input_path="~/tensorflow-example/data",
+            output_path=None,
+        )
+        assert details == expected_details
+
+    @mark.asyncio
+    async def test_dataset_connect(self, dataset, mock_trainml):
+        with patch(
+            "trainml.datasets.Connection",
+            autospec=True,
+        ) as mock_connection:
+            connection = mock_connection.return_value
+            connection.status = "connected"
+            resp = await dataset.connect()
+            connection.start.assert_called_once()
+            assert resp == "connected"
+
+    @mark.asyncio
+    async def test_dataset_disconnect(self, dataset, mock_trainml):
+        with patch(
+            "trainml.datasets.Connection",
+            autospec=True,
+        ) as mock_connection:
+            connection = mock_connection.return_value
+            connection.status = "removed"
+            resp = await dataset.disconnect()
+            connection.remove.assert_called_once()
+            assert resp == "removed"
 
     @mark.asyncio
     async def test_dataset_remove(self, dataset, mock_trainml):

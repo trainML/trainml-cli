@@ -43,7 +43,7 @@ class ConnectionError(Exception):
         self.message = message
 
     def __repr__(self):
-        return "DatasetError({self.message})".format(self=self)
+        return "ConnectionError({self.message})".format(self=self)
 
     def __str__(self):
-        return "DatasetError({self.message})".format(self=self)
+        return "ConnectionError({self.message})".format(self=self)

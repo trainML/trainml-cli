@@ -126,8 +126,9 @@ class JobEnvironmentTests:
                 output_type="aws",
             ),
             model=dict(git_uri="git@github.com:trainML/test-private.git"),
-            wait=True,
         )
+        await job.attach()
+        await job.refresh()
         assert job.status == "stopped"
         await job.remove()
         captured = capsys.readouterr()
@@ -157,8 +158,9 @@ class JobEnvironmentTests:
                 output_type="gcp",
             ),
             model=dict(git_uri="https://github.com/pytorch/examples"),
-            wait=True,
         )
+        await job.attach()
+        await job.refresh()
         assert job.status == "stopped"
         await job.remove()
         captured = capsys.readouterr()

@@ -7,6 +7,7 @@ from trainml.datasets import Dataset, Datasets
 from trainml.gpu_types import GpuType, GpuTypes
 from trainml.environments import Environment, Environments
 from trainml.jobs import Job, Jobs
+from trainml.connections import Connections
 
 pytestmark = mark.unit
 
@@ -454,6 +455,7 @@ def mock_trainml(
     trainml.gpu_types = create_autospec(GpuTypes)
     trainml.environments = create_autospec(Environments)
     trainml.jobs = create_autospec(Jobs)
+    trainml.connections = create_autospec(Connections)
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
     trainml.gpu_types.list = AsyncMock(return_value=mock_gpu_types)

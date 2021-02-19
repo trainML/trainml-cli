@@ -55,55 +55,10 @@ class Connections(object):
 
     async def cleanup(self):
         con_dirs = os.listdir(CONNECTIONS_DIR)
-        vpn_containers_target = []
-        storage_containers_target = []
-        for con_dir in con_dirs:
-            try:
-                with open(f"{CONNECTIONS_DIR}/{con_dir}/vpn_id", "r") as f:
-                    vpn_id = f.read()
-                vpn_containers_target.append(vpn_id)
-            except OSError:
-                continue
-
-            try:
-                with open(f"{CONNECTIONS_DIR}/{con_dir}/storage_id", "r") as f:
-                    storage_id = f.read()
-                storage_containers_target.append(storage_id)
-            except OSError:
-                continue
-
-        docker = aiodocker.Docker()
-        vpn_containers_task = asyncio.create_task(
-            docker.containers.list(
-                all=True,
-                filters=json.dumps(
-                    dict(label=["service=trainml", "type=vpn"])
-                ),
-            )
+        await asyncio.gather(
+            asyncio.create_task(_cleanup_containers(con_dirs, "vpn")),
+            asyncio.create_task(_cleanup_containers(con_dirs, "storage")),
         )
-        storage_containers_task = asyncio.create_task(
-            docker.containers.list(
-                all=True,
-                filters=json.dumps(
-                    dict(label=["service=trainml", "type=storage"])
-                ),
-            )
-        )
-        vpn_containers, storage_containers = await asyncio.gather(
-            vpn_containers_task, storage_containers_task
-        )
-        vpn_tasks = [
-            asyncio.create_task(container.delete(force=True))
-            for container in vpn_containers
-            if container.id not in vpn_containers_target
-        ]
-        storage_tasks = [
-            asyncio.create_task(container.delete(force=True))
-            for container in storage_containers
-            if container.id not in storage_containers_target
-        ]
-        await asyncio.gather(*vpn_tasks, *storage_tasks)
-        await docker.close()
 
 
 class Connection:
@@ -248,6 +203,14 @@ class Connection:
             self._status = STATUSES.get("NOT_CONNECTED")
 
     async def start(self):
+        if self.status == STATUSES.get("UNKNOWN"):
+            await self.check()
+        if self.status in [
+            STATUSES.get("CONNECTING"),
+            STATUSES.get("CONNECTED"),
+            STATUSES.get("NOT_CONNECTED"),
+        ]:
+            raise TypeError("Only inactive connections can be started.")
         self._status = STATUSES.get("CONNECTING")
         if not self._entity:
             await self._get_entity()
@@ -297,9 +260,16 @@ class Connection:
         self._status = STATUSES.get("CONNECTED")
 
     async def stop(self):
+        if self.status == STATUSES.get("UNKNOWN"):
+            await self.check()
+        if self.status in [
+            STATUSES.get("STOPPED"),
+            STATUSES.get("REMOVED"),
+            STATUSES.get("NEW"),
+        ]:
+            raise TypeError("Only active connections can be stopped.")
         if not self._entity:
             await self._get_entity()
-
         docker = aiodocker.Docker()
         tasks = []
         try:
@@ -341,6 +311,34 @@ class Connection:
             await self.stop()
         self._status = STATUSES.get("REMOVED")
         shutil.rmtree(self._dir)
+
+
+async def _cleanup_containers(con_dirs, type):
+    containers_target = []
+    for con_dir in con_dirs:
+        try:
+            with open(f"{CONNECTIONS_DIR}/{con_dir}/{type}_id", "r") as f:
+                id = f.read()
+            containers_target.append(id)
+        except OSError:
+            continue
+
+    docker = aiodocker.Docker()
+    containers = await docker.containers.list(
+        all=True,
+        filters=json.dumps(dict(label=["service=trainml", f"type={type}"])),
+    )
+    print(containers_target)
+    print(containers)
+    [print(container.id) for container in containers]
+    tasks = [
+        asyncio.create_task(container.delete(force=True))
+        for container in containers
+        if container.id not in containers_target
+    ]
+    print(tasks)
+    await asyncio.gather(*tasks)
+    await docker.close()
 
 
 def _parse_cidr(cidr):

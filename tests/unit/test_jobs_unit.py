@@ -1,7 +1,7 @@
 import re
 import logging
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from pytest import mark, fixture, raises
 from aiohttp import WSMessage, WSMsgType
 
@@ -273,63 +273,6 @@ class JobsTests:
         with raises(ValueError):
             await jobs.create(**requested_config)
 
-    @mark.asyncio
-    async def test_create_job_and_wait(
-        self,
-        jobs,
-        mock_trainml,
-    ):
-        requested_config = dict(
-            name="job_name",
-            type="interactive",
-            gpu_type="GTX 1060",
-            gpu_count=1,
-            disk_size=10,
-            wait=True,
-        )
-        api_response_1 = {
-            "customer_uuid": "cus-id-1",
-            "job_uuid": "job-id-1",
-            "name": "test notebook",
-            "type": "interactive",
-            "status": "new",
-            "workers": [
-                {
-                    "rig_uuid": "rig-id-1",
-                    "job_worker_uuid": "worker-id-1",
-                    "command": "jupyter lab",
-                    "status": "new",
-                }
-            ],
-        }
-
-        api_response_2 = {
-            "customer_uuid": "cus-id-1",
-            "job_uuid": "job-id-1",
-            "name": "test notebook",
-            "type": "interactive",
-            "status": "running",
-            "workers": [
-                {
-                    "rig_uuid": "rig-id-1",
-                    "job_worker_uuid": "worker-id-1",
-                    "command": "jupyter lab",
-                    "status": "running",
-                }
-            ],
-        }
-
-        mock_trainml._query = AsyncMock()
-        mock_trainml._query.side_effect = [api_response_1, api_response_2]
-        mock_trainml._ws_subscribe = AsyncMock(return_value=None)
-
-        response = await jobs.create(**requested_config)
-
-        mock_trainml._query.assert_called()
-        mock_trainml._ws_subscribe.assert_called_once()
-        assert response.id == "job-id-1"
-        assert response.status == "running"
-
 
 class JobTests:
     def test_job_properties(self, job):
@@ -385,12 +328,135 @@ class JobTests:
         )
         assert response == api_response
 
+    def test_job_get_connection_details_no_data(self, job):
+        details = job.get_connection_details()
+        expected_details = dict(
+            cidr="10.106.171.0/24",
+            ssh_port=None,
+            input_path=None,
+            output_path=None,
+        )
+        assert details == expected_details
+
+    def test_job_get_connection_details_local_data(self, mock_trainml):
+        job = specimen.Job(
+            mock_trainml,
+            **{
+                "customer_uuid": "cus-id-1",
+                "job_uuid": "job-id-1",
+                "name": "test notebook",
+                "type": "interactive",
+                "status": "new",
+                "provider": "trainml",
+                "data": {
+                    "datasets": [],
+                    "output_type": "local",
+                    "output_uri": "~/tensorflow-example/output",
+                    "status": "ready",
+                },
+                "vpn": {
+                    "status": "new",
+                    "cidr": "10.106.171.0/24",
+                    "client": {
+                        "port": "36017",
+                        "id": "cus-id-1",
+                        "address": "10.106.171.253",
+                        "ssh_port": 46600,
+                    },
+                    "net_prefix_type_id": 1,
+                },
+            },
+        )
+        details = job.get_connection_details()
+        expected_details = dict(
+            cidr="10.106.171.0/24",
+            ssh_port=46600,
+            input_path=None,
+            output_path="~/tensorflow-example/output",
+        )
+        assert details == expected_details
+
+    @mark.asyncio
+    async def test_job_connect(self, job, mock_trainml):
+        with patch(
+            "trainml.jobs.Connection",
+            autospec=True,
+        ) as mock_connection:
+            connection = mock_connection.return_value
+            connection.status = "connected"
+            resp = await job.connect()
+            connection.start.assert_called_once()
+            assert resp == "connected"
+
+    @mark.asyncio
+    async def test_job_disconnect(self, job, mock_trainml):
+        with patch(
+            "trainml.jobs.Connection",
+            autospec=True,
+        ) as mock_connection:
+            connection = mock_connection.return_value
+            connection.status = "stopped"
+            resp = await job.disconnect()
+            connection.stop.assert_called_once()
+            assert resp == "stopped"
+
     @mark.asyncio
     async def test_job_remove(self, job, mock_trainml):
-        api_response = dict()
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        await job.remove()
-        mock_trainml._query.assert_called_once_with("/job/job-id-1", "DELETE")
+        with patch(
+            "trainml.jobs.Connection",
+            autospec=True,
+        ) as mock_connection:
+            connection = mock_connection.return_value
+            api_response = dict()
+            mock_trainml._query = AsyncMock(return_value=api_response)
+            await job.remove()
+            mock_trainml._query.assert_called_once_with(
+                "/job/job-id-1", "DELETE"
+            )
+            connection.remove.assert_not_called()
+
+    @mark.asyncio
+    async def test_job_remove_with_connection(self, mock_trainml):
+        with patch(
+            "trainml.jobs.Connection",
+            autospec=True,
+        ) as mock_connection:
+            connection = mock_connection.return_value
+            job = specimen.Job(
+                mock_trainml,
+                **{
+                    "customer_uuid": "cus-id-1",
+                    "job_uuid": "job-id-1",
+                    "name": "test notebook",
+                    "type": "interactive",
+                    "status": "new",
+                    "provider": "trainml",
+                    "data": {
+                        "datasets": [],
+                        "output_type": "local",
+                        "output_uri": "~/tensorflow-example/output",
+                        "status": "ready",
+                    },
+                    "vpn": {
+                        "status": "new",
+                        "cidr": "10.106.171.0/24",
+                        "client": {
+                            "port": "36017",
+                            "id": "cus-id-1",
+                            "address": "10.106.171.253",
+                            "ssh_port": 46600,
+                        },
+                        "net_prefix_type_id": 1,
+                    },
+                },
+            )
+            api_response = dict()
+            mock_trainml._query = AsyncMock(return_value=api_response)
+            await job.remove()
+            mock_trainml._query.assert_called_once_with(
+                "/job/job-id-1", "DELETE"
+            )
+            connection.remove.assert_called_once()
 
     @mark.asyncio
     async def test_job_refresh(self, job, mock_trainml):
