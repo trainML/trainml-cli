@@ -43,6 +43,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        trainml=trainml.script:cli
+        trainml=trainml.cli:cli
     ''',
 )
