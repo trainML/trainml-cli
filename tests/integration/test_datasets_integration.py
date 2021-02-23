@@ -64,76 +64,12 @@ async def test_dataset_aws(trainml, capsys):
         source_type="aws",
         source_uri="s3://trainml-examples/data/cifar10",
     )
-    await dataset.attach()
+    dataset = await dataset.wait_for("ready", 60)
+    status = dataset.status
+    size = dataset.size
     await dataset.remove()
-    captured = capsys.readouterr()
-    sys.stdout.write(captured.out)
-    sys.stderr.write(captured.err)
-    assert "Syncing from s3://trainml-examples/data/cifar10" in captured.out
-    assert (
-        "download: s3://trainml-examples/data/cifar10/data_batch_4.bin to ./data_batch_4.bin"
-        in captured.out
-    )
-    assert "Download complete" in captured.out
-
-
-@mark.create
-@mark.asyncio
-async def test_dataset_kaggle(trainml, capsys):
-    dataset = await trainml.datasets.create(
-        name="CLI Automated Kaggle",
-        source_type="kaggle",
-        source_uri="lish-moa",
-        source_options=dict(type="competition"),
-    )
-    await dataset.attach()
-    await dataset.remove()
-    captured = capsys.readouterr()
-    sys.stdout.write(captured.out)
-    sys.stderr.write(captured.err)
-    assert "Unzipping lish-moa.zip" in captured.out
-    assert "inflating: train_features.csv" in captured.out
-    assert "Download complete" in captured.out
-
-
-@mark.create
-@mark.asyncio
-async def test_dataset_gcp(trainml, capsys):
-    dataset = await trainml.datasets.create(
-        name="CLI Automated GCP",
-        source_type="gcp",
-        source_uri="gs://trainml-example/data/ml-100k",
-    )
-    await dataset.attach()
-    await dataset.remove()
-    captured = capsys.readouterr()
-    sys.stdout.write(captured.out)
-    sys.stderr.write(captured.err)
-    assert (
-        "Copying gs://trainml-example/data/ml-100k/u.data..." in captured.out
-    )
-    assert "Download complete" in captured.out
-
-
-@mark.create
-@mark.asyncio
-async def test_dataset_web(trainml, capsys):
-    dataset = await trainml.datasets.create(
-        name="CLI Automated Web",
-        source_type="web",
-        source_uri="http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz",
-    )
-    await dataset.attach()
-    await dataset.remove()
-    captured = capsys.readouterr()
-    sys.stdout.write(captured.out)
-    sys.stderr.write(captured.err)
-    assert (
-        "Download and extract gzip http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"
-        in captured.out
-    )
-    assert '[9912422/9912422] -> "train-images-idx3-ubyte.gz"' in captured.out
-    assert "Download complete" in captured.out
+    assert status == "ready"
+    assert size >= 10000000
 
 
 @mark.create
@@ -147,7 +83,12 @@ async def test_dataset_local(trainml, capsys):
     await dataset.connect()
     await dataset.attach()
     await dataset.disconnect()
+    await dataset.refresh()
+    status = dataset.status
+    size = dataset.size
     await dataset.remove()
+    assert status == "ready"
+    assert size >= 10000000
     captured = capsys.readouterr()
     sys.stdout.write(captured.out)
     sys.stderr.write(captured.err)

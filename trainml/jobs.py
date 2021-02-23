@@ -20,6 +20,8 @@ def _clean_datasets_selection(
                     type=dataset.get("type"),
                 )
             )
+        elif "dataset_uuid" in dataset.keys():
+            datasets.append(dataset)
         elif "name" in dataset.keys():
             if dataset.get("type") == "existing":
                 selected_dataset = next(
@@ -297,7 +299,6 @@ class Job:
             data=kwargs.get("data") or self._job.get("data"),
             vpn=kwargs.get("vpn") or self._job.get("vpn"),
             source_job_uuid=self.id,
-            wait=kwargs.get("wait"),
         )
         logging.debug(f"copy result: {job}")
         return job

@@ -101,11 +101,9 @@ class JobLifeCycleTests:
         job = await job.wait_for("archived", 60)
         assert job is None
 
-
-@mark.create
-@mark.asyncio
-class JobEnvironmentTests:
-    async def test_job_tensorflow(self, trainml, capsys):
+    @mark.tensorflow
+    async def test_job_local_output(self, trainml, capsys):
+        temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(
             "CLI Automated Tensorflow Test",
             type="headless",
@@ -124,78 +122,10 @@ class JobEnvironmentTests:
                         type="public",
                     )
                 ],
-                output_uri="s3://trainml-examples/output/resnet_cifar10",
-                output_type="aws",
-            ),
-            model=dict(git_uri="git@github.com:trainML/test-private.git"),
-        )
-        await job.attach()
-        await job.refresh()
-        assert job.status == "stopped"
-        await job.remove()
-        captured = capsys.readouterr()
-        sys.stdout.write(captured.out)
-        sys.stderr.write(captured.err)
-        assert "Epoch 1/2" in captured.out
-        assert "Epoch 2/2" in captured.out
-        assert "adding: model.ckpt-0001.data-00000-of-00001" in captured.out
-        assert "s3://trainml-examples/output/resnet_cifar10" in captured.out
-        assert "Upload complete" in captured.out
-
-    async def test_job_pytorch(self, trainml, capsys):
-        job = await trainml.jobs.create(
-            "CLI Automated PyTorch Test",
-            type="headless",
-            gpu_type="GTX 1060",
-            gpu_count=1,
-            disk_size=1,
-            worker_count=1,
-            worker_commands=[
-                "cd $TRAINML_OUTPUT_PATH && python $TRAINML_MODEL_PATH/mnist/main.py  --epochs 1  2>&1 | tee $TRAINML_OUTPUT_PATH/train.log"
-            ],
-            environment=dict(type="PYTORCH_PY38_17"),
-            data=dict(
-                datasets=[],
-                output_uri="gs://trainml-example/output/mnist",
-                output_type="gcp",
-            ),
-            model=dict(git_uri="https://github.com/pytorch/examples"),
-        )
-        await job.attach()
-        await job.refresh()
-        assert job.status == "stopped"
-        await job.remove()
-        captured = capsys.readouterr()
-        sys.stdout.write(captured.out)
-        sys.stderr.write(captured.err)
-        assert "Train Epoch: 1 [0/60000 (0%)]" in captured.out
-        assert "Train Epoch: 1 [59520/60000 (99%)]" in captured.out
-        assert "adding: train.log" in captured.out
-        assert "gs://trainml-example/output/mnist" in captured.out
-        assert "Operation completed over 1 objects" in captured.out
-
-    async def test_job_mxnet(self, trainml, capsys):
-        temp_dir = tempfile.TemporaryDirectory()
-        job = await trainml.jobs.create(
-            "CLI Automated MXNet Test",
-            type="headless",
-            gpu_type="GTX 1060",
-            gpu_count=1,
-            disk_size=1,
-            worker_count=1,
-            worker_commands=[
-                "python scripts/classification/cifar/train_cifar10.py --model cifar_resnet56_v2 --num-gpus 1 --save-dir $TRAINML_OUTPUT_PATH --num-epochs 2 --batch-size 1024"
-            ],
-            environment=dict(
-                type="MXNET_PY38_17",
-                env=[dict(key="MXNET_CUDNN_AUTOTUNE_DEFAULT", value="0")],
-            ),
-            data=dict(
-                datasets=[],
                 output_uri=temp_dir.name,
                 output_type="local",
             ),
-            model=dict(git_uri="https://github.com/dmlc/gluon-cv.git"),
+            model=dict(git_uri="git@github.com:trainML/test-private.git"),
         )
         await job.wait_for("running")
         await job.connect()
@@ -211,11 +141,11 @@ class JobEnvironmentTests:
         )
         assert result is not None
         temp_dir.cleanup()
+
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
         sys.stderr.write(captured.err)
-        assert "INFO:root:[Epoch 0]" in captured.out
-        assert "INFO:root:[Epoch 1]" in captured.out
-        assert "adding: cifar10-cifar_resnet56_v2" in captured.out
-        assert "Starting send CLI_Automated_MXNet_Test_1" in captured.out
+        assert "Epoch 1/2" in captured.out
+        assert "Epoch 2/2" in captured.out
+        assert "adding: model.ckpt-0001.data-00000-of-00001" in captured.out
         assert "Send complete" in captured.out
