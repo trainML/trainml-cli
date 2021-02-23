@@ -115,13 +115,14 @@ class Jobs(object):
         if not selected_gpu_type:
             raise ValueError("GPU Type Not Found")
 
-        datasets = _clean_datasets_selection(
-            data.get("datasets"),
-            selected_gpu_type.provider,
-            my_datasets,
-            public_datasets,
-        )
-        data["datasets"] = datasets
+        if data:
+            datasets = _clean_datasets_selection(
+                data.get("datasets"),
+                selected_gpu_type.provider,
+                my_datasets,
+                public_datasets,
+            )
+            data["datasets"] = datasets
 
         config = dict(
             name=name,
@@ -142,7 +143,11 @@ class Jobs(object):
         payload = {
             k: v
             for k, v in config.items()
-            if v or k in ["worker_commands", "model"]
+            if v
+            or (
+                k in ["worker_commands", "model"]
+                and not kwargs.get("source_job_uuid")
+            )
         }
         logging.info(f"Creating Job {name}")
         logging.debug(f"Job payload: {payload}")
@@ -292,12 +297,11 @@ class Job:
             or self._job.get("resources").get("gpu_count"),
             disk_size=kwargs.get("disk_size")
             or self._job.get("resources").get("disk_size"),
-            worker_count=kwargs.get("worker_count") or len(self._workers),
+            worker_count=kwargs.get("worker_count"),
             worker_commands=kwargs.get("worker_commands"),
-            environment=kwargs.get("environment")
-            or self._job.get("environment"),
-            data=kwargs.get("data") or self._job.get("data"),
-            vpn=kwargs.get("vpn") or self._job.get("vpn"),
+            environment=kwargs.get("environment"),
+            data=kwargs.get("data"),
+            vpn=kwargs.get("vpn"),
             source_job_uuid=self.id,
         )
         logging.debug(f"copy result: {job}")

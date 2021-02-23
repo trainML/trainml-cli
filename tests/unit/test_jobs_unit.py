@@ -111,6 +111,16 @@ class CleanDatasetSelectionTests:
                 [dict(dataset_uuid="3", type="existing")],
             ),
             (
+                [dict(dataset_uuid="1", type="existing")],
+                "trainml",
+                [dict(dataset_uuid="1", type="existing")],
+            ),
+            (
+                [dict(dataset_uuid="3", type="existing")],
+                "gcp",
+                [dict(dataset_uuid="3", type="existing")],
+            ),
+            (
                 [dict(name="first one", type="public")],
                 "trainml",
                 [dict(dataset_uuid="11", type="public")],
@@ -250,6 +260,42 @@ class JobsTests:
             data=dict(datasets=[]),
             model=dict(),
             vpn=dict(net_prefix_type_id=1),
+        )
+
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await jobs.create(**requested_config)
+        mock_trainml._query.assert_called_once_with(
+            "/job", "POST", None, expected_payload
+        )
+
+    async def test_job_create_from_empty_copy(
+        self,
+        jobs,
+        mock_trainml,
+    ):
+        requested_config = dict(
+            name="job_name",
+            type="interactive",
+            gpu_type="GTX 1060",
+            gpu_count=1,
+            disk_size=10,
+            worker_count=None,
+            worker_commands=None,
+            environment=None,
+            data=None,
+            vpn=None,
+            source_job_uuid="job-id-1",
+        )
+        expected_payload = dict(
+            name="job_name",
+            type="interactive",
+            resources=dict(
+                gpu_type_id="1060-id",
+                gpu_count=1,
+                disk_size=10,
+            ),
+            source_job_uuid="job-id-1",
         )
 
         api_response = dict()
@@ -558,47 +604,12 @@ class JobTests:
             "gpu_type": "1060-id",
             "gpu_count": 1,
             "disk_size": 10,
-            "worker_count": 1,
+            "worker_count": None,
             "worker_commands": None,
-            "environment": {
-                "type": "DEEPLEARNING_PY38",
-                "image_size": 44966989795,
-                "env": [
-                    {"value": "env1val", "key": "env1"},
-                    {"value": "env2val", "key": "env2"},
-                ],
-                "worker_key_types": ["aws", "gcp"],
-                "status": "new",
-            },
-            "data": {
-                "datasets": [
-                    {
-                        "dataset_uuid": "data-id-1",
-                        "name": "first one",
-                        "type": "public",
-                        "size": 184549376,
-                    },
-                    {
-                        "dataset_uuid": "data-id-2",
-                        "name": "second one",
-                        "type": "public",
-                        "size": 5068061409,
-                    },
-                ],
-                "status": "ready",
-            },
-            "vpn": {
-                "status": "new",
-                "cidr": "10.106.171.0/24",
-                "client": {
-                    "port": "36017",
-                    "id": "cus-id-1",
-                    "address": "10.106.171.253",
-                },
-                "net_prefix_type_id": 1,
-            },
+            "environment": None,
+            "data": None,
+            "vpn": None,
             "source_job_uuid": "job-id-1",
-            "wait": None,
         }
 
         api_response = specimen.Job(

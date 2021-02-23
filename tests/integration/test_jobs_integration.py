@@ -69,6 +69,19 @@ class JobLifeCycleTests:
         job = await job.wait_for("running", 60)
         assert job.status == "running"
 
+    async def test_copy_job(self, job):
+        job_copy = await job.copy("CLI Automated Job Copy")
+        assert job_copy.id != job.id
+        await job_copy.wait_for("stopped", 120)
+        assert job_copy.status == "stopped"
+        await job_copy.start()
+        await job_copy.wait_for("running", 60)
+        assert job_copy.status == "running"
+        await job_copy.stop()
+        await job_copy.wait_for("stopped", 60)
+        assert job_copy.status == "stopped"
+        await job_copy.remove()
+
     async def test_convert_job(self, job):
         training_job = await job.copy(
             "CLI Automated Job Convert",
@@ -101,7 +114,6 @@ class JobLifeCycleTests:
         job = await job.wait_for("archived", 60)
         assert job is None
 
-    @mark.tensorflow
     async def test_job_local_output(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(
