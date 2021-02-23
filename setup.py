@@ -39,5 +39,10 @@ setup(
         "boto3",
         "python-jose[cryptography]",
         "requests",
+        "Click",
     ],
+    entry_points='''
+        [console_scripts]
+        trainml=trainml.script:cli
+    ''',
 )
