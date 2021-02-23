@@ -16,10 +16,15 @@ def job(config):
 def list(config):
     """List TrainML jobs."""
     data = [['ID', 'NAME', 'STATUS', 'PROVIDER', 'TYPE']]
-    trainml_client = TrainML()
-    jobs = asyncio.run(
-        trainml_client.jobs.list()
-    )
+
+    try:
+        trainml_client = TrainML()
+        jobs = asyncio.run(
+            trainml_client.jobs.list()
+        )
+    except Exception as err:
+        raise click.UsageError(err)
+
     for job in jobs:
         data.append([job.id, job.name, job.status, job.provider, job.type])
     for row in data:

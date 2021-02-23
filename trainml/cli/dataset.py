@@ -15,10 +15,15 @@ def dataset(config):
 def list(config):
     """List datasets."""
     data = [['ID', 'STATUS', 'PROVIDER', 'NAME', 'SIZE']]
-    trainml_client = TrainML()
-    datasets = asyncio.run(
-        trainml_client.datasets.list()
-    )
+
+    try:
+        trainml_client = TrainML()
+        datasets = asyncio.run(
+            trainml_client.datasets.list()
+        )
+    except Exception as err:
+        raise click.UsageError(err)
+    
     for dset in datasets:
         data.append([dset.id, dset.status, dset.provider, dset.name, str(dset.size)])
     for row in data:
@@ -30,10 +35,15 @@ def list(config):
 def list_public(config):
     """List public datasets."""
     data = [['ID', 'STATUS', 'PROVIDER', 'NAME', 'SIZE']]
-    trainml_client = TrainML()
-    datasets = asyncio.run(
-        trainml_client.datasets.list_public()
-    )
+
+    try:
+        trainml_client = TrainML()
+        datasets = asyncio.run(
+            trainml_client.datasets.list_public()
+        )
+    except Exception as err:
+        raise click.UsageError(err)
+
     for dset in datasets:
         data.append([dset.id, dset.status, dset.provider, dset.name, str(dset.size)])
     for row in data:
