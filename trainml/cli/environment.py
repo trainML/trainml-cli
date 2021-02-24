@@ -15,7 +15,8 @@ def environment(config):
 @pass_config
 def list(config):
     """List environments."""
-    data = [['ID', 'NAME', 'PYTHON', 'FRAMEWORK', 'VERSION', 'CUDA']]
+    data = [['ID', 'NAME', 'PYTHON', 'FRAMEWORK', 'VERSION', 'CUDA'],
+            ['-'*80, '-'*80, '-'*80, '-'*80, '-'*80, '-'*80]]
 
     try:
         trainml_client = TrainML()
@@ -28,4 +29,4 @@ def list(config):
     for env in environments:
         data.append([env.id, env.name, env.py_version, env.framework, str(env.version), env.cuda_version])
     for row in data:
-        click.echo("{: >21} {: >30} {: >8} {: >15} {: >9} {: >6}".format(*row), file=config.output)
+        click.echo("{: >21.19} {: >30.28} {: >8.6} {: >15.13} {: >9.7} {: >6.4}".format(*row), file=config.output)

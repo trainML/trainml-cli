@@ -14,7 +14,8 @@ def dataset(config):
 @pass_config
 def list(config):
     """List datasets."""
-    data = [['ID', 'STATUS', 'PROVIDER', 'NAME', 'SIZE']]
+    data = [['ID', 'STATUS', 'PROVIDER', 'NAME', 'SIZE'],
+            ['-'*80, '-'*80, '-'*80, '-'*80, '-'*80]]
 
     try:
         trainml_client = TrainML()
@@ -27,14 +28,15 @@ def list(config):
     for dset in datasets:
         data.append([dset.id, dset.status, dset.provider, dset.name, str(dset.size)])
     for row in data:
-        click.echo("{: >38} {: >13} {: >10} {: >40} {: >14}".format(*row), file=config.output)
+        click.echo("{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}".format(*row), file=config.output)
 
 
 @dataset.command()
 @pass_config
 def list_public(config):
     """List public datasets."""
-    data = [['ID', 'STATUS', 'PROVIDER', 'NAME', 'SIZE']]
+    data = [['ID', 'STATUS', 'PROVIDER', 'NAME', 'SIZE'],
+            ['-'*80, '-'*80, '-'*80, '-'*80, '-'*80]]
 
     try:
         trainml_client = TrainML()
@@ -47,4 +49,4 @@ def list_public(config):
     for dset in datasets:
         data.append([dset.id, dset.status, dset.provider, dset.name, str(dset.size)])
     for row in data:
-        click.echo("{: >38} {: >13} {: >10} {: >40} {: >14}".format(*row), file=config.output)
+        click.echo("{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}".format(*row), file=config.output)

@@ -15,7 +15,8 @@ def connection(config):
 @pass_config
 def list(config):
     """List connections."""
-    data = [['ID', 'TYPE', 'STATUS']]
+    data = [['ID', 'TYPE', 'STATUS'],
+            ['-'*80, '-'*80, '-'*80]]
 
     try:
         trainml_client = TrainML()
@@ -28,4 +29,4 @@ def list(config):
     for con in connections:
         data.append([con.id, con.name, con.py_version, con.framework, str(con.version), con.cuda_version])
     for row in data:
-        click.echo("{: >38} {: >13} {: >13}".format(*row), file=config.output)
+        click.echo("{: >38.36} {: >13.11} {: >13.11}".format(*row), file=config.output)
