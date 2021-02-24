@@ -19,6 +19,7 @@ def cli(config, output_file):
     config.output = output_file
 
 
+from .connection import connection
 from .dataset import dataset
 from .environment import environment
 from .job import job
