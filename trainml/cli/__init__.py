@@ -22,4 +22,5 @@ def cli(config, output_file):
 from .connection import connection
 from .dataset import dataset
 from .environment import environment
+from .gpu import gpu
 from .job import job
