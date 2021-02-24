@@ -72,10 +72,7 @@ class JobLifeCycleTests:
     async def test_copy_job(self, job):
         job_copy = await job.copy("CLI Automated Job Copy")
         assert job_copy.id != job.id
-        await job_copy.wait_for("stopped", 120)
-        assert job_copy.status == "stopped"
-        await job_copy.start()
-        await job_copy.wait_for("running", 60)
+        await job_copy.wait_for("running", 120)
         assert job_copy.status == "running"
         await job_copy.stop()
         await job_copy.wait_for("stopped", 60)
@@ -102,8 +99,8 @@ class JobLifeCycleTests:
             ),
         )
         assert training_job.id
-        training_job = await training_job.wait_for("stopped", 180)
-        assert training_job.status == "stopped"
+        training_job = await training_job.wait_for("finished", 180)
+        assert training_job.status == "finished"
         await training_job.remove()
 
     async def test_remove_job(self, job):
@@ -143,7 +140,7 @@ class JobLifeCycleTests:
         await job.connect()
         await job.attach()
         await job.refresh()
-        assert job.status == "stopped"
+        assert job.status == "finished"
         await job.disconnect()
         await job.remove()
         upload_contents = os.listdir(temp_dir.name)

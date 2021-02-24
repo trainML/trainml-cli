@@ -22,7 +22,7 @@ class Datasets(object):
         return datasets
 
     async def list_public(self):
-        resp = await self.trainml._query(f"/dataset/public", "GET")
+        resp = await self.trainml._query(f"/dataset/pub/public", "GET")
         datasets = [Dataset(self.trainml, **dataset) for dataset in resp]
         return datasets
 

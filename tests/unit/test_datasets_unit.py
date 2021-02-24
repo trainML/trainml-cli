@@ -56,7 +56,9 @@ class DatasetsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.list_public()
-        mock_trainml._query.assert_called_once_with("/dataset/public", "GET")
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub/public", "GET"
+        )
 
     @mark.asyncio
     async def test_remove_dataset(

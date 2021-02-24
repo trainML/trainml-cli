@@ -2,6 +2,7 @@ import json
 import asyncio
 import math
 import logging
+import warnings
 from datetime import datetime
 
 from trainml.exceptions import ApiError, JobError
@@ -308,12 +309,29 @@ class Job:
         return job
 
     async def wait_for(self, status, timeout=300):
-        valid_statuses = ["running", "stopped", "archived"]
+        valid_statuses = ["running", "stopped", "finished", "archived"]
         if not status in valid_statuses:
             raise ValueError(
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}"
             )
-        if self.status == status:
+        if self.type == "headless" and status == "stopped":
+            warnings.warn(
+                "'stopped' status is deprecated for training jobs, use 'finished' instead.",
+                DeprecationWarning,
+            )
+        if (
+            self.status == status
+            or (
+                self.type == "headless"
+                and status == "stopped"
+                and self.status == "finished"
+            )
+            or (
+                self.type == "headless"
+                and status == "finished"
+                and self.status == "stopped"
+            )
+        ):
             return
         POLL_INTERVAL = 5
         retry_count = math.ceil(timeout / POLL_INTERVAL)
@@ -326,7 +344,19 @@ class Job:
                 if status == "archived" and e.status == 404:
                     return
                 raise e
-            if self.status == status:
+            if (
+                self.status == status
+                or (
+                    self.type == "headless"
+                    and status == "stopped"
+                    and self.status == "finished"
+                )
+                or (
+                    self.type == "headless"
+                    and status == "finished"
+                    and self.status == "stopped"
+                )
+            ):
                 return self
             elif self.status == "failed":
                 raise JobError(self.status, self)

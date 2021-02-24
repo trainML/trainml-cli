@@ -31,15 +31,6 @@ ENVS = {
 }
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--env",
-        action="store",
-        default="dev",
-        help="Environment to run tests against",
-    )
-
-
 @fixture(scope="session")
 def env(request):
     env = request.config.getoption("--env")
