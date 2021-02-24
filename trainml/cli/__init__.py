@@ -20,4 +20,5 @@ def cli(config, output_file):
 
 
 from .dataset import dataset
+from .environment import environment
 from .job import job
