@@ -195,6 +195,8 @@ import os
 import six
 from jose import jwt
 
+from trainml.exceptions import TrainMLException
+
 # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L22
 n_hex = (
     "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"
@@ -554,6 +556,8 @@ class Auth(object):
             or os.environ.get("TRAINML_KEY")
             or keys.get("key")
         )
+        if not self.username or not self.password:
+            raise TrainMLException("trainML credentials not found.")
         self.client = boto3.client("cognito-idp", region_name=self.region)
         self.id_token = None
         self.access_token = None

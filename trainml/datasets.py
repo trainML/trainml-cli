@@ -4,7 +4,12 @@ import math
 import asyncio
 from datetime import datetime
 
-from .exceptions import DatasetError, ApiError
+from .exceptions import (
+    DatasetError,
+    ApiError,
+    SpecificationError,
+    TrainMLException,
+)
 from .connections import Connection
 
 
@@ -29,8 +34,9 @@ class Datasets(object):
     async def create(self, name, source_type, source_uri, **kwargs):
         if kwargs.get("provider") and kwargs.get("provider") != "trainml":
             if not kwargs.get("disk_size"):
-                raise AttributeError(
-                    "'disk_size' attribute required for non-trainML providers"
+                raise SpecificationError(
+                    "disk_size",
+                    "'disk_size' attribute required for non-trainML providers",
                 )
         data = dict(
             name=name,
@@ -149,8 +155,9 @@ class Dataset:
     async def wait_for(self, status, timeout=300):
         valid_statuses = ["ready", "archived"]
         if not status in valid_statuses:
-            raise ValueError(
-                f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}"
+            raise SpecificationError(
+                "status",
+                f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
             )
         if self.status == status:
             return
@@ -173,4 +180,4 @@ class Dataset:
                 count += 1
                 logging.debug(f"self: {self}, retry count {count}")
 
-        raise TimeoutError(f"Timeout waiting for {status}")
+        raise TrainMLException(f"Timeout waiting for {status}")

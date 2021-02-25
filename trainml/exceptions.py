@@ -1,6 +1,18 @@
-class ApiError(Exception):
+class TrainMLException(Exception):
+    def __init__(self, message, *args):
+        super().__init__(message, *args)
+        self.message = message
+
+    def __repr__(self):
+        return "ApiError({self.status}, {self.message!r})".format(self=self)
+
+    def __str__(self):
+        return "ApiError({self.status}, {self.message!r})".format(self=self)
+
+
+class ApiError(TrainMLException):
     def __init__(self, status, data, *args):
-        super().__init__(status, data, *args)
+        super().__init__(data, *args)
         self.status = status
         self.message = data.get("errorMessage")
 
@@ -11,9 +23,9 @@ class ApiError(Exception):
         return "ApiError({self.status}, {self.message!r})".format(self=self)
 
 
-class JobError(Exception):
+class JobError(TrainMLException):
     def __init__(self, status, data, *args):
-        super().__init__(status, data, *args)
+        super().__init__(data, *args)
         self.status = status
         self.message = data
 
@@ -24,9 +36,9 @@ class JobError(Exception):
         return "JobError({self.status}, {self.message})".format(self=self)
 
 
-class DatasetError(Exception):
+class DatasetError(TrainMLException):
     def __init__(self, status, data, *args):
-        super().__init__(status, data, *args)
+        super().__init__(data, *args)
         self.status = status
         self.message = data
 
@@ -37,7 +49,7 @@ class DatasetError(Exception):
         return "DatasetError({self.status}, {self.message})".format(self=self)
 
 
-class ConnectionError(Exception):
+class ConnectionError(TrainMLException):
     def __init__(self, message, *args):
         super().__init__(message, *args)
         self.message = message
@@ -47,3 +59,20 @@ class ConnectionError(Exception):
 
     def __str__(self):
         return "ConnectionError({self.message})".format(self=self)
+
+
+class SpecificationError(TrainMLException):
+    def __init__(self, attribute, message, *args):
+        super().__init__(message, *args)
+        self.attribute = attribute
+        self.message = message
+
+    def __repr__(self):
+        return "SpecificationError({self.attribute}, {self.message})".format(
+            self=self
+        )
+
+    def __str__(self):
+        return "SpecificationError({self.attribute}, {self.message})".format(
+            self=self
+        )

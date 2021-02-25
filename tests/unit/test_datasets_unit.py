@@ -5,7 +5,12 @@ from pytest import mark, fixture, raises
 from aiohttp import WSMessage, WSMsgType
 
 import trainml.datasets as specimen
-from trainml.exceptions import ApiError, DatasetError
+from trainml.exceptions import (
+    ApiError,
+    DatasetError,
+    SpecificationError,
+    TrainMLException,
+)
 
 pytestmark = [mark.unit, mark.datasets]
 
@@ -116,7 +121,7 @@ class DatasetsTests:
         )
         api_response = None
         mock_trainml._query = AsyncMock(return_value=api_response)
-        with raises(AttributeError):
+        with raises(SpecificationError):
             await datasets.create(**requested_config)
         mock_trainml._query.assert_not_called()
 
@@ -318,7 +323,7 @@ class DatasetTests:
     ):
         api_response = None
         mock_trainml._query = AsyncMock(return_value=api_response)
-        with raises(ValueError):
+        with raises(SpecificationError):
             await dataset.wait_for("stopped")
         mock_trainml._query.assert_not_called()
 
@@ -358,7 +363,7 @@ class DatasetTests:
             createdAt="2020-12-31T23:59:59.000Z",
         )
         mock_trainml._query = AsyncMock(return_value=api_response)
-        with raises(TimeoutError):
+        with raises(TrainMLException):
             await dataset.wait_for("ready", 10)
         mock_trainml._query.assert_called()
 

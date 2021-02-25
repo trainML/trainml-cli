@@ -5,7 +5,12 @@ import logging
 import warnings
 from datetime import datetime
 
-from trainml.exceptions import ApiError, JobError
+from trainml.exceptions import (
+    ApiError,
+    JobError,
+    SpecificationError,
+    TrainMLException,
+)
 from trainml.connections import Connection
 
 
@@ -35,7 +40,9 @@ def _clean_datasets_selection(
                     None,
                 )
                 if not selected_dataset:
-                    raise ValueError(f"Dataset {dataset} Not Found")
+                    raise SpecificationError(
+                        "datasets", f"Dataset {dataset} Not Found"
+                    )
                 datasets.append(
                     dict(
                         dataset_uuid=selected_dataset.id,
@@ -53,7 +60,9 @@ def _clean_datasets_selection(
                     None,
                 )
                 if not selected_dataset:
-                    raise ValueError(f"Dataset {dataset} Not Found")
+                    raise SpecificationError(
+                        "datasets", f"Dataset {dataset} Not Found"
+                    )
                 datasets.append(
                     dict(
                         dataset_uuid=selected_dataset.id,
@@ -61,12 +70,14 @@ def _clean_datasets_selection(
                     )
                 )
             else:
-                raise ValueError(
-                    "Invalid dataset specification, 'type' must be in ['existing','public']"
+                raise SpecificationError(
+                    "datasets",
+                    "Invalid dataset specification, 'type' must be in ['existing','public']",
                 )
         else:
-            raise ValueError(
-                "Invalid dataset specification, either 'id' or 'name' must be provided"
+            raise SpecificationError(
+                "datasets",
+                "Invalid dataset specification, either 'id' or 'name' must be provided",
             )
     return datasets
 
@@ -114,7 +125,7 @@ class Jobs(object):
             None,
         )
         if not selected_gpu_type:
-            raise ValueError("GPU Type Not Found")
+            raise SpecificationError("gpu_type", "GPU Type Not Found")
 
         if data:
             datasets = _clean_datasets_selection(
@@ -287,7 +298,9 @@ class Job:
     async def copy(self, name, **kwargs):
         logging.debug(f"copy request - name: {name} ; kwargs: {kwargs}")
         if self.type != "interactive":
-            raise TypeError("Only interactive job types can be copied")
+            raise SpecificationError(
+                "job", "Only interactive job types can be copied"
+            )
 
         job = await self.trainml.jobs.create(
             name,
@@ -311,8 +324,9 @@ class Job:
     async def wait_for(self, status, timeout=300):
         valid_statuses = ["running", "stopped", "finished", "archived"]
         if not status in valid_statuses:
-            raise ValueError(
-                f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}"
+            raise SpecificationError(
+                "status",
+                f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
             )
         if self.type == "headless" and status == "stopped":
             warnings.warn(
@@ -364,4 +378,4 @@ class Job:
                 count += 1
                 logging.debug(f"self: {self}, retry count {count}")
 
-        raise TimeoutError(f"Timeout waiting for {status}")
+        raise TrainMLException(f"Timeout waiting for {status}")

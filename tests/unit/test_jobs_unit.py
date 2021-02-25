@@ -6,7 +6,12 @@ from pytest import mark, fixture, raises
 from aiohttp import WSMessage, WSMsgType
 
 import trainml.jobs as specimen
-from trainml.exceptions import ApiError, JobError
+from trainml.exceptions import (
+    ApiError,
+    JobError,
+    SpecificationError,
+    TrainMLException,
+)
 
 pytestmark = [mark.unit, mark.jobs]
 
@@ -158,7 +163,7 @@ class CleanDatasetSelectionTests:
     def test_existing_dataset_by_name_not_found(
         self, mock_my_datasets, mock_public_datasets
     ):
-        with raises(ValueError):
+        with raises(SpecificationError):
             specimen._clean_datasets_selection(
                 [dict(name="Not Found", type="existing")],
                 "trainml",
@@ -169,7 +174,7 @@ class CleanDatasetSelectionTests:
     def test_public_dataset_by_name_not_found(
         self, mock_my_datasets, mock_public_datasets
     ):
-        with raises(ValueError):
+        with raises(SpecificationError):
             specimen._clean_datasets_selection(
                 [dict(name="Not Found", type="public")],
                 "trainml",
@@ -180,7 +185,7 @@ class CleanDatasetSelectionTests:
     def test_invalid_dataset_type_specified(
         self, mock_my_datasets, mock_public_datasets
     ):
-        with raises(ValueError):
+        with raises(SpecificationError):
             specimen._clean_datasets_selection(
                 [dict(name="Not Found", type="invalid")],
                 "trainml",
@@ -191,7 +196,7 @@ class CleanDatasetSelectionTests:
     def test_invalid_dataset_identifier_specified(
         self, mock_my_datasets, mock_public_datasets
     ):
-        with raises(ValueError):
+        with raises(SpecificationError):
             specimen._clean_datasets_selection(
                 [dict(dataset_id="Not Found", type="invalid")],
                 "trainml",
@@ -316,7 +321,7 @@ class JobsTests:
             gpu_count=1,
             disk_size=10,
         )
-        with raises(ValueError):
+        with raises(SpecificationError):
             await jobs.create(**requested_config)
 
 
@@ -645,7 +650,7 @@ class JobTests:
             },
         )
         mock_trainml.jobs.create = AsyncMock()
-        with raises(TypeError):
+        with raises(SpecificationError):
             await job.copy("new job")
         mock_trainml.jobs.create.assert_not_called()
 
@@ -685,7 +690,7 @@ class JobTests:
     async def test_job_wait_for_incorrect_status(self, job, mock_trainml):
         api_response = None
         mock_trainml._query = AsyncMock(return_value=api_response)
-        with raises(ValueError):
+        with raises(SpecificationError):
             await job.wait_for("ready")
         mock_trainml._query.assert_not_called()
 
@@ -725,7 +730,7 @@ class JobTests:
             "status": "new",
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
-        with raises(TimeoutError):
+        with raises(TrainMLException):
             await job.wait_for("running", 10)
         mock_trainml._query.assert_called()
 
