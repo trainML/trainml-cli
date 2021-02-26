@@ -1,5 +1,6 @@
 import re
 import sys
+import asyncio
 from pytest import mark, fixture
 
 pytestmark = [mark.integration, mark.datasets]
@@ -80,8 +81,9 @@ async def test_dataset_local(trainml, capsys):
         source_type="local",
         source_uri="~/tensorflow-example/data",
     )
-    await dataset.connect()
-    await dataset.attach()
+    attach_task = asyncio.create_task(dataset.attach())
+    connect_task = asyncio.create_task(dataset.connect())
+    await asyncio.gather(attach_task, connect_task)
     await dataset.disconnect()
     await dataset.refresh()
     status = dataset.status

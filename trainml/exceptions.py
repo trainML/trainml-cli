@@ -4,10 +4,10 @@ class TrainMLException(Exception):
         self.message = message
 
     def __repr__(self):
-        return "ApiError({self.status}, {self.message!r})".format(self=self)
+        return "TrainMLException( {self.message!r})".format(self=self)
 
     def __str__(self):
-        return "ApiError({self.status}, {self.message!r})".format(self=self)
+        return "TrainMLException({self.message!r})".format(self=self)
 
 
 class ApiError(TrainMLException):

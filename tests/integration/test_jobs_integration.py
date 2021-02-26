@@ -3,6 +3,7 @@ import sys
 import logging
 import tempfile
 import os
+import asyncio
 from pytest import mark, fixture, raises
 
 pytestmark = [mark.integration, mark.jobs]
@@ -137,15 +138,16 @@ class JobLifeCycleTests:
             model=dict(git_uri="git@github.com:trainML/test-private.git"),
         )
         await job.wait_for("running")
-        await job.connect()
-        await job.attach()
+        attach_task = asyncio.create_task(job.attach())
+        connect_task = asyncio.create_task(job.connect())
+        await asyncio.gather(attach_task, connect_task)
         await job.refresh()
         assert job.status == "finished"
         await job.disconnect()
         await job.remove()
         upload_contents = os.listdir(temp_dir.name)
         result = any(
-            "CLI_Automated_MXNet_Test_1" in content
+            "CLI_Automated_Tensorflow_Test_1" in content
             for content in upload_contents
         )
         assert result is not None
