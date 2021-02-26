@@ -1,4 +1,5 @@
 import click
+import logging
 
 
 class Config(object):
@@ -17,6 +18,7 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 def cli(config, output_file):
     """TrainML command-line interface."""
     config.output = output_file
+    logging.basicConfig(level=logging.INFO, stream=output_file)
 
 
 from .connection import connection
