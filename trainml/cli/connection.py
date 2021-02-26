@@ -27,6 +27,6 @@ def list(config):
         raise click.UsageError(err)
 
     for con in connections:
-        data.append([con.id, con.name, con.py_version, con.framework, str(con.version), con.cuda_version])
+        data.append([con.id, con.type, con.status])
     for row in data:
-        click.echo("{: >38.36} {: >13.11} {: >13.11}".format(*row), file=config.output)
+        click.echo("{: >38.36} {: >9.7} {: >15.13}".format(*row), file=config.output)
