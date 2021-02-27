@@ -12,6 +12,32 @@ def dataset(config):
 @dataset.command()
 @click.argument('dataset', type=click.STRING)
 @pass_config
+def attach(config, dataset):
+    """Attach to dataset and show creation logs."""
+    datasets = config.trainml.run(
+        config.trainml.client.datasets.list())
+    
+    found = False
+    for dset in datasets:
+        if dset.id == dataset:
+            dataset = dset
+            found = True
+            break
+    if not found:
+        for dset in datasets:
+            if dset.name == dataset:
+                dataset = dset
+                found = True
+                break
+    if not found:
+        raise click.UsageError('Cannot find specified dataset.')
+
+    return config.trainml.run(dataset.attach())
+
+
+@dataset.command()
+@click.argument('dataset', type=click.STRING)
+@pass_config
 def connect(config, dataset):
     """
     Connect local source to dataset and begin upload.
