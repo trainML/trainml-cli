@@ -4,25 +4,31 @@ import asyncio
 
 trainml_client = TrainML()
 
-# Create the dataset
-dataset = asyncio.run(
-    trainml_client.datasets.create(
+
+async def create_dataset():
+    # Create the dataset
+    dataset = await trainml_client.datasets.create(
         name="Local Dataset",
         source_type="local",
         source_uri="~/tensorflow-example/data",
     )
-)
 
-print(dataset)
+    print(dataset)
 
-# Connect to the dataset and watch the logs
-asyncio.run(dataset.connect())
-asyncio.run(dataset.attach())
-asyncio.run(dataset.disconnect())
+    # Connect to the dataset and watch the logs
+    attach_task = asyncio.create_task(dataset.attach())
+    connect_task = asyncio.create_task(dataset.connect())
+    await asyncio.gather(attach_task, connect_task)
+    await dataset.disconnect()
+    return dataset
 
-# # Create the job
-job = asyncio.run(
-    trainml_client.jobs.create(
+
+dataset = asyncio.run(create_dataset())
+
+
+async def run_job(dataset):
+    # Create the job
+    job = await trainml_client.jobs.create(
         name="Training Job with Local Output",
         type="headless",
         gpu_type="GTX 1060",
@@ -39,16 +45,21 @@ job = asyncio.run(
         ),
         model=dict(git_uri="git@github.com:trainML/test-private.git"),
     )
-)
-print(job)
 
-# # Connect to the job once it's running and attach to watch the logs
-asyncio.run(job.wait_for("running"))
-asyncio.run(job.connect())
-asyncio.run(job.attach())
+    print(job)
+
+    # Connect to the job once it's running and attach to watch the logs
+    await job.wait_for("running")
+    attach_task = asyncio.create_task(job.attach())
+    connect_task = asyncio.create_task(job.connect())
+    await asyncio.gather(attach_task, connect_task)
+
+    # Cleanup job
+    await job.disconnect()
+    await job.remove()
 
 
-# ## Cleanup resources
-asyncio.run(job.disconnect())
-asyncio.run(job.remove())
+asyncio.run(run_job(dataset))
+
+# Cleanup Dataset
 asyncio.run(dataset.remove())

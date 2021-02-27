@@ -104,7 +104,7 @@ class Jobs(object):
         disk_size,
         worker_count=1,
         worker_commands=[],
-        environment=dict(type="DEEPLEARNING_PY37"),
+        environment=dict(type="DEEPLEARNING_PY38"),
         data=dict(datasets=[]),
         model=dict(),
         vpn=dict(net_prefix_type_id=1),
