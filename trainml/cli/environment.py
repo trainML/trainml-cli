@@ -1,7 +1,5 @@
-import asyncio
 import click
 from . import cli, pass_config
-from trainml.trainml import TrainML
 
 
 @cli.group()
@@ -18,14 +16,9 @@ def list(config):
     data = [['ID', 'NAME', 'PYTHON', 'FRAMEWORK', 'VERSION', 'CUDA'],
             ['-'*80, '-'*80, '-'*80, '-'*80, '-'*80, '-'*80]]
 
-    try:
-        trainml_client = TrainML()
-        environments = asyncio.run(
-            trainml_client.environments.list()
-        )
-    except Exception as err:
-        raise click.UsageError(err)
-
+    environments = config.trainml.run(
+        config.trainml.client.environments.list())
+    
     for env in environments:
         data.append([env.id, env.name, env.py_version, env.framework, str(env.version), env.cuda_version])
     for row in data:

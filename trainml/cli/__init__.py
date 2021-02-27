@@ -1,11 +1,42 @@
+import asyncio
 import click
 import logging
+from trainml.trainml import TrainML
+
+
+class TrainMLRunner(object):
+
+    def __init__(self):
+        self._trainml_client = None
+    
+    @property
+    def client(self) -> TrainML:
+        if self._trainml_client is None:
+            try:
+                self._trainml_client = TrainML()
+            except Exception as err:
+                raise click.UsageError(err)
+        return self._trainml_client
+    
+    async def _run(self, *tasks):
+        return await asyncio.gather(*tasks)
+    
+    def run(self, *tasks):
+        try:
+            if len(tasks) == 1:
+                return_value = asyncio.run(*tasks)
+            else:
+                return_value = asyncio.run(self._run(*tasks))
+        except Exception as err:
+            raise click.UsageError(err)
+        return return_value            
 
 
 class Config(object):
 
     def __init__(self):
         self.output = None
+        self.trainml = TrainMLRunner()
 
 
 pass_config = click.make_pass_decorator(Config, ensure=True)
@@ -18,7 +49,12 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 def cli(config, output_file):
     """TrainML command-line interface."""
     config.output = output_file
-    logging.basicConfig(level=logging.INFO, stream=output_file)
+    logging.basicConfig(
+        format='%(asctime)s  %(levelname)s  %(message)s', 
+        datefmt='%m/%d/%Y %I:%M:%S %p',
+        level=logging.INFO,
+        stream=output_file
+    )
 
 
 from .connection import connection

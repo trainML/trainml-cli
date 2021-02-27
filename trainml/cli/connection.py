@@ -1,7 +1,5 @@
-import asyncio
 import click
 from . import cli, pass_config
-from trainml.trainml import TrainML
 
 
 @cli.group()
@@ -18,14 +16,9 @@ def list(config):
     data = [['ID', 'TYPE', 'STATUS'],
             ['-'*80, '-'*80, '-'*80]]
 
-    try:
-        trainml_client = TrainML()
-        connections = asyncio.run(
-            trainml_client.connections.list()
-        )
-    except Exception as err:
-        raise click.UsageError(err)
-
+    connections = config.trainml.run(
+        config.trainml.client.connections.list())
+    
     for con in connections:
         data.append([con.id, con.type, con.status])
     for row in data:

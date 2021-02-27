@@ -18,14 +18,9 @@ def list(config):
     data = [['ID', 'NAME', 'PROVIDER', 'AVAILABLE', 'CREDITS/HR'],
             ['-'*80, '-'*80, '-'*80, '-'*80, '-'*80]]
 
-    try:
-        trainml_client = TrainML()
-        gpus = asyncio.run(
-            trainml_client.gpu_types.list()
-        )
-    except Exception as err:
-        raise click.UsageError(err)
-
+    gpus = config.trainml.run(
+        config.trainml.client.gpu_types.list())
+    
     for gpu in gpus:
         data.append([gpu.id, gpu.name, gpu.provider, str(gpu.available), str(gpu.credits_per_hour)])
     for row in data:

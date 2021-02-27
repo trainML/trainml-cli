@@ -1,7 +1,5 @@
-import asyncio
 import click
 from . import cli, pass_config
-from trainml.trainml import TrainML
 
 
 @cli.group()
@@ -31,21 +29,18 @@ def create(config, source, name, path):
     specified. PATH should be a local directory containing the source data for
     a local source or a URI for all other source types.
     """
+
     if source == 'local':
-        try:
-            trainml_client = TrainML()
-            dataset = asyncio.run(
-                trainml_client.datasets.create(
-                    name=name,
-                    source_type="local",
-                    source_uri=path
-                )
+        dataset = config.trainml.run(
+            config.trainml.client.datasets.create(
+                name=name,
+                source_type="local",
+                source_uri=path
             )
-            asyncio.run(dataset.connect())
-            asyncio.run(dataset.attach())
-            asyncio.run(dataset.disconnect())
-        except Exception as err:
-            raise click.UsageError(err)
+        )
+        
+        config.trainml.run(dataset.attach(), dataset.connect())
+        config.trainml.run(dataset.disconnect())
 
 
 @dataset.command()
@@ -55,13 +50,8 @@ def list(config):
     data = [['ID', 'STATUS', 'PROVIDER', 'NAME', 'SIZE'],
             ['-'*80, '-'*80, '-'*80, '-'*80, '-'*80]]
 
-    try:
-        trainml_client = TrainML()
-        datasets = asyncio.run(
-            trainml_client.datasets.list()
-        )
-    except Exception as err:
-        raise click.UsageError(err)
+    datasets = config.trainml.run(
+        config.trainml.client.datasets.list())
     
     for dset in datasets:
         data.append([dset.id, dset.status, dset.provider, dset.name, str(dset.size)])
@@ -76,14 +66,9 @@ def list_public(config):
     data = [['ID', 'STATUS', 'PROVIDER', 'NAME', 'SIZE'],
             ['-'*80, '-'*80, '-'*80, '-'*80, '-'*80]]
 
-    try:
-        trainml_client = TrainML()
-        datasets = asyncio.run(
-            trainml_client.datasets.list_public()
-        )
-    except Exception as err:
-        raise click.UsageError(err)
-
+    datasets = config.trainml.run(
+        config.trainml.client.datasets.list_public())
+    
     for dset in datasets:
         data.append([dset.id, dset.status, dset.provider, dset.name, str(dset.size)])
     for row in data:
