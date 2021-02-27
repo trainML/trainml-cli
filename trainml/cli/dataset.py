@@ -13,7 +13,11 @@ def dataset(config):
 @click.argument('dataset', type=click.STRING)
 @pass_config
 def attach(config, dataset):
-    """Attach to dataset and show creation logs."""
+    """
+    Attach to dataset and show creation logs.
+    
+    DATASET may be specified by name or ID, but ID is preferred.
+    """
     datasets = config.trainml.run(
         config.trainml.client.datasets.list())
     
@@ -63,6 +67,7 @@ def connect(config, dataset):
         raise click.UsageError('Cannot find specified dataset.')
 
     return config.trainml.run(dataset.connect())
+
 
 @dataset.command()
 @click.option(
@@ -115,6 +120,36 @@ def create(config, attach, connect, source, name, path):
             return config.trainml.run(dataset.connect())
         else:
             raise click.UsageError('Cannot attach without connect.')
+
+
+@dataset.command()
+@click.argument('dataset', type=click.STRING)
+@pass_config
+def disconnect(config, dataset):
+    """
+    Disconnect and cleanup dataset upload.
+    
+    DATASET may be specified by name or ID, but ID is preferred.
+    """
+    datasets = config.trainml.run(
+        config.trainml.client.datasets.list())
+    
+    found = False
+    for dset in datasets:
+        if dset.id == dataset:
+            dataset = dset
+            found = True
+            break
+    if not found:
+        for dset in datasets:
+            if dset.name == dataset:
+                dataset = dset
+                found = True
+                break
+    if not found:
+        raise click.UsageError('Cannot find specified dataset.')
+
+    return config.trainml.run(dataset.disconnect())
 
 
 @dataset.command()
