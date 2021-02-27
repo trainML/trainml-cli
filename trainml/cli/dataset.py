@@ -10,6 +10,47 @@ def dataset(config):
 
 
 @dataset.command()
+@click.argument('dataset', type=click.STRING)
+@pass_config
+def connect(config, dataset):
+    """
+    Connect local source to dataset and begin upload.
+    
+    DATASET may be specified by name or ID, but ID is preferred.
+    """
+    datasets = config.trainml.run(
+        config.trainml.client.datasets.list())
+    
+    found = False
+    for dset in datasets:
+        if dset.id == dataset:
+            dataset = dset
+            found = True
+            break
+    if not found:
+        for dset in datasets:
+            if dset.name == dataset:
+                dataset = dset
+                found = True
+                break
+    if not found:
+        raise click.UsageError('Cannot find specified dataset.')
+
+    return config.trainml.run(dataset.connect())
+
+@dataset.command()
+@click.option(
+    '--attach/--no-attach',
+    default=True,
+    show_default=True,
+    help='Attach to dataset and show creation logs.'
+)
+@click.option(
+    '--connect/--no-connect',
+    default=True,
+    show_default=True,
+    help='Auto connect source and start dataset creation.'
+)
 @click.option(
     '--source', '-s',
     type=click.Choice(['local'], case_sensitive=False),
@@ -23,9 +64,11 @@ def dataset(config):
     type=click.Path(exists=True, file_okay=False, resolve_path=True)
 )
 @pass_config
-def create(config, source, name, path):
+def create(config, attach, connect, source, name, path):
     """
-    Creates a dataset with the specified NAME using a local source at the PATH
+    Create a dataset.
+
+    Dataset is created with the specified NAME using a local source at the PATH
     specified. PATH should be a local directory containing the source data for
     a local source or a URI for all other source types.
     """
@@ -39,8 +82,13 @@ def create(config, source, name, path):
             )
         )
         
-        config.trainml.run(dataset.attach(), dataset.connect())
-        config.trainml.run(dataset.disconnect())
+        if connect and attach:
+            config.trainml.run(dataset.attach(), dataset.connect())
+            return config.trainml.run(dataset.disconnect())
+        elif connect:
+            return config.trainml.run(dataset.connect())
+        else:
+            raise click.UsageError('Cannot attach without connect.')
 
 
 @dataset.command()
