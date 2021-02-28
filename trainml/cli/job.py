@@ -80,6 +80,36 @@ def connect(config, job, attach):
 
 
 @job.command()
+@click.argument('job', type=click.STRING)
+@pass_config
+def disconnect(config, job):
+    """
+    Disconnect and clean-up job.
+    
+    JOB may be specified by name or ID, but ID is preferred.
+    """
+    jobs = config.trainml.run(
+        config.trainml.client.jobs.list())
+    
+    found = False
+    for j in jobs:
+        if j.id == job:
+            job = j
+            found = True
+            break
+    if not found:
+        for j in jobs:
+            if j.name == job:
+                job = j
+                found = True
+                break
+    if not found:
+        raise click.UsageError('Cannot find specified job.')
+
+    return config.trainml.run(job.disconnect())
+
+
+@job.command()
 @pass_config
 def list(config):
     """List TrainML jobs."""

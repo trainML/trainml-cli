@@ -137,7 +137,7 @@ def create(config, attach, connect, source, name, path):
 @pass_config
 def disconnect(config, dataset):
     """
-    Disconnect and cleanup dataset upload.
+    Disconnect and clean-up dataset upload.
     
     DATASET may be specified by name or ID, but ID is preferred.
     """
