@@ -40,6 +40,46 @@ def attach(config, job):
 
 
 @job.command()
+@click.option(
+    '--attach/--no-attach',
+    default=True,
+    show_default=True,
+    help='Auto attach to job and show logs.'
+)
+@click.argument('job', type=click.STRING)
+@pass_config
+def connect(config, job, attach):
+    """
+    Connect to job to download output locally.
+    
+    JOB may be specified by name or ID, but ID is preferred.
+    """
+    jobs = config.trainml.run(
+        config.trainml.client.jobs.list())
+    
+    found = False
+    for j in jobs:
+        if j.id == job:
+            job = j
+            found = True
+            break
+    if not found:
+        for j in jobs:
+            if j.name == job:
+                job = j
+                found = True
+                break
+    if not found:
+        raise click.UsageError('Cannot find specified job.')
+
+    if attach:
+        config.trainml.run(job.connect(), job.attach())
+        return config.trainml.run(job.disconnect())
+    else:
+        return config.trainml.run(job.connect())
+
+
+@job.command()
 @pass_config
 def list(config):
     """List TrainML jobs."""
