@@ -40,9 +40,15 @@ def attach(config, dataset):
 
 
 @dataset.command()
+@click.option(
+    '--attach/--no-attach',
+    default=True,
+    show_default=True,
+    help='Auto attach to dataset and show creation logs.'
+)
 @click.argument('dataset', type=click.STRING)
 @pass_config
-def connect(config, dataset):
+def connect(config, dataset, attach):
     """
     Connect local source to dataset and begin upload.
     
@@ -66,7 +72,11 @@ def connect(config, dataset):
     if not found:
         raise click.UsageError('Cannot find specified dataset.')
 
-    return config.trainml.run(dataset.connect())
+    if attach:
+        config.trainml.run(dataset.connect(), dataset.attach())
+        return config.trainml.run(dataset.disconnect())
+    else:
+        return config.trainml.run(dataset.connect())
 
 
 @dataset.command()
@@ -74,7 +84,7 @@ def connect(config, dataset):
     '--attach/--no-attach',
     default=True,
     show_default=True,
-    help='Attach to dataset and show creation logs.'
+    help='Auto attach to dataset and show creation logs.'
 )
 @click.option(
     '--connect/--no-connect',
