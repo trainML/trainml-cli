@@ -51,6 +51,9 @@ def connect(config, job, attach):
     
     JOB may be specified by name or ID, but ID is preferred.
     """
+    jobs = config.trainml.run(
+        config.trainml.client.jobs.list())
+    
     found = search_by_id_name(job, jobs)
     if None is found:
         raise click.UsageError('Cannot find specified job.')
