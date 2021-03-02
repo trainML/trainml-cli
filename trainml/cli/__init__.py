@@ -47,8 +47,11 @@ def search_by_id_name(term, list):
             break
     if None is found:
         for item in list:
-            if item.name == term:
-                found = item
+            try:
+                if item.name == term:
+                    found = item
+                    break
+            except AttributeError:
                 break
     return found
 
