@@ -1,5 +1,5 @@
 import click
-from . import cli, pass_config
+from . import cli, pass_config, search_by_id_name
 
 
 @cli.group()
@@ -21,22 +21,11 @@ def attach(config, job):
     jobs = config.trainml.run(
         config.trainml.client.jobs.list())
     
-    found = False
-    for j in jobs:
-        if j.id == job:
-            job = j
-            found = True
-            break
-    if not found:
-        for j in jobs:
-            if j.name == job:
-                job = j
-                found = True
-                break
-    if not found:
+    found = search_by_id_name(job, jobs)
+    if None is found:
         raise click.UsageError('Cannot find specified job.')
 
-    return config.trainml.run(job.attach())
+    return config.trainml.run(found.attach())
 
 
 @job.command()
@@ -54,29 +43,15 @@ def connect(config, job, attach):
     
     JOB may be specified by name or ID, but ID is preferred.
     """
-    jobs = config.trainml.run(
-        config.trainml.client.jobs.list())
-    
-    found = False
-    for j in jobs:
-        if j.id == job:
-            job = j
-            found = True
-            break
-    if not found:
-        for j in jobs:
-            if j.name == job:
-                job = j
-                found = True
-                break
-    if not found:
+    found = search_by_id_name(job, jobs)
+    if None is found:
         raise click.UsageError('Cannot find specified job.')
 
     if attach:
-        config.trainml.run(job.connect(), job.attach())
-        return config.trainml.run(job.disconnect())
+        config.trainml.run(found.connect(), found.attach())
+        return config.trainml.run(found.disconnect())
     else:
-        return config.trainml.run(job.connect())
+        return config.trainml.run(found.connect())
 
 
 @job.command()
@@ -91,22 +66,11 @@ def disconnect(config, job):
     jobs = config.trainml.run(
         config.trainml.client.jobs.list())
     
-    found = False
-    for j in jobs:
-        if j.id == job:
-            job = j
-            found = True
-            break
-    if not found:
-        for j in jobs:
-            if j.name == job:
-                job = j
-                found = True
-                break
-    if not found:
+    found = search_by_id_name(job, jobs)
+    if None is found:
         raise click.UsageError('Cannot find specified job.')
 
-    return config.trainml.run(job.disconnect())
+    return config.trainml.run(found.disconnect())
 
 
 @job.command()

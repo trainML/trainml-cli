@@ -1,5 +1,5 @@
 import click
-from . import cli, pass_config
+from . import cli, pass_config, search_by_id_name
 
 
 @cli.group()
@@ -21,22 +21,11 @@ def attach(config, dataset):
     datasets = config.trainml.run(
         config.trainml.client.datasets.list())
     
-    found = False
-    for dset in datasets:
-        if dset.id == dataset:
-            dataset = dset
-            found = True
-            break
-    if not found:
-        for dset in datasets:
-            if dset.name == dataset:
-                dataset = dset
-                found = True
-                break
-    if not found:
+    found = search_by_id_name(dataset, datasets)
+    if None is found:
         raise click.UsageError('Cannot find specified dataset.')
 
-    return config.trainml.run(dataset.attach())
+    return config.trainml.run(found.attach())
 
 
 @dataset.command()
@@ -57,26 +46,15 @@ def connect(config, dataset, attach):
     datasets = config.trainml.run(
         config.trainml.client.datasets.list())
     
-    found = False
-    for dset in datasets:
-        if dset.id == dataset:
-            dataset = dset
-            found = True
-            break
-    if not found:
-        for dset in datasets:
-            if dset.name == dataset:
-                dataset = dset
-                found = True
-                break
-    if not found:
+    found = search_by_id_name(dataset, datasets)
+    if None is found:
         raise click.UsageError('Cannot find specified dataset.')
 
     if attach:
-        config.trainml.run(dataset.connect(), dataset.attach())
-        return config.trainml.run(dataset.disconnect())
+        config.trainml.run(found.connect(), found.attach())
+        return config.trainml.run(found.disconnect())
     else:
-        return config.trainml.run(dataset.connect())
+        return config.trainml.run(found.connect())
 
 
 @dataset.command()
@@ -144,22 +122,11 @@ def disconnect(config, dataset):
     datasets = config.trainml.run(
         config.trainml.client.datasets.list())
     
-    found = False
-    for dset in datasets:
-        if dset.id == dataset:
-            dataset = dset
-            found = True
-            break
-    if not found:
-        for dset in datasets:
-            if dset.name == dataset:
-                dataset = dset
-                found = True
-                break
-    if not found:
+    found = search_by_id_name(dataset, datasets)
+    if None is found:
         raise click.UsageError('Cannot find specified dataset.')
 
-    return config.trainml.run(dataset.disconnect())
+    return config.trainml.run(found.disconnect())
 
 
 @dataset.command()

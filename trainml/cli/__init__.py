@@ -39,6 +39,20 @@ class Config(object):
         self.trainml = TrainMLRunner()
 
 
+def search_by_id_name(term, list):
+    found = None
+    for item in list:
+        if item.id == term:
+            found = item
+            break
+    if None is found:
+        for item in list:
+            if item.name == term:
+                found = item
+                break
+    return found
+
+    
 pass_config = click.make_pass_decorator(Config, ensure=True)
 
 
