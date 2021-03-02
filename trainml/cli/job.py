@@ -25,7 +25,15 @@ def attach(config, job):
     if None is found:
         raise click.UsageError('Cannot find specified job.')
 
-    return config.trainml.run(found.attach())
+    try:
+        config.trainml.run(found.attach())
+        return config.trainml.run(found.disconnect())
+    except:
+        try:
+            config.trainml.run(found.disconnect())
+        except:
+            pass
+        raise
 
 
 @job.command()
@@ -47,11 +55,18 @@ def connect(config, job, attach):
     if None is found:
         raise click.UsageError('Cannot find specified job.')
 
-    if attach:
-        config.trainml.run(found.connect(), found.attach())
-        return config.trainml.run(found.disconnect())
-    else:
-        return config.trainml.run(found.connect())
+    try:
+        if attach:
+            config.trainml.run(found.connect(), found.attach())
+            return config.trainml.run(found.disconnect())
+        else:
+            return config.trainml.run(found.connect())
+    except:
+        try:
+            config.trainml.run(found.disconnect())
+        except:
+            pass
+        raise
 
 
 @job.command()
