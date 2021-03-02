@@ -8,7 +8,7 @@ from .datasets import Datasets
 from .jobs import Jobs
 from .gpu_types import GpuTypes
 from .environments import Environments
-from .exceptions import ApiError
+from .exceptions import ApiError, TrainMLException
 from .connections import Connections
 
 
@@ -49,7 +49,12 @@ class TrainML(object):
         )
 
     async def _query(self, path, method, params=None, data=None, headers=None):
-        tokens = self.auth.get_tokens()
+        try:
+            tokens = self.auth.get_tokens()
+        except Exception:
+            raise TrainMLException(
+                "Error getting authorization tokens.  Verify configured credentials."
+            )
         headers = (
             {
                 **headers,

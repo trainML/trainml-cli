@@ -1,5 +1,6 @@
 import re
 import json
+import logging
 from unittest.mock import AsyncMock, patch
 from pytest import mark, fixture, raises
 from aiohttp import WSMessage, WSMsgType
@@ -226,7 +227,7 @@ class DatasetTests:
             connection = mock_connection.return_value
             connection.status = "removed"
             resp = await dataset.disconnect()
-            connection.remove.assert_called_once()
+            connection.stop.assert_called_once()
             assert resp == "removed"
 
     @mark.asyncio
@@ -236,7 +237,7 @@ class DatasetTests:
         await dataset.remove()
         mock_trainml._query.assert_called_once_with("/dataset/pub/1", "DELETE")
 
-    def test_dataset_ws_msg_handler(self, dataset, capsys):
+    def test_dataset_default_ws_msg_handler(self, dataset, capsys):
         msg = WSMessage(
             type=WSMsgType.TEXT,
             data=json.dumps(
@@ -250,21 +251,42 @@ class DatasetTests:
             ),
             extra=None,
         )
-        dataset._ws_msg_handler(msg)
+        handler = dataset._get_msg_handler(None)
+        handler(msg)
         captured = capsys.readouterr()
         assert (
             captured.out
             == "02/11/2021, 15:35:45: download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n"
         )
 
+    def test_dataset_custom_ws_msg_handler(self, dataset, capsys):
+        def custom_handler(msg):
+            print(msg.get("stream"))
+
+        msg = WSMessage(
+            type=WSMsgType.TEXT,
+            data=json.dumps(
+                {
+                    "msg": "download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n",
+                    "time": 1613079345318,
+                    "type": "subscription",
+                    "stream": "worker-id-1",
+                    "job_worker_uuid": "worker-id-1",
+                }
+            ),
+            extra=None,
+        )
+        handler = dataset._get_msg_handler(custom_handler)
+        handler(msg)
+        captured = capsys.readouterr()
+        assert captured.out == "worker-id-1\n"
+
     @mark.asyncio
     async def test_dataset_attach(self, dataset, mock_trainml):
         api_response = None
         mock_trainml._ws_subscribe = AsyncMock(return_value=api_response)
         await dataset.attach()
-        mock_trainml._ws_subscribe.assert_called_once_with(
-            "dataset", dataset.id, dataset._ws_msg_handler
-        )
+        mock_trainml._ws_subscribe.assert_called()
 
     @mark.asyncio
     async def test_dataset_refresh(self, dataset, mock_trainml):

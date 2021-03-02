@@ -255,11 +255,6 @@ class Job:
         return connection.status
 
     async def remove(self):
-        if self._job.get("data").get("output_type") == "local":
-            connection = Connection(
-                self.trainml, entity_type="job", id=self.id, entity=self
-            )
-            await connection.remove()
         await self.trainml._query(f"/job/{self._id}", "DELETE")
 
     async def refresh(self):
@@ -267,32 +262,36 @@ class Job:
         self.__init__(self.trainml, **resp)
         return self
 
-    def _get_msg_handler(self):
+    def _get_msg_handler(self, msg_handler):
         worker_numbers = {
             w.get("job_worker_uuid"): ind + 1
             for ind, w in enumerate(self._workers)
         }
 
-        def msg_handler(msg):
+        def handler(msg):
             data = json.loads(msg.data)
             if data.get("type") == "subscription":
-                timestamp = datetime.fromtimestamp(
-                    int(data.get("time")) / 1000
-                )
-                if len(self._workers) > 1:
-                    print(
-                        f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: Worker {worker_numbers.get(data.get('stream'))} - {data.get('msg').rstrip()}"
-                    )
+                data["worker_number"] = worker_numbers.get(data.get("stream"))
+                if msg_handler:
+                    msg_handler(data)
                 else:
-                    print(
-                        f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
+                    timestamp = datetime.fromtimestamp(
+                        int(data.get("time")) / 1000
                     )
+                    if len(self._workers) > 1:
+                        print(
+                            f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: Worker {data.get('worker_number')} - {data.get('msg').rstrip()}"
+                        )
+                    else:
+                        print(
+                            f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
+                        )
 
-        return msg_handler
+        return handler
 
-    async def attach(self):
+    async def attach(self, msg_handler=None):
         await self.trainml._ws_subscribe(
-            "job", self.id, self._get_msg_handler()
+            "job", self.id, self._get_msg_handler(msg_handler)
         )
 
     async def copy(self, name, **kwargs):
@@ -333,18 +332,10 @@ class Job:
                 "'stopped' status is deprecated for training jobs, use 'finished' instead.",
                 DeprecationWarning,
             )
-        if (
-            self.status == status
-            or (
-                self.type == "headless"
-                and status == "stopped"
-                and self.status == "finished"
-            )
-            or (
-                self.type == "headless"
-                and status == "finished"
-                and self.status == "stopped"
-            )
+        if self.status == status or (
+            self.type == "headless"
+            and status == "finished"
+            and self.status == "stopped"
         ):
             return
         POLL_INTERVAL = 5
@@ -358,18 +349,10 @@ class Job:
                 if status == "archived" and e.status == 404:
                     return
                 raise e
-            if (
-                self.status == status
-                or (
-                    self.type == "headless"
-                    and status == "stopped"
-                    and self.status == "finished"
-                )
-                or (
-                    self.type == "headless"
-                    and status == "finished"
-                    and self.status == "stopped"
-                )
+            if self.status == status or (
+                self.type == "headless"
+                and status == "finished"
+                and self.status == "stopped"
             ):
                 return self
             elif self.status == "failed":

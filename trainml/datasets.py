@@ -128,23 +128,31 @@ class Dataset:
         connection = Connection(
             self.trainml, entity_type="dataset", id=self.id, entity=self
         )
-        await connection.remove()  # dataset connections are only used once
+        await connection.stop()
         return connection.status
 
     async def remove(self):
         await self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")
 
-    def _ws_msg_handler(self, msg):
-        data = json.loads(msg.data)
-        if data.get("type") == "subscription":
-            timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
-            print(
-                f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
-            )
+    def _get_msg_handler(self, msg_handler):
+        def handler(msg):
+            data = json.loads(msg.data)
+            if data.get("type") == "subscription":
+                if msg_handler:
+                    msg_handler(data)
+                else:
+                    timestamp = datetime.fromtimestamp(
+                        int(data.get("time")) / 1000
+                    )
+                    print(
+                        f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
+                    )
 
-    async def attach(self):
+        return handler
+
+    async def attach(self, msg_handler=None):
         await self.trainml._ws_subscribe(
-            "dataset", self.id, self._ws_msg_handler
+            "dataset", self.id, self._get_msg_handler(msg_handler)
         )
 
     async def refresh(self):

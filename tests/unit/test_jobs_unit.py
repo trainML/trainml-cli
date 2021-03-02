@@ -446,68 +446,17 @@ class JobTests:
             autospec=True,
         ) as mock_connection:
             connection = mock_connection.return_value
-            connection.status = "stopped"
+            connection.status = "removed"
             resp = await job.disconnect()
             connection.stop.assert_called_once()
-            assert resp == "stopped"
+            assert resp == "removed"
 
     @mark.asyncio
     async def test_job_remove(self, job, mock_trainml):
-        with patch(
-            "trainml.jobs.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            api_response = dict()
-            mock_trainml._query = AsyncMock(return_value=api_response)
-            await job.remove()
-            mock_trainml._query.assert_called_once_with(
-                "/job/job-id-1", "DELETE"
-            )
-            connection.remove.assert_not_called()
-
-    @mark.asyncio
-    async def test_job_remove_with_connection(self, mock_trainml):
-        with patch(
-            "trainml.jobs.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            job = specimen.Job(
-                mock_trainml,
-                **{
-                    "customer_uuid": "cus-id-1",
-                    "job_uuid": "job-id-1",
-                    "name": "test notebook",
-                    "type": "interactive",
-                    "status": "new",
-                    "provider": "trainml",
-                    "data": {
-                        "datasets": [],
-                        "output_type": "local",
-                        "output_uri": "~/tensorflow-example/output",
-                        "status": "ready",
-                    },
-                    "vpn": {
-                        "status": "new",
-                        "cidr": "10.106.171.0/24",
-                        "client": {
-                            "port": "36017",
-                            "id": "cus-id-1",
-                            "address": "10.106.171.253",
-                            "ssh_port": 46600,
-                        },
-                        "net_prefix_type_id": 1,
-                    },
-                },
-            )
-            api_response = dict()
-            mock_trainml._query = AsyncMock(return_value=api_response)
-            await job.remove()
-            mock_trainml._query.assert_called_once_with(
-                "/job/job-id-1", "DELETE"
-            )
-            connection.remove.assert_called_once()
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await job.remove()
+        mock_trainml._query.assert_called_once_with("/job/job-id-1", "DELETE")
 
     @mark.asyncio
     async def test_job_refresh(self, job, mock_trainml):
@@ -524,7 +473,7 @@ class JobTests:
         assert job.status == "running"
         assert response.status == "running"
 
-    def test_job_ws_msg_handler(self, job, capsys):
+    def test_job_default_ws_msg_handler(self, job, capsys):
         msg = WSMessage(
             type=WSMsgType.TEXT,
             data=json.dumps(
@@ -538,12 +487,14 @@ class JobTests:
             ),
             extra=None,
         )
-        handler = job._get_msg_handler()
+        handler = job._get_msg_handler(None)
         handler(msg)
         captured = capsys.readouterr()
         assert captured.out == "02/11/2021, 15:35:45: Epoch (1/1000)\n"
 
-    def test_job_ws_msg_handler_multiple_workers(self, mock_trainml, capsys):
+    def test_job_default_ws_msg_handler_multiple_workers(
+        self, mock_trainml, capsys
+    ):
         job = specimen.Job(
             mock_trainml,
             **{
@@ -581,12 +532,34 @@ class JobTests:
             ),
             extra=None,
         )
-        handler = job._get_msg_handler()
+        handler = job._get_msg_handler(None)
         handler(msg)
         captured = capsys.readouterr()
         assert (
             captured.out == "02/11/2021, 15:35:45: Worker 1 - Epoch (1/1000)\n"
         )
+
+    def test_job_custom_ws_msg_handler(self, job, capsys):
+        def custom_handler(msg):
+            print(msg.get("stream"))
+
+        msg = WSMessage(
+            type=WSMsgType.TEXT,
+            data=json.dumps(
+                {
+                    "msg": "Epoch (1/1000)\n",
+                    "time": 1613079345318,
+                    "type": "subscription",
+                    "stream": "worker-id-1",
+                    "job_worker_uuid": "worker-id-1",
+                }
+            ),
+            extra=None,
+        )
+        handler = job._get_msg_handler(custom_handler)
+        handler(msg)
+        captured = capsys.readouterr()
+        assert captured.out == "worker-id-1\n"
 
     @mark.asyncio
     async def test_job_attach(self, job, mock_trainml):

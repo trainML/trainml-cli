@@ -6,9 +6,10 @@ import aiohttp
 import aiodocker
 import zipfile
 import re
+import logging
 from datetime import datetime
 
-from .exceptions import ConnectionError, ApiError
+from .exceptions import ConnectionError, ApiError, SpecificationError
 from aiodocker.exceptions import DockerError
 
 
@@ -64,6 +65,14 @@ class Connections(object):
                 _cleanup_containers(self.dir, con_dirs, "storage")
             ),
         )
+
+    async def remove_all(self):
+        shutil.rmtree(self.dir)
+        os.makedirs(
+            self.dir,
+            exist_ok=True,
+        )
+        await self.cleanup()
 
 
 class Connection:
@@ -139,6 +148,7 @@ class Connection:
         net = _parse_cidr(entity_details.get("cidr"))
         target_ip = f"{net.get('first_octet')}.{net.get('second_octet')}.{net.get('third_octet')}.254"
 
+        logging.debug("")
         ping = await container.exec(
             ["ping", "-c", "1", target_ip],
             stdout=True,
@@ -214,6 +224,7 @@ class Connection:
             self._status = STATUSES.get("NOT_CONNECTED")
 
     async def start(self):
+        logging.debug(f"Beginning start {self.type} connection {self.id}")
         if self.status == STATUSES.get("UNKNOWN"):
             await self.check()
         if self.status in [
@@ -221,8 +232,11 @@ class Connection:
             STATUSES.get("CONNECTED"),
             STATUSES.get("NOT_CONNECTED"),
         ]:
-            raise TypeError("Only inactive connections can be started.")
+            raise SpecificationError(
+                "status", "Only inactive connections can be started."
+            )
         self._status = STATUSES.get("CONNECTING")
+        logging.info(f"Connecting...")
         if not self._entity:
             await self._get_entity()
         if not os.path.isdir(f"{self._dir}/data"):
@@ -236,6 +250,7 @@ class Connection:
         if entity_details.get("input_path") or entity_details.get(
             "output_path"
         ):
+            logging.debug(f"Starting storage container")
             storage_container = await docker.containers.run(
                 _get_storage_container_config(
                     self.id,
@@ -246,22 +261,29 @@ class Connection:
                     output_path=entity_details.get("output_path"),
                 )
             )
+            logging.debug(
+                f"Storage container started, id: {storage_container.id}"
+            )
             with open(f"{self._dir}/storage_id", "w") as f:
                 f.write(storage_container.id)
 
+        logging.debug(f"Starting VPN container")
         vpn_container = await docker.containers.run(
             _get_vpn_container_config(
                 self.id, entity_details.get("cidr"), f"{self._dir}/data"
             )
         )
+        logging.debug(f"VPN container started, id: {vpn_container.id}")
 
         with open(f"{self._dir}/vpn_id", "w") as f:
             f.write(vpn_container.id)
 
         count = 0
         while count <= 30:
+            logging.debug(f"Test connectivity attempt {count+1}")
             res = await self._test_connection(vpn_container)
             if res:
+                logging.debug(f"Test connectivity successful {count+1}")
                 break
             count += 1
         await docker.close()
@@ -269,23 +291,20 @@ class Connection:
             self._status = STATUSES.get("NOT_CONNECTED")
             raise ConnectionError(f"Unable to connect {self.type} {self.id}")
         self._status = STATUSES.get("CONNECTED")
+        logging.info(f"Connection Successful.")
+        logging.debug(f"Completed start {self.type} connection {self.id}")
 
     async def stop(self):
-        if self.status == STATUSES.get("UNKNOWN"):
-            await self.check()
-        if self.status in [
-            STATUSES.get("STOPPED"),
-            STATUSES.get("REMOVED"),
-            STATUSES.get("NEW"),
-        ]:
-            raise TypeError("Only active connections can be stopped.")
+        logging.debug(f"Beginning stop {self.type} connection {self.id}")
         if not self._entity:
             await self._get_entity()
         docker = aiodocker.Docker()
         tasks = []
+        logging.info("Disconnecting...")
         try:
             with open(f"{self._dir}/vpn_id", "r") as f:
                 vpn_id = f.read()
+            logging.debug(f"vpn container id: {vpn_id}")
             vpn_container = await docker.containers.get(vpn_id)
             vpn_delete_task = asyncio.create_task(
                 vpn_container.delete(force=True)
@@ -293,12 +312,13 @@ class Connection:
             tasks.append(vpn_delete_task)
             os.remove(f"{self._dir}/vpn_id")
         except OSError:
-            pass
+            logging.debug("vpn container not found")
 
         storage_delete_task = None
         try:
             with open(f"{self._dir}/storage_id", "r") as f:
                 storage_id = f.read()
+            logging.debug(f"storage container id: {vpn_id}")
             storage_container = await docker.containers.get(storage_id)
             storage_delete_task = asyncio.create_task(
                 storage_container.delete(force=True)
@@ -306,22 +326,14 @@ class Connection:
             tasks.append(storage_delete_task)
             os.remove(f"{self._dir}/storage_id")
         except OSError:
-            pass
+            logging.debug("storage container not found")
 
         await asyncio.gather(*tasks)
         await docker.close()
-        self._status = STATUSES.get("STOPPED")
-
-    async def remove(self):
-        if self.status == STATUSES.get("UNKNOWN"):
-            await self.check()
-        if self.status in [
-            STATUSES.get("CONNECTED"),
-            STATUSES.get("NOT_CONNECTED"),
-        ]:
-            await self.stop()
         self._status = STATUSES.get("REMOVED")
         shutil.rmtree(self._dir)
+        logging.info("Disconnected.")
+        logging.debug(f"Completed stop {self.type} connection {self.id}")
 
 
 async def _cleanup_containers(path, con_dirs, type):
