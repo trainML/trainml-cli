@@ -41,8 +41,8 @@ setup(
         "requests",
         "Click",
     ],
-    entry_points="""
-        [console_scripts]
-        trainml=trainml.cli:cli
-    """,
+    # entry_points="""
+    #     [console_scripts]
+    #     trainml=trainml.cli:cli
+    # """,
 )
