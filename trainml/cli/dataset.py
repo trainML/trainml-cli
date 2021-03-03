@@ -2,6 +2,15 @@ import click
 from . import cli, pass_config, search_by_id_name
 
 
+def pretty_size(num):
+    s = ('  B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
+    n = 0
+    while num > 1023:
+        num = num / 1024
+        n += 1
+    return f"{num:.2f} {s[n]}"
+
+
 @cli.group()
 @pass_config
 def dataset(config):
@@ -163,7 +172,7 @@ def list(config):
         config.trainml.client.datasets.list())
     
     for dset in datasets:
-        data.append([dset.id, dset.status, dset.provider, dset.name, str(dset.size)])
+        data.append([dset.id, dset.status, dset.provider, dset.name, pretty_size(dset.size)])
     for row in data:
         click.echo("{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}".format(*row), file=config.output)
 
@@ -179,6 +188,6 @@ def list_public(config):
         config.trainml.client.datasets.list_public())
     
     for dset in datasets:
-        data.append([dset.id, dset.status, dset.provider, dset.name, str(dset.size)])
+        data.append([dset.id, dset.status, dset.provider, dset.name, pretty_size(dset.size)])
     for row in data:
         click.echo("{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}".format(*row), file=config.output)
