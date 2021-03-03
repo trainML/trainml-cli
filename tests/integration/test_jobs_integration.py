@@ -107,7 +107,7 @@ class JobLifeCycleTests:
     async def test_remove_job(self, job):
         assert job.status == "running"
         await job.stop()
-        await job.wait_for("stopped", 60)
+        await job.wait_for("stopped", 90)
         await job.remove()
         job = await job.wait_for("archived", 60)
         assert job is None

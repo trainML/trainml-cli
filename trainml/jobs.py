@@ -110,6 +110,13 @@ class Jobs(object):
         vpn=dict(net_prefix_type_id=1),
         **kwargs,
     ):
+
+        if type in ["headless", "interactive"]:
+            new_type = "notebook" if type == "interactive" else "training"
+            warnings.warn(
+                f"'{type}' type is deprecated, use '{new_type}' instead.",
+                DeprecationWarning,
+            )
         gpu_type_task = asyncio.create_task(self.trainml.gpu_types.list())
         my_datasets_task = asyncio.create_task(self.trainml.datasets.list())
         public_datasets_task = asyncio.create_task(
@@ -296,9 +303,9 @@ class Job:
 
     async def copy(self, name, **kwargs):
         logging.debug(f"copy request - name: {name} ; kwargs: {kwargs}")
-        if self.type != "interactive":
+        if self.type not in ["interactive", "notebook"]:
             raise SpecificationError(
-                "job", "Only interactive job types can be copied"
+                "job", "Only notebook job types can be copied"
             )
 
         job = await self.trainml.jobs.create(
@@ -327,13 +334,15 @@ class Job:
                 "status",
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
             )
-        if self.type == "headless" and status == "stopped":
+        if (
+            self.type == "headless" or self.type == "training"
+        ) and status == "stopped":
             warnings.warn(
                 "'stopped' status is deprecated for training jobs, use 'finished' instead.",
                 DeprecationWarning,
             )
         if self.status == status or (
-            self.type == "headless"
+            (self.type == "headless" or self.type == "training")
             and status == "finished"
             and self.status == "stopped"
         ):
@@ -350,7 +359,7 @@ class Job:
                     return
                 raise e
             if self.status == status or (
-                self.type == "headless"
+                (self.type == "headless" or self.type == "training")
                 and status == "finished"
                 and self.status == "stopped"
             ):
