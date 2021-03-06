@@ -210,6 +210,12 @@ class Job:
     def type(self) -> str:
         return self._type
 
+    @property
+    def notebook_url(self) -> str:
+        if self.type != "notebook":
+            return None
+        return f"https://notebook.trainml.ai/{self.id}/?token={self._job.get('nb_token')}"
+
     def __str__(self):
         return json.dumps({k: v for k, v in self._job.items()})
 

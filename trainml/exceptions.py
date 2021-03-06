@@ -49,6 +49,19 @@ class DatasetError(TrainMLException):
         return "DatasetError({self.status}, {self.message})".format(self=self)
 
 
+class ModelError(TrainMLException):
+    def __init__(self, status, data, *args):
+        super().__init__(data, *args)
+        self.status = status
+        self.message = data
+
+    def __repr__(self):
+        return "ModelError({self.status}, {self.message})".format(self=self)
+
+    def __str__(self):
+        return "ModelError({self.status}, {self.message})".format(self=self)
+
+
 class ConnectionError(TrainMLException):
     def __init__(self, message, *args):
         super().__init__(message, *args)

@@ -5,6 +5,7 @@ import aiohttp
 
 from .auth import Auth
 from .datasets import Datasets
+from .models import Models
 from .jobs import Jobs
 from .gpu_types import GpuTypes
 from .environments import Environments
@@ -31,6 +32,7 @@ class TrainML(object):
             pool_id=kwargs.get("pool_id"),
         )
         self.datasets = Datasets(self)
+        self.models = Models(self)
         self.jobs = Jobs(self)
         self.gpu_types = GpuTypes(self)
         self.environments = Environments(self)
