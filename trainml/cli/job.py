@@ -1,4 +1,5 @@
 import click
+from webbrowser import open as browse
 from . import cli, pass_config, search_by_id_name
 
 
@@ -41,13 +42,13 @@ def attach(config, job):
     '--attach/--no-attach',
     default=True,
     show_default=True,
-    help='Auto attach to job and show logs.'
+    help='Auto attach to job.'
 )
 @click.argument('job', type=click.STRING)
 @pass_config
 def connect(config, job, attach):
     """
-    Connect to job to download output locally.
+    Connect to job.
     
     JOB may be specified by name or ID, but ID is preferred.
     """
@@ -70,6 +71,71 @@ def connect(config, job, attach):
         except:
             pass
         raise
+
+
+@job.command()
+@click.option(
+    '--attach/--no-attach',
+    default=True,
+    show_default=True,
+    help='Auto attach to job.'
+)
+@click.option(
+    '--connect/--no-connect',
+    default=True,
+    show_default=True,
+    help='Auto connect to job.'
+)
+@click.option(
+    '--disk-size', '-ds',
+    type=click.INT,
+    default=10,
+    show_default=True,
+    help='Disk size (GiB).'
+)
+@click.option(
+    '--gpu-count', '-gc',
+    type=click.INT,
+    default=1,
+    show_default=True,
+    help='GPU Count (per Worker.)'
+)
+@click.option(
+    '--gpu-type', '-gt',
+    type=click.Choice(['GTX 1060'], case_sensitive=False),
+    default='GTX 1060',
+    show_default=True,
+    help='GPU type.'
+)
+@click.option(
+    '--type', '-t',
+    type=click.Choice(['interactive'], case_sensitive=False),
+    default='interactive',
+    show_default=True,
+    help='Job type.'
+)
+@click.argument('name', type=click.STRING)
+@pass_config
+def create(config, attach, connect, disk_size, gpu_count, gpu_type, type, name):
+    """
+    Create job.
+    """
+    if type == 'interactive':
+        job = config.trainml.run(
+            config.trainml.client.jobs.create(
+                name=name,
+                type=type,
+                gpu_type=gpu_type,
+                gpu_count=gpu_count,
+                disk_size=disk_size,
+            )
+        )
+        click.echo('Created.', file=config.output)
+        if attach or connect:
+            click.echo('Waiting for job to start...', file=config.output)
+            config.trainml.run(job.wait_for('running'))
+            click.echo('Launching...', file=config.output)
+            browse(job.notebook_url)
 
 
 @job.command()
