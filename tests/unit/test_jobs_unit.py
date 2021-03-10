@@ -30,7 +30,7 @@ def job(mock_trainml):
             "job_uuid": "job-id-1",
             "name": "test notebook",
             "start": "2021-02-11T15:46:22.455Z",
-            "type": "interactive",
+            "type": "notebook",
             "status": "new",
             "credits_per_hour": 0.1,
             "credits": 0.1007,
@@ -246,14 +246,14 @@ class JobsTests:
     ):
         requested_config = dict(
             name="job_name",
-            type="interactive",
+            type="notebook",
             gpu_type="GTX 1060",
             gpu_count=1,
             disk_size=10,
         )
         expected_payload = dict(
             name="job_name",
-            type="interactive",
+            type="notebook",
             resources=dict(
                 gpu_type_id="1060-id",
                 gpu_count=1,
@@ -281,7 +281,7 @@ class JobsTests:
     ):
         requested_config = dict(
             name="job_name",
-            type="interactive",
+            type="notebook",
             gpu_type="GTX 1060",
             gpu_count=1,
             disk_size=10,
@@ -294,7 +294,7 @@ class JobsTests:
         )
         expected_payload = dict(
             name="job_name",
-            type="interactive",
+            type="notebook",
             resources=dict(
                 gpu_type_id="1060-id",
                 gpu_count=1,
@@ -316,7 +316,7 @@ class JobsTests:
     ):
         requested_config = dict(
             name="job_name",
-            type="interactive",
+            type="notebook",
             gpu_type="1060",
             gpu_count=1,
             disk_size=10,
@@ -396,7 +396,7 @@ class JobTests:
                 "customer_uuid": "cus-id-1",
                 "job_uuid": "job-id-1",
                 "name": "test notebook",
-                "type": "interactive",
+                "type": "notebook",
                 "status": "new",
                 "provider": "trainml",
                 "data": {
@@ -464,7 +464,7 @@ class JobTests:
             "customer_uuid": "cus-id-1",
             "job_uuid": "job-id-1",
             "name": "test notebook",
-            "type": "interactive",
+            "type": "notebook",
             "status": "running",
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -501,7 +501,7 @@ class JobTests:
                 "customer_uuid": "cus-id-1",
                 "job_uuid": "job-id-1",
                 "name": "test notebook",
-                "type": "interactive",
+                "type": "notebook",
                 "status": "running",
                 "workers": [
                     {
@@ -578,7 +578,7 @@ class JobTests:
             name="job_copy",
         )
         expected_kwargs = {
-            "type": "interactive",
+            "type": "notebook",
             "gpu_type": "1060-id",
             "gpu_count": 1,
             "disk_size": 10,
@@ -596,7 +596,7 @@ class JobTests:
                 "customer_uuid": "cus-id-1",
                 "job_uuid": "job-id-2",
                 "name": "job_copy",
-                "type": "interactive",
+                "type": "notebook",
                 "status": "new",
             },
         )
@@ -608,7 +608,7 @@ class JobTests:
         assert new_job.id == "job-id-2"
 
     @mark.asyncio
-    async def test_job_copy_headless_job_failure(
+    async def test_job_copy_training_job_failure(
         self,
         mock_trainml,
     ):
@@ -618,7 +618,7 @@ class JobTests:
                 "customer_uuid": "cus-id-1",
                 "job_uuid": "job-id-1",
                 "name": "test training",
-                "type": "headless",
+                "type": "training",
                 "status": "running",
             },
         )
@@ -633,7 +633,7 @@ class JobTests:
             "customer_uuid": "cus-id-1",
             "job_uuid": "job-id-1",
             "name": "test notebook",
-            "type": "interactive",
+            "type": "notebook",
             "status": "running",
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -650,7 +650,7 @@ class JobTests:
                 "customer_uuid": "cus-id-1",
                 "job_uuid": "job-id-1",
                 "name": "test notebook",
-                "type": "interactive",
+                "type": "notebook",
                 "status": "running",
             },
         )
@@ -673,14 +673,14 @@ class JobTests:
             "customer_uuid": "cus-id-1",
             "job_uuid": "job-id-1",
             "name": "test notebook",
-            "type": "interactive",
+            "type": "notebook",
             "status": "new",
         }
         api_response_final = {
             "customer_uuid": "cus-id-1",
             "job_uuid": "job-id-1",
             "name": "test notebook",
-            "type": "interactive",
+            "type": "notebook",
             "status": "running",
         }
         mock_trainml._query = AsyncMock()
@@ -699,7 +699,7 @@ class JobTests:
             "customer_uuid": "cus-id-1",
             "job_uuid": "job-id-1",
             "name": "test notebook",
-            "type": "interactive",
+            "type": "notebook",
             "status": "new",
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -713,7 +713,7 @@ class JobTests:
             "customer_uuid": "cus-id-1",
             "job_uuid": "job-id-1",
             "name": "test notebook",
-            "type": "interactive",
+            "type": "notebook",
             "status": "failed",
         }
         mock_trainml._query = AsyncMock(return_value=api_response)

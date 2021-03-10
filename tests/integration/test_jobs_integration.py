@@ -13,7 +13,7 @@ pytestmark = [mark.integration, mark.jobs]
 async def job(trainml):
     job = await trainml.jobs.create(
         name="CLI Automated Job Lifecycle",
-        type="interactive",
+        type="notebook",
         gpu_type="GTX 1060",
         gpu_count=1,
         disk_size=1,
@@ -21,6 +21,19 @@ async def job(trainml):
         model=dict(git_uri="git@github.com:trainML/test-private.git"),
     )
     yield job
+
+
+@fixture(scope="class")
+async def model(trainml):
+    model = await trainml.models.create(
+        name="CLI Automated Jobs -  Git Model",
+        source_type="git",
+        source_uri="git@github.com:trainML/test-private.git",
+    )
+    await model.wait_for("ready", 120)
+    assert model.size >= 1000000
+    yield model
+    await model.remove()
 
 
 @mark.create
@@ -83,7 +96,7 @@ class JobLifeCycleTests:
     async def test_convert_job(self, job):
         training_job = await job.copy(
             "CLI Automated Job Convert",
-            type="headless",
+            type="training",
             worker_count=1,
             worker_commands=[
                 "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024"
@@ -112,11 +125,15 @@ class JobLifeCycleTests:
         job = await job.wait_for("archived", 60)
         assert job is None
 
+
+@mark.create
+@mark.asyncio
+class JobFeatureTests:
     async def test_job_local_output(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(
             "CLI Automated Tensorflow Test",
-            type="headless",
+            type="training",
             gpu_type="GTX 1060",
             gpu_count=1,
             disk_size=1,
@@ -160,3 +177,49 @@ class JobLifeCycleTests:
         assert "Epoch 2/2" in captured.out
         assert "adding: model.ckpt-0001.data-00000-of-00001" in captured.out
         assert "Send complete" in captured.out
+
+    async def test_job_model_input_and_output(self, trainml, model, capsys):
+        job = await trainml.jobs.create(
+            "CLI Automated Training With trainML Model Output",
+            type="training",
+            gpu_type="GTX 1060",
+            gpu_count=1,
+            disk_size=1,
+            worker_count=1,
+            worker_commands=[
+                "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=2 --batch_size=1024"
+            ],
+            environment=dict(type="TENSORFLOW_PY38_24"),
+            data=dict(
+                datasets=[
+                    dict(
+                        name="CIFAR-10",
+                        type="public",
+                    )
+                ],
+                output_type="trainml",
+            ),
+            model=dict(model_uuid=model.id),
+        )
+        await job.attach()
+        await job.refresh()
+        assert job.status == "finished"
+        workers = job.workers
+        await job.remove()
+
+        model = await trainml.models.get(workers[0].get("output_model_uuid"))
+        assert model.id
+        await model.attach()
+        await model.refresh()
+        assert model.size > 10000000
+        assert (
+            model.name
+            == "Job - CLI Automated Training With trainML Model Output"
+        )
+
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert "Epoch 1/2" in captured.out
+        assert "Epoch 2/2" in captured.out
+        assert "Finish copy worker contents" in captured.out

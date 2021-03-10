@@ -211,6 +211,10 @@ class Job:
         return self._type
 
     @property
+    def workers(self) -> list:
+        return self._workers
+
+    @property
     def notebook_url(self) -> str:
         if self.type != "notebook":
             return None

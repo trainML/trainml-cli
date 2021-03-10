@@ -4,6 +4,7 @@ from unittest.mock import Mock, AsyncMock, patch, create_autospec
 
 from trainml.trainml import TrainML
 from trainml.datasets import Dataset, Datasets
+from trainml.models import Model, Models
 from trainml.gpu_types import GpuType, GpuTypes
 from trainml.environments import Environment, Environments
 from trainml.jobs import Job, Jobs
@@ -124,6 +125,73 @@ def mock_public_datasets():
             name="failed",
             status="failed",
             provider="trainml",
+        ),
+    ]
+
+
+@fixture(scope="session")
+def mock_models():
+    trainml = Mock()
+    return [
+        Model(
+            trainml,
+            model_uuid="1",
+            customer_uuid="cus-id-1",
+            name="first one",
+            status="ready",
+            provider="trainml",
+            size=10000000,
+            createdAt="2020-12-31T23:59:59.000Z",
+        ),
+        Model(
+            trainml,
+            model_uuid="2",
+            customer_uuid="cus-id-1",
+            name="second one",
+            status="ready",
+            provider="trainml",
+            size=10000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Model(
+            trainml,
+            model_uuid="3",
+            customer_uuid="cus-id-1",
+            name="first one",
+            status="ready",
+            provider="gcp",
+            size=10000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Model(
+            trainml,
+            model_uuid="4",
+            customer_uuid="cus-id-1",
+            name="other one",
+            status="ready",
+            provider="gcp",
+            size=10000000,
+            createdAt="2020-12-31T23:59:59.000Z",
+        ),
+        Model(
+            trainml,
+            model_uuid="5",
+            customer_uuid="cus-id-1",
+            name="not ready",
+            status="new",
+            provider="trainml",
+            size=10000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Model(
+            trainml,
+            model_uuid="6",
+            customer_uuid="cus-id-1",
+            name="failed",
+            status="failed",
+            provider="trainml",
+            size=10000000,
+            createdAt="2021-01-01T00:00:01.000Z",
         ),
     ]
 
@@ -446,18 +514,21 @@ def mock_jobs():
 def mock_trainml(
     mock_my_datasets,
     mock_public_datasets,
+    mock_models,
     mock_gpu_types,
     mock_environments,
     mock_jobs,
 ):
     trainml = create_autospec(TrainML)
     trainml.datasets = create_autospec(Datasets)
+    trainml.models = create_autospec(Models)
     trainml.gpu_types = create_autospec(GpuTypes)
     trainml.environments = create_autospec(Environments)
     trainml.jobs = create_autospec(Jobs)
     trainml.connections = create_autospec(Connections)
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
+    trainml.models.list = AsyncMock(return_value=mock_models)
     trainml.gpu_types.list = AsyncMock(return_value=mock_gpu_types)
     trainml.environments.list = AsyncMock(return_value=mock_environments)
     trainml.jobs.list = AsyncMock(return_value=mock_jobs)

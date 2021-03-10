@@ -2,6 +2,7 @@ import json
 import os
 import asyncio
 import aiohttp
+from importlib.metadata import version
 
 from .auth import Auth
 from .datasets import Datasets
@@ -15,6 +16,7 @@ from .connections import Connections
 
 class TrainML(object):
     def __init__(self, **kwargs):
+        self._version = version("trainml")
         CONFIG_DIR = os.path.expanduser(
             os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
         )
@@ -62,6 +64,7 @@ class TrainML(object):
                 **headers,
                 **{
                     "Authorization": tokens.get("id_token"),
+                    "User-Agent": f"trainML-sdk/{self._version}",
                 },
             }
             if headers

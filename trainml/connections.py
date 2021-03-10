@@ -115,8 +115,12 @@ class Connection:
             self._entity = await self.trainml.datasets.get(self.id)
         elif self.type == "job":
             self._entity = await self.trainml.jobs.get(self.id)
+        elif self.type == "model":
+            self._entity = await self.trainml.models.get(self.id)
         else:
-            raise TypeError("Connection type must be in: ['dataset', 'job']")
+            raise TypeError(
+                "Connection type must be in: ['dataset', 'model', 'job']"
+            )
 
     async def _download_connection_details(self):
         zip_file = f"{self._dir}/details.zip"
