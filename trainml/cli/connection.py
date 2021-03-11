@@ -1,5 +1,5 @@
 import click
-from . import cli, pass_config, search_by_id_name
+from trainml.cli import cli, pass_config, search_by_id_name
 
 
 @cli.group()
@@ -13,36 +13,35 @@ def connection(config):
 @pass_config
 def list(config):
     """List connections."""
-    data = [['ID', 'TYPE', 'STATUS'],
-            ['-'*80, '-'*80, '-'*80]]
+    data = [["ID", "TYPE", "STATUS"], ["-" * 80, "-" * 80, "-" * 80]]
 
-    connections = config.trainml.run(
-        config.trainml.client.connections.list())
-    
+    connections = config.trainml.run(config.trainml.client.connections.list())
+
     for con in connections:
         data.append([con.id, con.type, con.status])
     for row in data:
-        click.echo("{: >38.36} {: >9.7} {: >15.13}".format(*row), file=config.output)
+        click.echo(
+            "{: >38.36} {: >9.7} {: >15.13}".format(*row), file=config.output
+        )
 
 
 @connection.command()
-@click.argument('id', type=click.STRING)
+@click.argument("id", type=click.STRING)
 @pass_config
 def remove(config, id):
     """Remove connection."""
-    connections = config.trainml.run(
-        config.trainml.client.connections.list())
-    
+    connections = config.trainml.run(config.trainml.client.connections.list())
+
     found = search_by_id_name(id, connections)
     if None is found:
-        raise click.UsageError('Connection ID specified does not exist.')
+        raise click.UsageError("Connection ID specified does not exist.")
 
-    if found.type == 'dataset':
+    if found.type == "dataset":
         this = config.trainml.run(config.trainml.client.datasets.get(id))
-    elif found.type == 'job':
+    elif found.type == "job":
         this = config.trainml.run(config.trainml.client.jobs.get(id))
     else:
-        raise click.UsageError('Unknown connection type.')
+        raise click.UsageError("Unknown connection type.")
 
     return config.trainml.run(this.disconnect())
 

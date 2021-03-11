@@ -4,17 +4,17 @@ from pytest import mark, fixture
 
 import trainml.environments as specimen
 
-pytestmark = [mark.unit, mark.environments]
+pytestmark = [mark.sdk, mark.unit, mark.environments]
 
 
 @fixture
 def environments(mock_trainml):
-    return specimen.Environments(mock_trainml)
+    yield specimen.Environments(mock_trainml)
 
 
 @fixture
 def environment(mock_trainml):
-    return specimen.Environment(
+    yield specimen.Environment(
         mock_trainml,
         **{
             "id": "PYTORCH_PY38_17",

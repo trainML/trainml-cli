@@ -4,17 +4,17 @@ from pytest import mark, fixture
 
 import trainml.gpu_types as specimen
 
-pytestmark = [mark.unit, mark.gpu_types]
+pytestmark = [mark.sdk, mark.unit, mark.gpu_types]
 
 
 @fixture()
 def gpu_types(mock_trainml):
-    return specimen.GpuTypes(mock_trainml)
+    yield specimen.GpuTypes(mock_trainml)
 
 
 @fixture()
 def gpu_type(mock_trainml):
-    return specimen.GpuType(
+    yield specimen.GpuType(
         mock_trainml,
         **{
             "available": 4,

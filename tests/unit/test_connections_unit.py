@@ -18,18 +18,18 @@ from trainml.jobs import Job
 from trainml.datasets import Dataset
 from trainml.exceptions import ApiError, ConnectionError
 
-pytestmark = [mark.unit, mark.connections]
+pytestmark = [mark.sdk, mark.unit, mark.connections]
 
 
 @fixture
 def connections(mock_trainml):
-    return specimen.Connections(mock_trainml)
+    yield specimen.Connections(mock_trainml)
 
 
 @fixture
 def dataset_con(mock_trainml):
     DatasetMock = create_autospec(Dataset)
-    return specimen.Connection(
+    yield specimen.Connection(
         mock_trainml,
         entity_type="dataset",
         id="data-id-1",
@@ -46,7 +46,7 @@ def dataset_con(mock_trainml):
 @fixture
 def job_con(mock_trainml):
     JobMock = create_autospec(Job)
-    return specimen.Connection(
+    yield specimen.Connection(
         mock_trainml,
         entity_type="job",
         id="job-id-1",

@@ -34,10 +34,10 @@ ENVS = {
 @fixture(scope="session")
 def env(request):
     env = request.config.getoption("--env")
-    return ENVS[env]
+    yield ENVS[env]
 
 
 @fixture(scope="module")
 def trainml(env):
     trainml = TrainML(**env)
-    return trainml
+    yield trainml

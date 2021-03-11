@@ -3,7 +3,7 @@ import sys
 import asyncio
 from pytest import mark, fixture
 
-pytestmark = [mark.integration, mark.datasets]
+pytestmark = [mark.sdk, mark.integration, mark.datasets]
 
 
 @mark.create

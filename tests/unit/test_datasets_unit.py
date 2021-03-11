@@ -13,17 +13,17 @@ from trainml.exceptions import (
     TrainMLException,
 )
 
-pytestmark = [mark.unit, mark.datasets]
+pytestmark = [mark.sdk, mark.unit, mark.datasets]
 
 
 @fixture
 def datasets(mock_trainml):
-    return specimen.Datasets(mock_trainml)
+    yield specimen.Datasets(mock_trainml)
 
 
 @fixture
 def dataset(mock_trainml):
-    return specimen.Dataset(
+    yield specimen.Dataset(
         mock_trainml,
         dataset_uuid="1",
         name="first one",

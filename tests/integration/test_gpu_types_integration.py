@@ -2,13 +2,13 @@ import re
 from pytest import mark, fixture
 
 
-pytestmark = [mark.integration, mark.gpu_types]
+pytestmark = [mark.sdk, mark.integration, mark.gpu_types]
 
 
 @fixture(scope="module")
 async def gpu_types(trainml):
     gpu_types = await trainml.gpu_types.list()
-    return gpu_types
+    yield gpu_types
 
 
 @fixture(scope="module")
@@ -17,7 +17,7 @@ async def gpu_type(gpu_types):
         (gpu_type for gpu_type in gpu_types if gpu_type.name == "GTX 1060"),
         None,
     )
-    return gpu_type
+    yield gpu_type
 
 
 @mark.asyncio

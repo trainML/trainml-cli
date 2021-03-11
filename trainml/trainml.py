@@ -4,14 +4,14 @@ import asyncio
 import aiohttp
 from importlib.metadata import version
 
-from .auth import Auth
-from .datasets import Datasets
-from .models import Models
-from .jobs import Jobs
-from .gpu_types import GpuTypes
-from .environments import Environments
-from .exceptions import ApiError, TrainMLException
-from .connections import Connections
+from trainml.auth import Auth
+from trainml.datasets import Datasets
+from trainml.models import Models
+from trainml.jobs import Jobs
+from trainml.gpu_types import GpuTypes
+from trainml.environments import Environments
+from trainml.exceptions import ApiError, TrainMLException
+from trainml.connections import Connections
 
 
 class TrainML(object):

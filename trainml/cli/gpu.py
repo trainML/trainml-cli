@@ -1,6 +1,6 @@
 import asyncio
 import click
-from . import cli, pass_config
+from trainml.cli import cli, pass_config
 from trainml.trainml import TrainML
 
 
@@ -15,13 +15,27 @@ def gpu(config):
 @pass_config
 def list(config):
     """List GPUs."""
-    data = [['ID', 'NAME', 'PROVIDER', 'AVAILABLE', 'CREDITS/HR'],
-            ['-'*80, '-'*80, '-'*80, '-'*80, '-'*80]]
+    data = [
+        ["ID", "NAME", "PROVIDER", "AVAILABLE", "CREDITS/HR"],
+        ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
+    ]
 
-    gpus = config.trainml.run(
-        config.trainml.client.gpu_types.list())
-    
+    gpus = config.trainml.run(config.trainml.client.gpu_types.list())
+
     for gpu in gpus:
-        data.append([gpu.id, gpu.name, gpu.provider, str(gpu.available), str(gpu.credits_per_hour)])
+        data.append(
+            [
+                gpu.id,
+                gpu.name,
+                gpu.provider,
+                str(gpu.available),
+                str(gpu.credits_per_hour),
+            ]
+        )
     for row in data:
-        click.echo("{: >36.34} {: >16.14} {: >10.8} {: >11.9} {: >12.10}".format(*row), file=config.output)
+        click.echo(
+            "{: >36.34} {: >16.14} {: >10.8} {: >11.9} {: >12.10}".format(
+                *row
+            ),
+            file=config.output,
+        )

@@ -8,7 +8,7 @@ from aiohttp import WSMessage, WSMsgType
 
 import trainml.trainml as specimen
 
-pytestmark = [mark.unit]
+pytestmark = [mark.sdk, mark.unit]
 
 
 @patch.dict(

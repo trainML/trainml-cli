@@ -2,7 +2,7 @@ from pytest import mark
 
 import trainml.exceptions as specimen
 
-pytestmark = [mark.unit]
+pytestmark = [mark.sdk, mark.unit]
 
 
 def test_api_error():

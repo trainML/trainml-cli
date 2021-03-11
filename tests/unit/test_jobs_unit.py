@@ -13,17 +13,17 @@ from trainml.exceptions import (
     TrainMLException,
 )
 
-pytestmark = [mark.unit, mark.jobs]
+pytestmark = [mark.sdk, mark.unit, mark.jobs]
 
 
 @fixture
 def jobs(mock_trainml):
-    return specimen.Jobs(mock_trainml)
+    yield specimen.Jobs(mock_trainml)
 
 
 @fixture
 def job(mock_trainml):
-    return specimen.Job(
+    yield specimen.Job(
         mock_trainml,
         **{
             "customer_uuid": "cus-id-1",

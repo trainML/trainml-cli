@@ -1,13 +1,13 @@
 import re
 from pytest import mark, fixture
 
-pytestmark = [mark.integration, mark.environments]
+pytestmark = [mark.sdk, mark.integration, mark.environments]
 
 
 @fixture(scope="module")
 async def environments(trainml):
     environments = await trainml.environments.list()
-    return environments
+    yield environments
 
 
 @fixture(scope="module")
@@ -16,7 +16,7 @@ async def environment(environments):
         (environment for environment in environments if environment.version),
         None,
     )
-    return environment
+    yield environment
 
 
 @mark.asyncio

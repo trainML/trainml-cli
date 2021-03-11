@@ -6,7 +6,7 @@ import os
 import asyncio
 from pytest import mark, fixture, raises
 
-pytestmark = [mark.integration, mark.jobs]
+pytestmark = [mark.sdk, mark.integration, mark.jobs]
 
 
 @fixture(scope="class")
@@ -207,13 +207,15 @@ class JobFeatureTests:
         workers = job.workers
         await job.remove()
 
-        model = await trainml.models.get(workers[0].get("output_model_uuid"))
-        assert model.id
-        await model.attach()
-        await model.refresh()
-        assert model.size > 10000000
+        new_model = await trainml.models.get(
+            workers[0].get("output_model_uuid")
+        )
+        assert new_model.id
+        await new_model.attach()
+        await new_model.refresh()
+        assert new_model.size > model.size + 1000000
         assert (
-            model.name
+            new_model.name
             == "Job - CLI Automated Training With trainML Model Output"
         )
 
