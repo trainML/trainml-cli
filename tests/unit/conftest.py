@@ -513,7 +513,6 @@ def mock_jobs():
 
 @fixture(scope="function")
 def mock_trainml(
-    mock_trainml_class,
     mock_my_datasets,
     mock_public_datasets,
     mock_models,
@@ -521,7 +520,13 @@ def mock_trainml(
     mock_environments,
     mock_jobs,
 ):
-    trainml = mock_trainml_class()
+    trainml = create_autospec(TrainML)
+    trainml.datasets = create_autospec(Datasets)
+    trainml.models = create_autospec(Models)
+    trainml.gpu_types = create_autospec(GpuTypes)
+    trainml.environments = create_autospec(Environments)
+    trainml.jobs = create_autospec(Jobs)
+    trainml.connections = create_autospec(Connections)
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
     trainml.models.list = AsyncMock(return_value=mock_models)
@@ -529,26 +534,3 @@ def mock_trainml(
     trainml.environments.list = AsyncMock(return_value=mock_environments)
     trainml.jobs.list = AsyncMock(return_value=mock_jobs)
     yield trainml
-
-
-@fixture(scope="function")
-def mock_trainml_class():
-    class MockTrainML(object):
-        def __init__(self, **kwargs):
-            self.auth = create_autospec(Auth)
-            self.datasets = create_autospec(Datasets)
-            self.models = create_autospec(Models)
-            self.gpu_types = create_autospec(GpuTypes)
-            self.environments = create_autospec(Environments)
-            self.jobs = create_autospec(Jobs)
-            self.connections = create_autospec(Connections)
-
-        async def _query(
-            self, path, method, params=None, data=None, headers=None
-        ):
-            pass
-
-        async def _ws_subscribe(self, entity, id, msg_handler):
-            pass
-
-    yield MockTrainML

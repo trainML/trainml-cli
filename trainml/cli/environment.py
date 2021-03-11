@@ -17,7 +17,7 @@ def list(config):
         ["ID", "NAME", "PYTHON", "FRAMEWORK", "VERSION", "CUDA"],
         ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
     ]
-    print(config.trainml.client.environments.list)
+
     environments = config.trainml.run(
         config.trainml.client.environments.list()
     )
