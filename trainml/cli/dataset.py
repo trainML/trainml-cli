@@ -130,7 +130,7 @@ def create(config, attach, connect, source, name, path):
             else:
                 raise click.UsageError(
                     "Abort!\n"
-                    + "No logs to show for local sourced dataset without connect."
+                    "No logs to show for local sourced dataset without connect."
                 )
         except:
             try:
@@ -181,10 +181,9 @@ def list(config):
         )
     for row in data:
         click.echo(
-            "{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}".format(
-                *row
-            ),
-            file=config.output,
+            "{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}"
+            "".format(*row),
+            file=config.stdout,
         )
 
 
@@ -211,8 +210,7 @@ def list_public(config):
         )
     for row in data:
         click.echo(
-            "{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}".format(
-                *row
-            ),
-            file=config.output,
+            "{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}"
+            "".format(*row),
+            file=config.stdout,
         )

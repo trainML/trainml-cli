@@ -21,7 +21,7 @@ def list(config):
         data.append([con.id, con.type, con.status])
     for row in data:
         click.echo(
-            "{: >38.36} {: >9.7} {: >15.13}".format(*row), file=config.output
+            "{: >38.36} {: >9.7} {: >15.13}".format(*row), file=config.stdout
         )
 
 

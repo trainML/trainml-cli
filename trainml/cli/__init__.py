@@ -1,6 +1,8 @@
 import asyncio
 import click
 import logging
+from os import devnull
+from sys import stderr, stdout
 from trainml.trainml import TrainML
 
 
@@ -33,7 +35,8 @@ class TrainMLRunner(object):
 
 class Config(object):
     def __init__(self):
-        self.output = None
+        self.stderr = stderr
+        self.stdout = stdout
         self.trainml = TrainMLRunner()
 
 
@@ -59,22 +62,66 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 
 @click.group()
 @click.option(
+    "--debug",
+    "-d",
+    is_flag=True,
+    type=click.BOOL,
+    default=False,
+    help="Show debug output.",
+)
+@click.option(
     "--output-file",
     "-o",
-    envvar="TRAINML_OUT",
     type=click.File("w"),
     default="-",
     help="Send output to file.",
 )
+@click.option(
+    "--silent",
+    "-s",
+    is_flag=True,
+    type=click.BOOL,
+    default=False,
+    help="Silence all output.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    "verbosity",
+    count=True,
+    type=click.INT,
+    default=3,
+    show_default=True,
+    help="Specify verbosity (repeat to increase).",
+)
 @pass_config
-def cli(config, output_file):
+def cli(config, debug, output_file, silent, verbosity):
     """TrainML command-line interface."""
-    config.output = output_file
+    config.stdout = output_file
+
+    if debug or verbosity > 4:
+        if silent:
+            click.echo(
+                "Ignoring silent flag when DEBUG verbosity is set.",
+                file=config.stderr,
+            )
+        verbosity = 5
+    elif silent:
+        config.stderr = config.stdout = open(devnull, "w")
+
+    verbosity = (6 - verbosity) * 10  # ref: logging
+    if verbosity != logging.WARNING:  # default
+        click.echo(
+            f"Verbosity set to {logging.getLevelName(verbosity)}",
+            file=config.stderr,
+        )
+
     logging.basicConfig(
         format="%(asctime)s  %(levelname)s  %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p",
-        level=logging.INFO,
-        stream=output_file,
+        level=verbosity,
+        stream=config.stderr,
+        force=True,
     )
 
 

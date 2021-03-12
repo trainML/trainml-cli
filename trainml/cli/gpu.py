@@ -28,14 +28,13 @@ def list(config):
                 gpu.id,
                 gpu.name,
                 gpu.provider,
-                str(gpu.available),
-                str(gpu.credits_per_hour),
+                f"{gpu.available}",
+                f"{gpu.credits_per_hour:.2f}",
             ]
         )
     for row in data:
         click.echo(
-            "{: >36.34} {: >16.14} {: >10.8} {: >11.9} {: >12.10}".format(
-                *row
-            ),
-            file=config.output,
+            "{: >36.34} {: >16.14} {: >10.8} {: >11.9} {: >12.10}"
+            "".format(*row),
+            file=config.stdout,
         )

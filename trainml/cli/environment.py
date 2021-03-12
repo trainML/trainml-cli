@@ -35,8 +35,7 @@ def list(config):
         )
     for row in data:
         click.echo(
-            "{: >21.19} {: >30.28} {: >8.6} {: >15.13} {: >9.7} {: >6.4}".format(
-                *row
-            ),
-            file=config.output,
+            "{: >21.19} {: >30.28} {: >8.6} {: >15.13} {: >9.7} {: >6.4}"
+            "".format(*row),
+            file=config.stdout,
         )

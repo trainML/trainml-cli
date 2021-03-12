@@ -134,11 +134,11 @@ def create(
                 disk_size=disk_size,
             )
         )
-        click.echo("Created.", file=config.output)
+        click.echo("Created.", file=config.stdout)
         if attach or connect:
-            click.echo("Waiting for job to start...", file=config.output)
+            click.echo("Waiting for job to start...", file=config.stdout)
             config.trainml.run(job.wait_for("running"))
-            click.echo("Launching...", file=config.output)
+            click.echo("Launching...", file=config.stdout)
             browse(job.notebook_url)
 
 
@@ -175,8 +175,7 @@ def list(config):
         data.append([job.id, job.name, job.status, job.provider, job.type])
     for row in data:
         click.echo(
-            "{: >38.36} {: >40.38} {: >13.11} {: >10.8} {: >14.12}".format(
-                *row
-            ),
-            file=config.output,
+            "{: >38.36} {: >40.38} {: >13.11} {: >10.8} {: >14.12}"
+            "".format(*row),
+            file=config.stdout,
         )
