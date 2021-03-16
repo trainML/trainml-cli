@@ -90,8 +90,7 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
     "verbosity",
     count=True,
     type=click.INT,
-    default=3,
-    show_default=True,
+    default=0,
     help="Specify verbosity (repeat to increase).",
 )
 @pass_config
@@ -99,17 +98,21 @@ def cli(config, debug, output_file, silent, verbosity):
     """TrainML command-line interface."""
     config.stdout = output_file
 
-    if debug or verbosity > 4:
+    if debug or verbosity > 0:
         if silent:
             click.echo(
-                "Ignoring silent flag when DEBUG verbosity is set.",
+                "Ignoring silent flag when debug or verbosity is set.",
                 file=config.stderr,
             )
-        verbosity = 5
+        if verbosity == 1:
+            verbosity = logging.INFO
+        else:
+            verbosity = logging.DEBUG
     elif silent:
         config.stderr = config.stdout = open(devnull, "w")
+    else:
+        verbosity = logging.WARNING
 
-    verbosity = (6 - verbosity) * 10  # ref: logging
     if verbosity != logging.WARNING:  # default
         click.echo(
             f"Verbosity set to {logging.getLevelName(verbosity)}",
