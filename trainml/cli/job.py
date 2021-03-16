@@ -111,8 +111,8 @@ def connect(config, job, attach):
 @click.option(
     "--type",
     "-t",
-    type=click.Choice(["interactive"], case_sensitive=False),
-    default="interactive",
+    type=click.Choice(["notebook"], case_sensitive=False),
+    default="notebook",
     show_default=True,
     help="Job type.",
 )
@@ -124,7 +124,7 @@ def create(
     """
     Create job.
     """
-    if type == "interactive":
+    if type == "notebook":
         job = config.trainml.run(
             config.trainml.client.jobs.create(
                 name=name,
