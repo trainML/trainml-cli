@@ -102,12 +102,10 @@ class Jobs(object):
         gpu_type,
         gpu_count,
         disk_size,
-        worker_count=1,
         worker_commands=[],
         environment=dict(type="DEEPLEARNING_PY38"),
         data=dict(datasets=[]),
         model=dict(),
-        vpn=dict(net_prefix_type_id=1),
         **kwargs,
     ):
 
@@ -151,23 +149,24 @@ class Jobs(object):
                 gpu_count=gpu_count,
                 disk_size=disk_size,
             ),
-            worker_count=worker_count,
             worker_commands=worker_commands,
+            workers=kwargs.get("workers"),
             environment=environment,
             data=data,
             model=model,
-            vpn=vpn,
             source_job_uuid=kwargs.get("source_job_uuid"),
         )
         payload = {
             k: v
             for k, v in config.items()
-            if v
-            or (
-                k in ["worker_commands", "model"]
-                and not kwargs.get("source_job_uuid")
-            )
+            if v or (k in ["model"] and not kwargs.get("source_job_uuid"))
         }
+        if (
+            not payload.get("worker_commands")
+            and not payload.get("workers")
+            and not kwargs.get("source_job_uuid")
+        ):
+            payload["worker_commands"] = []
         logging.info(f"Creating Job {name}")
         logging.debug(f"Job payload: {payload}")
         resp = await self.trainml._query("/job", "POST", None, payload)
@@ -327,11 +326,9 @@ class Job:
             or self._job.get("resources").get("gpu_count"),
             disk_size=kwargs.get("disk_size")
             or self._job.get("resources").get("disk_size"),
-            worker_count=kwargs.get("worker_count"),
             worker_commands=kwargs.get("worker_commands"),
             environment=kwargs.get("environment"),
             data=kwargs.get("data"),
-            vpn=kwargs.get("vpn"),
             source_job_uuid=self.id,
         )
         logging.debug(f"copy result: {job}")

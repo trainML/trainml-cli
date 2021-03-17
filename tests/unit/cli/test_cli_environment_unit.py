@@ -18,5 +18,4 @@ def test_list(runner, mock_environments):
         )
         result = runner.invoke(specimen, ["list"])
         assert result.exit_code == 0
-        assert "DEEPLEARNING_PY38" in result.output
         mock_trainml.environments.list.assert_called_once()

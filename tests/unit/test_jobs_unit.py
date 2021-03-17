@@ -259,12 +259,10 @@ class JobsTests:
                 gpu_count=1,
                 disk_size=10,
             ),
-            worker_count=1,
-            worker_commands=[],
             environment=dict(type="DEEPLEARNING_PY38"),
             data=dict(datasets=[]),
             model=dict(),
-            vpn=dict(net_prefix_type_id=1),
+            worker_commands=[],
         )
 
         api_response = dict()
@@ -285,11 +283,9 @@ class JobsTests:
             gpu_type="GTX 1060",
             gpu_count=1,
             disk_size=10,
-            worker_count=None,
             worker_commands=None,
             environment=None,
             data=None,
-            vpn=None,
             source_job_uuid="job-id-1",
         )
         expected_payload = dict(
@@ -414,7 +410,6 @@ class JobTests:
                         "address": "10.106.171.253",
                         "ssh_port": 46600,
                     },
-                    "net_prefix_type_id": 1,
                 },
             },
         )
@@ -582,11 +577,9 @@ class JobTests:
             "gpu_type": "1060-id",
             "gpu_count": 1,
             "disk_size": 10,
-            "worker_count": None,
             "worker_commands": None,
             "environment": None,
             "data": None,
-            "vpn": None,
             "source_job_uuid": "job-id-1",
         }
 

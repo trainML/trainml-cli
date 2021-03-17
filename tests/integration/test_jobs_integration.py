@@ -218,6 +218,7 @@ class JobFeatureTests:
             new_model.name
             == "Job - CLI Automated Training With trainML Model Output"
         )
+        await new_model.remove()
 
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
