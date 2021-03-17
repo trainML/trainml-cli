@@ -195,6 +195,10 @@ class Job:
         self._workers = self._job.get("workers")
 
     @property
+    def dict(self) -> dict:
+        return self._job
+
+    @property
     def id(self) -> str:
         return self._id
 

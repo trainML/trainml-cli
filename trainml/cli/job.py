@@ -161,21 +161,35 @@ def disconnect(config, job):
 
 
 @job.command()
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    default="text",
+    show_default=True,
+    help="Choose output format.",
+)
 @pass_config
-def list(config):
+def list(config, format):
     """List TrainML jobs."""
-    data = [
-        ["ID", "NAME", "STATUS", "PROVIDER", "TYPE"],
-        ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
-    ]
-
     jobs = config.trainml.run(config.trainml.client.jobs.list())
 
-    for job in jobs:
-        data.append([job.id, job.name, job.status, job.provider, job.type])
-    for row in data:
-        click.echo(
-            "{: >38.36} {: >40.38} {: >13.11} {: >10.8} {: >14.12}"
-            "".format(*row),
-            file=config.stdout,
-        )
+    if format == "text":
+        data = [
+            ["ID", "NAME", "STATUS", "PROVIDER", "TYPE"],
+            ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
+        ]
+
+        for job in jobs:
+            data.append([job.id, job.name, job.status, job.provider, job.type])
+        for row in data:
+            click.echo(
+                "{: >38.36} {: >40.38} {: >13.11} {: >10.8} {: >14.12}"
+                "".format(*row),
+                file=config.stdout,
+            )
+    elif format == "json":
+        output = []
+        for job in jobs:
+            output.append(job.dict)
+        click.echo(output, file=config.stdout)
