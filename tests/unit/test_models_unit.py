@@ -148,6 +148,32 @@ class ModelTests:
         assert not bool(empty_model)
 
     @mark.asyncio
+    async def test_model_get_log_url(self, model, mock_trainml):
+
+        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await model.get_log_url()
+        mock_trainml._query.assert_called_once_with("/model/pub/1/logs", "GET")
+        assert response == api_response
+
+    @mark.asyncio
+    async def test_model_get_details(self, model, mock_trainml):
+
+        api_response = {
+            "type": "directory",
+            "name": "/",
+            "count": "8",
+            "size": "177M",
+            "contents": [],
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await model.get_details()
+        mock_trainml._query.assert_called_once_with(
+            "/model/pub/1/details", "GET"
+        )
+        assert response == api_response
+
+    @mark.asyncio
     async def test_model_get_connection_utility_url(self, model, mock_trainml):
 
         api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"

@@ -157,6 +157,34 @@ class DatasetTests:
         assert not bool(empty_dataset)
 
     @mark.asyncio
+    async def test_dataset_get_log_url(self, dataset, mock_trainml):
+
+        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await dataset.get_log_url()
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub/1/logs", "GET"
+        )
+        assert response == api_response
+
+    @mark.asyncio
+    async def test_dataset_get_details(self, dataset, mock_trainml):
+
+        api_response = {
+            "type": "directory",
+            "name": "/",
+            "count": "8",
+            "size": "177M",
+            "contents": [],
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await dataset.get_details()
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub/1/details", "GET"
+        )
+        assert response == api_response
+
+    @mark.asyncio
     async def test_dataset_get_connection_utility_url(
         self, dataset, mock_trainml
     ):

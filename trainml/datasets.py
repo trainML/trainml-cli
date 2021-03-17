@@ -97,6 +97,18 @@ class Dataset:
     def __bool__(self):
         return bool(self._id)
 
+    async def get_log_url(self):
+        resp = await self.trainml._query(
+            f"/dataset/pub/{self._id}/logs", "GET"
+        )
+        return resp
+
+    async def get_details(self):
+        resp = await self.trainml._query(
+            f"/dataset/pub/{self._id}/details", "GET"
+        )
+        return resp
+
     async def get_connection_utility_url(self):
         resp = await self.trainml._query(
             f"/dataset/pub/{self._id}/download", "GET"

@@ -238,6 +238,12 @@ class Job:
             f"/job/{self._id}", "PATCH", None, dict(command="stop")
         )
 
+    async def get_worker_log_url(self, job_worker_uuid):
+        resp = await self.trainml._query(
+            f"/job/{self._id}/worker/{job_worker_uuid}/logs", "GET"
+        )
+        return resp
+
     async def get_connection_utility_url(self):
         resp = await self.trainml._query(f"/job/{self._id}/download", "GET")
         return resp

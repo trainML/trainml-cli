@@ -365,6 +365,17 @@ class JobTests:
         )
 
     @mark.asyncio
+    async def test_job_get_worker_log_url(self, job, mock_trainml):
+
+        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/job-id-1/logs/worker-id-1/test_notebook.zip"
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await job.get_worker_log_url("worker-id-1")
+        mock_trainml._query.assert_called_once_with(
+            "/job/job-id-1/worker/worker-id-1/logs", "GET"
+        )
+        assert response == api_response
+
+    @mark.asyncio
     async def test_job_get_connection_utility_url(self, job, mock_trainml):
 
         api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/job-id-1/vpn/trainml-test_notebook.zip"
