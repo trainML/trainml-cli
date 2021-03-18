@@ -15,7 +15,10 @@ from trainml.connections import Connection
 
 
 def _clean_datasets_selection(
-    requested_datasets, provider, my_datasets, public_datasets
+    requested_datasets=[],
+    provider="trainml",
+    my_datasets=[],
+    public_datasets=[],
 ):
     datasets = []
     for dataset in requested_datasets:
@@ -104,7 +107,7 @@ class Jobs(object):
         disk_size,
         worker_commands=[],
         environment=dict(type="DEEPLEARNING_PY38"),
-        data=dict(datasets=[]),
+        data=dict(),
         model=dict(),
         **kwargs,
     ):
@@ -115,15 +118,7 @@ class Jobs(object):
                 f"'{type}' type is deprecated, use '{new_type}' instead.",
                 DeprecationWarning,
             )
-        gpu_type_task = asyncio.create_task(self.trainml.gpu_types.list())
-        my_datasets_task = asyncio.create_task(self.trainml.datasets.list())
-        public_datasets_task = asyncio.create_task(
-            self.trainml.datasets.list_public()
-        )
-
-        gpu_types, my_datasets, public_datasets = await asyncio.gather(
-            gpu_type_task, my_datasets_task, public_datasets_task
-        )
+        gpu_types = await self.trainml.gpu_types.list()
 
         selected_gpu_type = next(
             (g for g in gpu_types if g.name == gpu_type or g.id == gpu_type),
@@ -133,13 +128,23 @@ class Jobs(object):
             raise SpecificationError("gpu_type", "GPU Type Not Found")
 
         if data:
-            datasets = _clean_datasets_selection(
-                data.get("datasets"),
-                selected_gpu_type.provider,
-                my_datasets,
-                public_datasets,
-            )
-            data["datasets"] = datasets
+            if data.get("datasets"):
+                my_datasets_task = asyncio.create_task(
+                    self.trainml.datasets.list()
+                )
+                public_datasets_task = asyncio.create_task(
+                    self.trainml.datasets.list_public()
+                )
+                my_datasets, public_datasets = await asyncio.gather(
+                    my_datasets_task, public_datasets_task
+                )
+                datasets = await _clean_datasets_selection(
+                    data.get("datasets"),
+                    selected_gpu_type.provider,
+                    my_datasets,
+                    public_datasets,
+                )
+                data["datasets"] = datasets
 
         config = dict(
             name=name,
