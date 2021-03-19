@@ -97,8 +97,7 @@ class JobLifeCycleTests:
         training_job = await job.copy(
             "CLI Automated Job Convert",
             type="training",
-            worker_count=1,
-            worker_commands=[
+            workers=[
                 "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024"
             ],
             data=dict(
@@ -137,8 +136,7 @@ class JobFeatureTests:
             gpu_type="GTX 1060",
             gpu_count=1,
             disk_size=1,
-            worker_count=1,
-            worker_commands=[
+            workers=[
                 "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=2 --batch_size=1024"
             ],
             environment=dict(type="TENSORFLOW_PY38_24"),
@@ -185,7 +183,6 @@ class JobFeatureTests:
             gpu_type="GTX 1060",
             gpu_count=1,
             disk_size=1,
-            worker_count=1,
             worker_commands=[
                 "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=2 --batch_size=1024"
             ],

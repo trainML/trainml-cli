@@ -14,7 +14,8 @@ class ApiError(TrainMLException):
     def __init__(self, status, data, *args):
         super().__init__(data, *args)
         self.status = status
-        self.message = data.get("errorMessage")
+        print(data)
+        self.message = data.get("errorMessage") or data.get("message")
 
     def __repr__(self):
         return "ApiError({self.status}, {self.message!r})".format(self=self)

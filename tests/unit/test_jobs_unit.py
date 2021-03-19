@@ -260,7 +260,6 @@ class JobsTests:
                 disk_size=10,
             ),
             environment=dict(type="DEEPLEARNING_PY38"),
-            data=dict(datasets=[]),
             model=dict(),
             worker_commands=[],
         )
@@ -589,6 +588,7 @@ class JobTests:
             "gpu_count": 1,
             "disk_size": 10,
             "worker_commands": None,
+            "workers": None,
             "environment": None,
             "data": None,
             "source_job_uuid": "job-id-1",

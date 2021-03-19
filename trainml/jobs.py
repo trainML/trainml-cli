@@ -138,7 +138,7 @@ class Jobs(object):
                 my_datasets, public_datasets = await asyncio.gather(
                     my_datasets_task, public_datasets_task
                 )
-                datasets = await _clean_datasets_selection(
+                datasets = _clean_datasets_selection(
                     data.get("datasets"),
                     selected_gpu_type.provider,
                     my_datasets,
@@ -196,7 +196,7 @@ class Job:
 
     @property
     def dict(self) -> dict:
-        return self._job
+        return {k: v for k, v in self._job.items() if k not in ["nb_token"]}
 
     @property
     def id(self) -> str:
@@ -229,10 +229,10 @@ class Job:
         return f"https://notebook.trainml.ai/{self.id}/?token={self._job.get('nb_token')}"
 
     def __str__(self):
-        return json.dumps({k: v for k, v in self._job.items()})
+        return json.dumps(self.dict)
 
     def __repr__(self):
-        return f"Job( trainml , {self._job.__repr__()})"
+        return f"Job( trainml , {self.dict.__repr__()})"
 
     def __bool__(self):
         return bool(self._id)
@@ -260,7 +260,7 @@ class Job:
     def get_connection_details(self):
 
         details = dict(
-            cidr=self._job.get("vpn").get("cidr"),
+            cidr=self.dict.get("vpn").get("cidr"),
             ssh_port=self._job.get("vpn").get("client").get("ssh_port")
             if self._job.get("vpn").get("client")
             else None,
@@ -342,6 +342,7 @@ class Job:
             disk_size=kwargs.get("disk_size")
             or self._job.get("resources").get("disk_size"),
             worker_commands=kwargs.get("worker_commands"),
+            workers=kwargs.get("workers"),
             environment=kwargs.get("environment"),
             data=kwargs.get("data"),
             source_job_uuid=self.id,
