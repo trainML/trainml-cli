@@ -193,6 +193,7 @@ class Job:
         self._status = self._job.get("status")
         self._type = self._job.get("type")
         self._workers = self._job.get("workers")
+        self._credits = self._job.get("credits")
 
     @property
     def dict(self) -> dict:
@@ -221,6 +222,10 @@ class Job:
     @property
     def workers(self) -> list:
         return self._workers
+
+    @property
+    def credits(self) -> float:
+        return self._credits
 
     @property
     def notebook_url(self) -> str:

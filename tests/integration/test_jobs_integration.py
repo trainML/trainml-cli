@@ -114,6 +114,8 @@ class JobLifeCycleTests:
         assert training_job.id
         training_job = await training_job.wait_for("finished", 180)
         assert training_job.status == "finished"
+        assert training_job.credits > 0
+        assert training_job.credits < 0.1
         await training_job.remove()
 
     async def test_remove_job(self, job):
