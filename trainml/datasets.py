@@ -86,7 +86,7 @@ class Dataset:
 
     @property
     def size(self) -> int:
-        return self._size
+        return self._size or 0
 
     def __str__(self):
         return json.dumps({k: v for k, v in self._dataset.items()})
