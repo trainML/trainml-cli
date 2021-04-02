@@ -173,10 +173,14 @@ class Jobs(object):
         ):
             payload["worker_commands"] = []
         logging.info(f"Creating Job {name}")
+        job = await self.create_json(payload)
+        logging.info(f"Created Job {name} with id {job.id}")
+        return job
+
+    async def create_json(self, payload):
         logging.debug(f"Job payload: {payload}")
         resp = await self.trainml._query("/job", "POST", None, payload)
         job = Job(self.trainml, **resp)
-        logging.info(f"Created Job {name} with id {job.id}")
         return job
 
     async def remove(self, id):
@@ -241,6 +245,62 @@ class Job:
 
     def __bool__(self):
         return bool(self._id)
+
+    def get_create_json(self):
+        root_keys = [
+            "name",
+            "type",
+            "resources",
+            "model",
+            "data",
+            "environment",
+            "workers",
+        ]
+        resources_keys = ["gpu_count", "gpu_type_id", "disk_size"]
+        model_keys = ["git_uri", "model_uuid"]
+        data_keys = [
+            "datasets",
+            "input_type",
+            "input_uri",
+            "output_type",
+            "output_uri",
+        ]
+        environment_keys = ["type", "env", "worker_key_types"]
+        create_json = dict()
+        for k, v in self.dict.items():
+            if k in root_keys:
+                if k == "resources":
+                    resources = dict()
+                    for k2, v2 in v.items():
+                        if k2 in resources_keys:
+                            resources[k2] = v2
+                    create_json["resources"] = resources
+                elif k == "model":
+                    model = dict()
+                    for k2, v2 in v.items():
+                        if k2 in model_keys:
+                            model[k2] = v2
+                    create_json["model"] = model
+                elif k == "data":
+                    data = dict()
+                    for k2, v2 in v.items():
+                        if k2 in data_keys:
+                            data[k2] = v2
+                    create_json["data"] = data
+                elif k == "environment":
+                    environment = dict()
+                    for k2, v2 in v.items():
+                        if k2 in environment_keys:
+                            environment[k2] = v2
+                    create_json["environment"] = environment
+                elif k == "workers":
+                    workers = []
+                    for worker in v:
+                        workers.append(worker.get("command"))
+                    create_json["workers"] = workers
+                else:
+                    create_json[k] = v
+        return create_json
 
     async def start(self):
         await self.trainml._query(
