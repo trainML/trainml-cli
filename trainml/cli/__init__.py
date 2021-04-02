@@ -130,6 +130,7 @@ def cli(config, debug, output_file, silent, verbosity):
 
 from trainml.cli.connection import connection
 from trainml.cli.dataset import dataset
+from trainml.cli.model import model
 from trainml.cli.environment import environment
 from trainml.cli.gpu import gpu
 from trainml.cli.job import job

@@ -14,6 +14,9 @@ with (HERE / "trainml" / "__init__.py").open() as fp:
 
 README = (HERE / "README.md").read_text()
 
+with (HERE / "requirements.txt").open() as fp:
+    install_requires = fp.read().splitlines()
+
 
 setup(
     name="trainml",
@@ -33,14 +36,7 @@ setup(
     packages=find_packages(exclude=("tests",)),
     include_package_data=True,
     python_requires=">=3.8",
-    install_requires=[
-        "aiodocker",
-        "aiohttp",
-        "boto3",
-        "python-jose[cryptography]",
-        "requests",
-        "Click",
-    ],
+    install_requires=install_requires,
     entry_points="""
         [console_scripts]
         trainml=trainml.cli:cli
