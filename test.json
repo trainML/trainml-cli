@@ -1,0 +1,43 @@
+{
+  "customer_uuid": "d751850f-7f06-4793-a255-3b47f14fbefd",
+  "job_uuid": "f52a9e02-f5d0-43f2-8426-85a341a7d83d",
+  "name": "test",
+  "start": "2021-04-03T15:29:25.176Z",
+  "stop": "2021-04-03T15:30:35.307Z",
+  "type": "notebook",
+  "status": "stopped",
+  "credits_per_hour": 0.1,
+  "credits": 0.0008,
+  "worker_status": "stopped",
+  "provider": "trainml",
+  "resources": {
+    "gpu_count": 1,
+    "gpu_type_id": "db18d391-dce8-44f2-9988-29d80685d250",
+    "disk_size": 10
+  },
+  "model": { "size": 339968, "status": "ready" },
+  "data": { "datasets": [], "status": "ready" },
+  "environment": {
+    "type": "DEEPLEARNING_PY38",
+    "image_size": 44966989232,
+    "env": [],
+    "worker_key_types": [],
+    "status": "ready"
+  },
+  "vpn": {
+    "status": "stopped",
+    "cidr": "198.19.144.0/24",
+    "client": {
+      "port": 36115,
+      "id": "d751850f-7f06-4793-a255-3b47f14fbefd",
+      "address": "198.19.144.253"
+    }
+  },
+  "workers": [
+    {
+      "job_worker_uuid": "f3d84d39-753d-4378-92f5-33bbfaaf6d24",
+      "command": "jupyter lab",
+      "status": "stopped"
+    }
+  ]
+}

@@ -72,77 +72,6 @@ def connect(config, job, attach):
 
 
 @job.command()
-@click.option(
-    "--attach/--no-attach",
-    default=True,
-    show_default=True,
-    help="Auto attach to job.",
-)
-@click.option(
-    "--connect/--no-connect",
-    default=True,
-    show_default=True,
-    help="Auto connect to job.",
-)
-@click.option(
-    "--disk-size",
-    "-ds",
-    type=click.INT,
-    default=10,
-    show_default=True,
-    help="Disk size (GiB).",
-)
-@click.option(
-    "--gpu-count",
-    "-gc",
-    type=click.INT,
-    default=1,
-    show_default=True,
-    help="GPU Count (per Worker.)",
-)
-@click.option(
-    "--gpu-type",
-    "-gt",
-    type=click.Choice(["GTX 1060"], case_sensitive=False),
-    default="GTX 1060",
-    show_default=True,
-    help="GPU type.",
-)
-@click.option(
-    "--type",
-    "-t",
-    type=click.Choice(["notebook"], case_sensitive=False),
-    default="notebook",
-    show_default=True,
-    help="Job type.",
-)
-@click.argument("name", type=click.STRING)
-@pass_config
-def create(
-    config, attach, connect, disk_size, gpu_count, gpu_type, type, name
-):
-    """
-    Create job.
-    """
-    if type == "notebook":
-        job = config.trainml.run(
-            config.trainml.client.jobs.create(
-                name=name,
-                type=type,
-                gpu_type=gpu_type,
-                gpu_count=gpu_count,
-                disk_size=disk_size,
-            )
-        )
-        click.echo("Created.", file=config.stdout)
-        if attach or connect:
-            click.echo("Waiting for job to start...", file=config.stdout)
-            config.trainml.run(job.wait_for("running"))
-            click.echo("Launching...", file=config.stdout)
-            browse(job.notebook_url)
-
-
-@job.command()
 @click.argument("job", type=click.STRING)
 @pass_config
 def disconnect(config, job):
@@ -193,3 +122,6 @@ def list(config, format):
         for job in jobs:
             output.append(job.dict)
         click.echo(output, file=config.stdout)
+
+
+from trainml.cli.job.create import create
