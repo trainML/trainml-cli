@@ -205,6 +205,11 @@ class JobFeatureTests:
         assert job.status == "finished"
         workers = job.workers
         await job.remove()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert "Epoch 1/2" in captured.out
+        assert "Epoch 2/2" in captured.out
 
         new_model = await trainml.models.get(
             workers[0].get("output_model_uuid")
@@ -220,8 +225,4 @@ class JobFeatureTests:
         await new_model.remove()
 
         captured = capsys.readouterr()
-        sys.stdout.write(captured.out)
-        sys.stderr.write(captured.err)
-        assert "Epoch 1/2" in captured.out
-        assert "Epoch 2/2" in captured.out
         assert "Finish copy worker contents" in captured.out

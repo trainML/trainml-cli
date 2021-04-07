@@ -14,6 +14,16 @@ from trainml.exceptions import ApiError, TrainMLException
 from trainml.connections import Connections
 
 
+async def ws_heartbeat(ws):
+    while not ws.closed:
+        await ws.send_json(
+            dict(
+                action="heartbeat",
+            )
+        )
+        await asyncio.sleep(9 * 60)
+
+
 class TrainML(object):
     def __init__(self, **kwargs):
         self._version = version("trainml")
@@ -116,6 +126,7 @@ class TrainML(object):
                         )
                     )
                 )
+                asyncio.create_task(ws_heartbeat(ws))
                 async for msg in ws:
                     if msg.type in (
                         aiohttp.WSMsgType.CLOSED,
