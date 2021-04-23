@@ -215,7 +215,7 @@ class JobFeatureTests:
             workers[0].get("output_model_uuid")
         )
         assert new_model.id
-        await new_model.attach()
+        await new_model.wait_for("ready")
         await new_model.refresh()
         assert new_model.size > model.size + 1000000
         assert (
@@ -223,6 +223,3 @@ class JobFeatureTests:
             == "Job - CLI Automated Training With trainML Model Output"
         )
         await new_model.remove()
-
-        captured = capsys.readouterr()
-        assert "Finish copy worker contents" in captured.out

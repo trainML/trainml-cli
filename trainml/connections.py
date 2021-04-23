@@ -393,10 +393,6 @@ def _get_vpn_container_config(id, cidr, data_dir):
             Binds=[f"{data_dir}:/etc/tinc:rw"],
             NetworkMode="host",
             CapAdd=["NET_ADMIN"],
-            Sysctls={
-                "net.ipv4.tcp_mtu_probing": "1",
-                "net.ipv4.tcp_base_mss": "1024",
-            },
         ),
         Labels=dict(type="vpn", service="trainml", id=id),
     )

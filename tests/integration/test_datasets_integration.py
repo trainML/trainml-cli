@@ -56,6 +56,27 @@ class GetDatasetTests:
         assert isinstance(string, str)
         assert re.match(regex, string)
 
+    async def test_get_dataset_log_url(self, dataset, request):
+        env = request.config.getoption("--env")
+        regex = (
+            r"https://trainml-jobs-"
+            + env
+            + r".s3.us-east-2.amazonaws.com/"
+            + dataset.id
+            + r"/logs/"
+            + dataset.name.replace(" ", "_")
+            + r".zip\?X-Amz"
+        )
+        response = await dataset.get_log_url()
+        assert re.match(regex, response)
+
+    async def test_get_dataset_details(self, dataset):
+        response = await dataset.get_details()
+        assert response.get("contents") == []
+        assert response.get("count") == "8"
+        assert response.get("name") == "/"
+        assert response.get("size") == "177M"
+
 
 @mark.create
 @mark.asyncio
