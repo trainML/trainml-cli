@@ -3,6 +3,7 @@ import asyncio
 import math
 import logging
 import warnings
+import webbrowser
 from datetime import datetime
 
 from trainml.exceptions import (
@@ -323,20 +324,34 @@ class Job:
         return resp
 
     def get_connection_details(self):
-
         details = dict(
             cidr=self.dict.get("vpn").get("cidr"),
             ssh_port=self._job.get("vpn").get("client").get("ssh_port")
             if self._job.get("vpn").get("client")
             else None,
-            input_path=None,
+            input_path=self._job.get("data").get("input_uri")
+            if self._job.get("data").get("input_type") == "local"
+            else None,
             output_path=self._job.get("data").get("output_uri")
             if self._job.get("data").get("output_type") == "local"
             else None,
         )
         return details
 
+    async def open(self):
+        if self.type != "notebook":
+            raise SpecificationError(
+                "type",
+                "Only notebook jobs can be opened.",
+            )
+        webbrowser.open(self.notebook_url)
+
     async def connect(self):
+        if self.type == "notebook":
+            raise SpecificationError(
+                "type",
+                "Notebooks cannot be connected to.  Use open() instead.",
+            )
         connection = Connection(
             self.trainml, entity_type="job", id=self.id, entity=self
         )
@@ -386,9 +401,15 @@ class Job:
         return handler
 
     async def attach(self, msg_handler=None):
-        await self.trainml._ws_subscribe(
-            "job", self.id, self._get_msg_handler(msg_handler)
-        )
+        if self.type == "notebook":
+            raise SpecificationError(
+                "type", "Notebooks cannot be attached to.  Use open() instead."
+            )
+        await self.refresh()
+        if self.status not in ["finished", "failed"]:
+            await self.trainml._ws_subscribe(
+                "job", self.id, self._get_msg_handler(msg_handler)
+            )
 
     async def copy(self, name, **kwargs):
         logging.debug(f"copy request - name: {name} ; kwargs: {kwargs}")
@@ -416,7 +437,13 @@ class Job:
         return job
 
     async def wait_for(self, status, timeout=300):
-        valid_statuses = ["running", "stopped", "finished", "archived"]
+        valid_statuses = [
+            "waiting for data/model download",
+            "running",
+            "stopped",
+            "finished",
+            "archived",
+        ]
         if not status in valid_statuses:
             raise SpecificationError(
                 "status",

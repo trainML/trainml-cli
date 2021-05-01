@@ -126,7 +126,7 @@ class TrainML(object):
                         )
                     )
                 )
-                asyncio.create_task(ws_heartbeat(ws))
+                # asyncio.create_task(ws_heartbeat(ws))
                 async for msg in ws:
                     if msg.type in (
                         aiohttp.WSMsgType.CLOSED,

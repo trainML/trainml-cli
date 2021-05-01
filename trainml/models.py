@@ -154,9 +154,11 @@ class Model:
         return handler
 
     async def attach(self, msg_handler=None):
-        await self.trainml._ws_subscribe(
-            "model", self.id, self._get_msg_handler(msg_handler)
-        )
+        await self.refresh()
+        if self.status not in ["ready", "failed"]:
+            await self.trainml._ws_subscribe(
+                "model", self.id, self._get_msg_handler(msg_handler)
+            )
 
     async def refresh(self):
         resp = await self.trainml._query(f"/model/pub/{self.id}", "GET")
