@@ -96,6 +96,79 @@ def job(mock_trainml):
     )
 
 
+@fixture
+def training_job(mock_trainml):
+    yield specimen.Job(
+        mock_trainml,
+        **{
+            "customer_uuid": "cus-id-1",
+            "job_uuid": "job-id-1",
+            "name": "test training",
+            "start": "2021-02-11T15:46:22.455Z",
+            "type": "training",
+            "status": "running",
+            "credits_per_hour": 0.1,
+            "credits": 0.1007,
+            "workers": [
+                {
+                    "rig_uuid": "rig-id-1",
+                    "job_worker_uuid": "worker-id-1",
+                    "command": "python train.py",
+                    "status": "running",
+                }
+            ],
+            "worker_status": "running",
+            "provider": "trainml",
+            "resources": {
+                "gpu_count": 1,
+                "gpu_type_id": "1060-id",
+                "disk_size": 10,
+            },
+            "model": {
+                "size": 7176192,
+                "git_uri": "git@github.com:trainML/test-private.git",
+                "status": "new",
+            },
+            "data": {
+                "datasets": [
+                    {
+                        "dataset_uuid": "data-id-1",
+                        "name": "first one",
+                        "type": "public",
+                        "size": 184549376,
+                    },
+                    {
+                        "dataset_uuid": "data-id-2",
+                        "name": "second one",
+                        "type": "public",
+                        "size": 5068061409,
+                    },
+                ],
+                "status": "ready",
+            },
+            "environment": {
+                "type": "DEEPLEARNING_PY38",
+                "image_size": 44966989795,
+                "env": [
+                    {"value": "env1val", "key": "env1"},
+                    {"value": "env2val", "key": "env2"},
+                ],
+                "worker_key_types": ["aws", "gcp"],
+                "status": "ready",
+            },
+            "vpn": {
+                "status": "running",
+                "cidr": "10.106.171.0/24",
+                "client": {
+                    "port": "36017",
+                    "id": "cus-id-1",
+                    "address": "10.106.171.253",
+                },
+            },
+        },
+    )
+
+
 class CleanDatasetSelectionTests:
     @mark.parametrize(
         "datasets,provider,expected",
@@ -433,26 +506,26 @@ class JobTests:
         assert details == expected_details
 
     @mark.asyncio
-    async def test_job_connect(self, job, mock_trainml):
+    async def test_job_connect(self, training_job, mock_trainml):
         with patch(
             "trainml.jobs.Connection",
             autospec=True,
         ) as mock_connection:
             connection = mock_connection.return_value
             connection.status = "connected"
-            resp = await job.connect()
+            resp = await training_job.connect()
             connection.start.assert_called_once()
             assert resp == "connected"
 
     @mark.asyncio
-    async def test_job_disconnect(self, job, mock_trainml):
+    async def test_job_disconnect(self, training_job, mock_trainml):
         with patch(
             "trainml.jobs.Connection",
             autospec=True,
         ) as mock_connection:
             connection = mock_connection.return_value
             connection.status = "removed"
-            resp = await job.disconnect()
+            resp = await training_job.disconnect()
             connection.stop.assert_called_once()
             assert resp == "removed"
 
@@ -567,11 +640,65 @@ class JobTests:
         assert captured.out == "worker-id-1\n"
 
     @mark.asyncio
-    async def test_job_attach(self, job, mock_trainml):
+    async def test_notebook_attach_error(self, job, mock_trainml):
         api_response = None
         mock_trainml._ws_subscribe = AsyncMock(return_value=api_response)
+        with raises(SpecificationError):
+            await job.attach()
+        mock_trainml._ws_subscribe.create.assert_not_called()
+
+    @mark.asyncio
+    async def test_job_attach(self, mock_trainml):
+        job_spec = {
+            "customer_uuid": "cus-id-1",
+            "job_uuid": "job-id-1",
+            "name": "test training",
+            "type": "training",
+            "status": "running",
+            "workers": [
+                {
+                    "rig_uuid": "rig-id-1",
+                    "job_worker_uuid": "worker-id-1",
+                    "command": "jupyter lab",
+                    "status": "running",
+                },
+                {
+                    "rig_uuid": "rig-id-1",
+                    "job_worker_uuid": "worker-id-2",
+                    "command": "jupyter lab",
+                    "status": "running",
+                },
+            ],
+        }
+        job = specimen.Job(
+            mock_trainml,
+            **job_spec,
+        )
+        api_response = None
+        mock_trainml._ws_subscribe = AsyncMock(return_value=api_response)
+        job.refresh = AsyncMock(return_value=job_spec)
         await job.attach()
         mock_trainml._ws_subscribe.assert_called_once()
+
+    @mark.asyncio
+    async def test_job_attach_immediate_return(self, mock_trainml):
+        job_spec = {
+            "customer_uuid": "cus-id-1",
+            "job_uuid": "job-id-1",
+            "name": "test training",
+            "type": "training",
+            "status": "finished",
+            "workers": [],
+        }
+        job = specimen.Job(
+            mock_trainml,
+            **job_spec,
+        )
+        api_response = None
+        mock_trainml._ws_subscribe = AsyncMock(return_value=api_response)
+        job.refresh = AsyncMock(return_value=job_spec)
+        await job.attach()
+        mock_trainml._ws_subscribe.assert_not_called()
 
     @mark.asyncio
     async def test_job_copy_minimal(

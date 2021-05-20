@@ -313,8 +313,43 @@ class DatasetTests:
     async def test_dataset_attach(self, dataset, mock_trainml):
         api_response = None
         mock_trainml._ws_subscribe = AsyncMock(return_value=api_response)
+        refresh_response = {
+            "customer_uuid": "cus-id-1",
+            "dataset_uuid": "data-id-1",
+            "name": "new dataset",
+            "provider": "trainml",
+            "status": "downloading",
+            "source_type": "aws",
+            "source_uri": "s3://trainml-examples/data/cifar10",
+            "createdAt": "2020-12-20T16:46:23.909Z",
+        }
+        dataset.refresh = AsyncMock(return_value=refresh_response)
         await dataset.attach()
-        mock_trainml._ws_subscribe.assert_called()
+        mock_trainml._ws_subscribe.assert_called_once()
+
+    @mark.asyncio
+    async def test_dataset_attach_immediate_return(self, mock_trainml):
+        dataset = specimen.Dataset(
+            mock_trainml,
+            dataset_uuid="1",
+            name="first one",
+            status="ready",
+            provider="trainml",
+            createdAt="2020-12-31T23:59:59.000Z",
+        )
+        api_response = None
+        mock_trainml._ws_subscribe = AsyncMock(return_value=api_response)
+        refresh_response = {
+            "customer_uuid": "cus-id-1",
+            "dataset_uuid": "1",
+            "name": "new dataset",
+            "provider": "trainml",
+            "status": "ready",
+            "createdAt": "2020-12-20T16:46:23.909Z",
+        }
+        dataset.refresh = AsyncMock(return_value=refresh_response)
+        await dataset.attach()
+        mock_trainml._ws_subscribe.assert_not_called()
 
     @mark.asyncio
     async def test_dataset_refresh(self, dataset, mock_trainml):
