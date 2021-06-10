@@ -61,3 +61,101 @@ Passing credentials to the TrainML constructor will override all other methods f
 ## Usage
 
 ### Python SDK
+
+The trainML SDK utilizes the [asyncio library](https://docs.python.org/3/library/asyncio.html) to ease the concurrent execution of long running tasks. An example of how to create a dataset from an S3 bucket and immediately run a training job on that dataset is the following:
+
+```
+from trainml.trainml import TrainML
+import asyncio
+
+
+trainml_client = TrainML()
+
+# Create the dataset
+dataset = asyncio.run(
+    trainml_client.datasets.create(
+        name="Example Dataset",
+        source_type="aws",
+        source_uri="s3://trainml-examples/data/cifar10",
+    )
+)
+
+print(dataset)
+
+# Watch the log output, attach will return when data transfer is complete
+asyncio.run(dataset.attach())
+
+# Create the job
+job = asyncio.run(
+    trainml_client.jobs.create(
+        name="Example Training Job",
+        type="training",
+        gpu_type="GTX 1060",
+        gpu_count=1,
+        disk_size=10,
+        workers=[
+            "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=10 --batch_size=1024",
+        ],
+        data=dict(
+            datasets=[dict(id=dataset.id, type="existing")],
+            output_uri="s3://trainml-examples/output/resnet_cifar10",
+            output_type="aws",
+        ),
+        model=dict(git_uri="git@github.com:trainML/test-private.git"),
+    )
+)
+print(job)
+
+# Watch the log output, attach will return when the training job stops
+asyncio.run(job.attach())
+
+# Cleanup job and dataset
+asyncio.run(job.remove())
+asyncio.run(dataset.remove())
+```
+
+See more examples in the [examples folder](examples)
+
+### Command Line Interface
+
+The command line interface is rooted in the `trainml` command. To see the available options, run:
+
+```
+trainml --help
+```
+
+To list all jobs:
+
+```
+trainml job list
+```
+
+To list all datasets:
+
+```
+trainml dataset list
+```
+
+To connect to a job that requires the [connection capability](https://docs.trainml.ai/reference/connection-capability):
+
+```
+trainml job connect <job ID or name>
+```
+
+To watch the realtime job logs:
+
+```
+trainml job attach <job ID or name>
+```
+
+To create and open a notebook job:
+
+```
+trainml job create notebook "My Notebook Job"
+```
+
+To create a multi-GPU notebook job on a specific GPU type with larger scratch directory space:
+
+```
+trainml job create notebook --gpu-type "RTX 3090" --gpu-count 4 --disk-size 50 "My Notebook Job"
+```
