@@ -43,6 +43,12 @@ def attach(config, job):
     show_default=True,
     help="Auto attach to job.",
 )
+@click.option(
+    "--connect/--no-connect",
+    default=True,
+    show_default=True,
+    help="Auto connect to job.",
+)
 @click.argument("job", type=click.STRING)
 @pass_config
 def connect(config, job, attach):
@@ -87,6 +93,84 @@ def disconnect(config, job):
         raise click.UsageError("Cannot find specified job.")
 
     return config.trainml.run(found.disconnect())
+
+
+@job.command()
+@click.option(
+    "--wait/--no-wait",
+    default=True,
+    show_default=True,
+    help="Wait until job is stopped before returning.",
+)
+@click.argument("job", type=click.STRING)
+@pass_config
+def stop(config, job, wait):
+    """
+    Stop a running job.
+
+    JOB may be specified by name or ID, but ID is preferred.
+    """
+    jobs = config.trainml.run(config.trainml.client.jobs.list())
+
+    found = search_by_id_name(job, jobs)
+    if None is found:
+        raise click.UsageError("Cannot find specified job.")
+
+    if wait:
+        config.trainml.run(found.stop())
+        click.echo("Waiting for job to stop...", file=config.stdout)
+        return config.trainml.run(found.wait_for("stopped"))
+    else:
+        return config.trainml.run(found.stop())
+
+
+@job.command()
+@click.option(
+    "--connect/--no-connect",
+    default=True,
+    show_default=True,
+    help="Auto connect to job.",
+)
+@click.argument("job", type=click.STRING)
+@pass_config
+def start(config, job, connect):
+    """
+    Start a previously stopped job.
+
+    JOB may be specified by name or ID, but ID is preferred.
+    """
+    jobs = config.trainml.run(config.trainml.client.jobs.list())
+
+    found = search_by_id_name(job, jobs)
+    if None is found:
+        raise click.UsageError("Cannot find specified job.")
+
+    if connect:
+        config.trainml.run(found.start())
+        click.echo("Waiting for job to start...", file=config.stdout)
+        config.trainml.run(found.wait_for("running"))
+        click.echo("Launching...", file=config.stdout)
+        browse(found.notebook_url)
+    else:
+        return config.trainml.run(found.start())
+
+
+@job.command()
+@click.argument("job", type=click.STRING)
+@pass_config
+def remove(config, job):
+    """
+    Remove a job.
+
+    JOB may be specified by name or ID, but ID is preferred.
+    """
+    jobs = config.trainml.run(config.trainml.client.jobs.list())
+
+    found = search_by_id_name(job, jobs)
+    if None is found:
+        raise click.UsageError("Cannot find specified job.")
+
+    return config.trainml.run(found.remove())
 
 
 @job.command()

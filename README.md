@@ -159,3 +159,27 @@ To create a multi-GPU notebook job on a specific GPU type with larger scratch di
 ```
 trainml job create notebook --gpu-type "RTX 3090" --gpu-count 4 --disk-size 50 "My Notebook Job"
 ```
+
+Stop a job by job ID:
+
+```
+trainml job stop fe52527c-1f4b-468f-b57d-86db864cc089
+```
+
+Stop a job by name:
+
+```
+trainml job stop "My Notebook Job"
+```
+
+Restart a notebook job:
+
+```
+trainml job start "My Notebook Job"
+```
+
+Remove a job by job ID:
+
+```
+trainml job remove fe52527c-1f4b-468f-b57d-86db864cc089
+```
