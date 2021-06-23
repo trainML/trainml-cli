@@ -251,8 +251,10 @@ class Connection:
             docker.pull(VPN_IMAGE), docker.pull(STORAGE_IMAGE)
         )
         entity_details = self._entity.get_connection_details()
-        if entity_details.get("input_path") or entity_details.get(
-            "output_path"
+        if (
+            entity_details.get("model_path")
+            or entity_details.get("input_path")
+            or entity_details.get("output_path")
         ):
             logging.debug(f"Starting storage container")
             storage_container = await docker.containers.run(
@@ -261,6 +263,7 @@ class Connection:
                     entity_details.get("cidr"),
                     f"{self._dir}/data",
                     entity_details.get("ssh_port"),
+                    model_path=entity_details.get("model_path"),
                     input_path=entity_details.get("input_path"),
                     output_path=entity_details.get("output_path"),
                 )
@@ -400,9 +403,17 @@ def _get_vpn_container_config(id, cidr, data_dir):
 
 
 def _get_storage_container_config(
-    id, cidr, data_dir, ssh_port, input_path=None, output_path=None
+    id,
+    cidr,
+    data_dir,
+    ssh_port,
+    model_path=None,
+    input_path=None,
+    output_path=None,
 ):
     Binds = [f"{data_dir}/.ssh:/opt/ssh"]
+    if model_path:
+        Binds.append(f"{os.path.expanduser(model_path)}:/opt/model:ro")
     if input_path:
         Binds.append(f"{os.path.expanduser(input_path)}:/opt/data:ro")
     if output_path:

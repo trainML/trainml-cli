@@ -1,7 +1,7 @@
 import click
 import json
 from webbrowser import open as browse
-from trainml.cli import pass_config, search_by_id_name
+from trainml.cli import pass_config
 from trainml.cli.job import job
 
 
@@ -39,7 +39,7 @@ def create(config):
     type=click.INT,
     default=1,
     show_default=True,
-    help="GPU Count (per Worker.)",
+    help="GPU Count (per Worker).",
 )
 @click.option(
     "--gpu-type",

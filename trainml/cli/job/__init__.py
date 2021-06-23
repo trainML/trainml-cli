@@ -43,12 +43,6 @@ def attach(config, job):
     show_default=True,
     help="Auto attach to job.",
 )
-@click.option(
-    "--connect/--no-connect",
-    default=True,
-    show_default=True,
-    help="Auto connect to job.",
-)
 @click.argument("job", type=click.STRING)
 @pass_config
 def connect(config, job, attach):

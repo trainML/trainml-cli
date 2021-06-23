@@ -329,6 +329,9 @@ class Job:
             ssh_port=self._job.get("vpn").get("client").get("ssh_port")
             if self._job.get("vpn").get("client")
             else None,
+            model_path=self._job.get("model").get("source_uri")
+            if self._job.get("model").get("source_type") == "local"
+            else None,
             input_path=self._job.get("data").get("input_uri")
             if self._job.get("data").get("input_type") == "local"
             else None,
@@ -347,10 +350,13 @@ class Job:
         webbrowser.open(self.notebook_url)
 
     async def connect(self):
-        if self.type == "notebook":
+        if (
+            self.type == "notebook"
+            and self.status != "waiting for data/model download"
+        ):
             raise SpecificationError(
                 "type",
-                "Notebooks cannot be connected to.  Use open() instead.",
+                "Notebooks cannot be connected to after model download is complete.  Use open() instead.",
             )
         connection = Connection(
             self.trainml, entity_type="job", id=self.id, entity=self
@@ -401,9 +407,13 @@ class Job:
         return handler
 
     async def attach(self, msg_handler=None):
-        if self.type == "notebook":
+        if (
+            self.type == "notebook"
+            and self.status != "waiting for data/model download"
+        ):
             raise SpecificationError(
-                "type", "Notebooks cannot be attached to.  Use open() instead."
+                "type",
+                "Notebooks cannot be attached to after model download is complete.  Use open() instead.",
             )
         await self.refresh()
         if self.status not in ["finished", "failed"]:
