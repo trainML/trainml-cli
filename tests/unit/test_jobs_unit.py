@@ -463,12 +463,13 @@ class JobTests:
         expected_details = dict(
             cidr="10.106.171.0/24",
             ssh_port=None,
+            model_path=None,
             input_path=None,
             output_path=None,
         )
         assert details == expected_details
 
-    def test_job_get_connection_details_local_data(self, mock_trainml):
+    def test_job_get_connection_details_local_output_data(self, mock_trainml):
         job = specimen.Job(
             mock_trainml,
             **{
@@ -478,6 +479,7 @@ class JobTests:
                 "type": "notebook",
                 "status": "new",
                 "provider": "trainml",
+                "model": {},
                 "data": {
                     "datasets": [],
                     "output_type": "local",
@@ -500,8 +502,50 @@ class JobTests:
         expected_details = dict(
             cidr="10.106.171.0/24",
             ssh_port=46600,
+            model_path=None,
             input_path=None,
             output_path="~/tensorflow-example/output",
+        )
+        assert details == expected_details
+
+    def test_job_get_connection_details_local_model_and_input_data(
+        self, mock_trainml
+    ):
+        job = specimen.Job(
+            mock_trainml,
+            **{
+                "customer_uuid": "cus-id-1",
+                "job_uuid": "job-id-1",
+                "name": "test notebook",
+                "type": "notebook",
+                "status": "new",
+                "provider": "trainml",
+                "model": {"source_type": "local", "source_uri": "~/model_dir"},
+                "data": {
+                    "datasets": [],
+                    "input_type": "local",
+                    "input_uri": "~/data_dir",
+                    "status": "ready",
+                },
+                "vpn": {
+                    "status": "new",
+                    "cidr": "10.106.171.0/24",
+                    "client": {
+                        "port": "36017",
+                        "id": "cus-id-1",
+                        "address": "10.106.171.253",
+                        "ssh_port": 46600,
+                    },
+                },
+            },
+        )
+        details = job.get_connection_details()
+        expected_details = dict(
+            cidr="10.106.171.0/24",
+            ssh_port=46600,
+            model_path="~/model_dir",
+            input_path="~/data_dir",
+            output_path=None,
         )
         assert details == expected_details
 
