@@ -28,6 +28,7 @@ dataset = asyncio.run(create_dataset())
 
 async def run_job(dataset):
     # Create the job
+
     job = await trainml_client.jobs.create(
         name="Training Job with Local Output",
         type="training",
@@ -42,13 +43,13 @@ async def run_job(dataset):
             output_uri="~/tensorflow-example/output",
             output_type="local",
         ),
-        model=dict(git_uri="git@github.com:trainML/test-private.git"),
+        model=dict(source_type="local", source_uri="~/tensorflow-model"),
     )
 
     print(job)
 
-    # Connect to the job once it's running and attach to watch the logs
-    await job.wait_for("running")
+    # Jobs using Local Model will wait for you to connect in the "waiting for data/model download" state
+    await job.wait_for("waiting for data/model download")
     attach_task = asyncio.create_task(job.attach())
     connect_task = asyncio.create_task(job.connect())
     await asyncio.gather(attach_task, connect_task)
