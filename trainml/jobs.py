@@ -236,7 +236,7 @@ class Job:
     def notebook_url(self) -> str:
         if self.type != "notebook":
             return None
-        return f"https://notebook.trainml.ai/{self.id}/?token={self._job.get('nb_token')}"
+        return f"https://notebook.{self.trainml.domain_suffix}/{self.id}/?token={self._job.get('nb_token')}"
 
     def __str__(self):
         return json.dumps(self.dict)

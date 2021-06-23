@@ -63,13 +63,52 @@ def create(config):
     show_default=True,
     help="GPU type.",
 )
+@click.option(
+    "--model-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    help="Local file path to copy as the model data",
+)
+@click.option(
+    "--data-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    help="Local file path to copy as the input data",
+)
 @click.argument("name", type=click.STRING)
 @pass_config
-def notebook(config, attach, connect, disk_size, gpu_count, gpu_type, name):
+def notebook(
+    config,
+    attach,
+    connect,
+    disk_size,
+    gpu_count,
+    gpu_type,
+    model_dir,
+    data_dir,
+    name,
+):
     """
     Create a notebook.
     """
+    options = dict()
 
+    if data_dir:
+        click.echo("Creating Dataset..", file=config.stdout)
+        dataset = config.trainml.run(
+            config.trainml.client.datasets.create(
+                f"Job - {name}", "local", data_dir
+            )
+        )
+        if attach:
+            config.trainml.run(dataset.attach(), dataset.connect())
+            config.trainml.run(dataset.disconnect())
+        else:
+            config.trainml.run(dataset.connect())
+            config.trainml.run(dataset.wait_for("ready"))
+            config.trainml.run(dataset.disconnect())
+        options["data"] = dict(datasets=[dict(id=dataset.id, type="existing")])
+
+    if model_dir:
+        options["model"] = dict(source_type="local", source_uri=model_dir)
     job = config.trainml.run(
         config.trainml.client.jobs.create(
             name=name,
@@ -77,10 +116,23 @@ def notebook(config, attach, connect, disk_size, gpu_count, gpu_type, name):
             gpu_type=gpu_type,
             gpu_count=gpu_count,
             disk_size=disk_size,
+            **options,
         )
     )
-    click.echo("Created.", file=config.stdout)
-    if attach or connect:
+    click.echo("Created Job.", file=config.stdout)
+    if model_dir:
+        config.trainml.run(job.wait_for("waiting for data/model download"))
+        if attach or connect:
+            click.echo("Waiting for job to start...", file=config.stdout)
+            config.trainml.run(job.connect(), job.attach())
+            config.trainml.run(dataset.disconnect())
+            click.echo("Launching...", file=config.stdout)
+            browse(job.notebook_url)
+        else:
+            config.trainml.run(job.connect())
+            config.trainml.run(job.wait_for("running"))
+            config.trainml.run(dataset.disconnect())
+    elif attach or connect:
         click.echo("Waiting for job to start...", file=config.stdout)
         config.trainml.run(job.wait_for("running"))
         click.echo("Launching...", file=config.stdout)

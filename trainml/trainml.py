@@ -36,6 +36,12 @@ class TrainML(object):
             env = json.loads(env_str)
         except OSError:
             env = dict()
+        self.domain_suffix = (
+            kwargs.get("domain_suffix")
+            or os.environ.get("TRAINML_DOMAIN_SUFFIX")
+            or env.get("domain_suffix")
+            or "trainml.ai"
+        )
         self.auth = Auth(
             user=kwargs.get("user"),
             key=kwargs.get("key"),

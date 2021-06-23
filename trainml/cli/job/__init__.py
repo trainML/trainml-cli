@@ -57,18 +57,39 @@ def connect(config, job, attach):
     if None is found:
         raise click.UsageError("Cannot find specified job.")
 
-    try:
-        if attach:
-            config.trainml.run(found.connect(), found.attach())
-            return config.trainml.run(found.disconnect())
-        else:
-            return config.trainml.run(found.connect())
-    except:
+    if found.type != "notebook":
         try:
-            config.trainml.run(found.disconnect())
+            if attach:
+                config.trainml.run(found.connect(), found.attach())
+                return config.trainml.run(found.disconnect())
+            else:
+                return config.trainml.run(found.connect())
         except:
-            pass
-        raise
+            try:
+                config.trainml.run(found.disconnect())
+            except:
+                pass
+            raise
+    else:
+        if found.status == "waiting for data/model download":
+            try:
+                if attach:
+                    config.trainml.run(found.connect(), found.attach())
+                    config.trainml.run(found.disconnect())
+                    click.echo("Launching...", file=config.stdout)
+                    browse(found.notebook_url)
+                else:
+                    return config.trainml.run(found.connect())
+            except:
+                try:
+                    config.trainml.run(found.disconnect())
+                except:
+                    pass
+                raise
+        else:
+            config.trainml.run(found.wait_for("running"))
+            click.echo("Launching...", file=config.stdout)
+            browse(found.notebook_url)
 
 
 @job.command()
