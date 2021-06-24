@@ -17,67 +17,30 @@ from trainml.connections import Connection
 
 def _clean_datasets_selection(
     requested_datasets=[],
-    provider="trainml",
-    my_datasets=[],
-    public_datasets=[],
 ):
     datasets = []
     for dataset in requested_datasets:
+        if dataset.get("type") not in ["existing", "public"]:
+            raise SpecificationError(
+                "datasets",
+                "Invalid dataset specification, 'type' must be in ['existing','public']",
+            )
         if "id" in dataset.keys():
             datasets.append(
                 dict(
-                    dataset_uuid=dataset.get("id"),
+                    id=dataset.get("id"),
                     type=dataset.get("type"),
                 )
             )
         elif "dataset_uuid" in dataset.keys():
             datasets.append(dataset)
         elif "name" in dataset.keys():
-            if dataset.get("type") == "existing":
-                selected_dataset = next(
-                    (
-                        d
-                        for d in my_datasets
-                        if d.name == dataset.get("name")
-                        and d.provider == provider
-                    ),
-                    None,
+            datasets.append(
+                dict(
+                    id=dataset.get("name"),
+                    type=dataset.get("type"),
                 )
-                if not selected_dataset:
-                    raise SpecificationError(
-                        "datasets", f"Dataset {dataset} Not Found"
-                    )
-                datasets.append(
-                    dict(
-                        dataset_uuid=selected_dataset.id,
-                        type=dataset.get("type"),
-                    )
-                )
-            elif dataset.get("type") == "public":
-                selected_dataset = next(
-                    (
-                        d
-                        for d in public_datasets
-                        if d.name == dataset.get("name")
-                        and d.provider == provider
-                    ),
-                    None,
-                )
-                if not selected_dataset:
-                    raise SpecificationError(
-                        "datasets", f"Dataset {dataset} Not Found"
-                    )
-                datasets.append(
-                    dict(
-                        dataset_uuid=selected_dataset.id,
-                        type=dataset.get("type"),
-                    )
-                )
-            else:
-                raise SpecificationError(
-                    "datasets",
-                    "Invalid dataset specification, 'type' must be in ['existing','public']",
-                )
+            )
         else:
             raise SpecificationError(
                 "datasets",
@@ -128,24 +91,9 @@ class Jobs(object):
         if not selected_gpu_type:
             raise SpecificationError("gpu_type", "GPU Type Not Found")
 
-        if data:
-            if data.get("datasets"):
-                my_datasets_task = asyncio.create_task(
-                    self.trainml.datasets.list()
-                )
-                public_datasets_task = asyncio.create_task(
-                    self.trainml.datasets.list_public()
-                )
-                my_datasets, public_datasets = await asyncio.gather(
-                    my_datasets_task, public_datasets_task
-                )
-                datasets = _clean_datasets_selection(
-                    data.get("datasets"),
-                    selected_gpu_type.provider,
-                    my_datasets,
-                    public_datasets,
-                )
-                data["datasets"] = datasets
+        if data and data.get("datasets"):
+            datasets = _clean_datasets_selection(data.get("datasets"))
+            data["datasets"] = datasets
 
         config = dict(
             name=name,

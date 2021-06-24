@@ -171,37 +171,23 @@ def training_job(mock_trainml):
 
 class CleanDatasetSelectionTests:
     @mark.parametrize(
-        "datasets,provider,expected",
+        "datasets,expected",
         [
             (
                 [dict(id="1", type="existing")],
-                "trainml",
-                [dict(dataset_uuid="1", type="existing")],
+                [dict(id="1", type="existing")],
             ),
             (
                 [dict(name="first one", type="existing")],
-                "trainml",
-                [dict(dataset_uuid="1", type="existing")],
-            ),
-            (
-                [dict(name="first one", type="existing")],
-                "gcp",
-                [dict(dataset_uuid="3", type="existing")],
-            ),
-            (
-                [dict(dataset_uuid="1", type="existing")],
-                "trainml",
-                [dict(dataset_uuid="1", type="existing")],
+                [dict(id="first one", type="existing")],
             ),
             (
                 [dict(dataset_uuid="3", type="existing")],
-                "gcp",
                 [dict(dataset_uuid="3", type="existing")],
             ),
             (
                 [dict(name="first one", type="public")],
-                "trainml",
-                [dict(dataset_uuid="11", type="public")],
+                [dict(id="first one", type="public")],
             ),
             (
                 [
@@ -210,12 +196,11 @@ class CleanDatasetSelectionTests:
                     dict(id="11", type="public"),
                     dict(name="second one", type="public"),
                 ],
-                "trainml",
                 [
-                    dict(dataset_uuid="1", type="existing"),
-                    dict(dataset_uuid="2", type="existing"),
-                    dict(dataset_uuid="11", type="public"),
-                    dict(dataset_uuid="12", type="public"),
+                    dict(id="1", type="existing"),
+                    dict(id="second one", type="existing"),
+                    dict(id="11", type="public"),
+                    dict(id="second one", type="public"),
                 ],
             ),
         ],
@@ -223,58 +208,21 @@ class CleanDatasetSelectionTests:
     def test_clean_datasets_selection_successful(
         self,
         datasets,
-        provider,
         expected,
-        mock_my_datasets,
-        mock_public_datasets,
     ):
-        result = specimen._clean_datasets_selection(
-            datasets, provider, mock_my_datasets, mock_public_datasets
-        )
+        result = specimen._clean_datasets_selection(datasets)
         assert result == expected
 
-    def test_existing_dataset_by_name_not_found(
-        self, mock_my_datasets, mock_public_datasets
-    ):
-        with raises(SpecificationError):
-            specimen._clean_datasets_selection(
-                [dict(name="Not Found", type="existing")],
-                "trainml",
-                mock_my_datasets,
-                mock_public_datasets,
-            )
-
-    def test_public_dataset_by_name_not_found(
-        self, mock_my_datasets, mock_public_datasets
-    ):
-        with raises(SpecificationError):
-            specimen._clean_datasets_selection(
-                [dict(name="Not Found", type="public")],
-                "trainml",
-                mock_my_datasets,
-                mock_public_datasets,
-            )
-
-    def test_invalid_dataset_type_specified(
-        self, mock_my_datasets, mock_public_datasets
-    ):
+    def test_invalid_dataset_type_specified(self):
         with raises(SpecificationError):
             specimen._clean_datasets_selection(
                 [dict(name="Not Found", type="invalid")],
-                "trainml",
-                mock_my_datasets,
-                mock_public_datasets,
             )
 
-    def test_invalid_dataset_identifier_specified(
-        self, mock_my_datasets, mock_public_datasets
-    ):
+    def test_invalid_dataset_identifier_specified(self):
         with raises(SpecificationError):
             specimen._clean_datasets_selection(
-                [dict(dataset_id="Not Found", type="invalid")],
-                "trainml",
-                mock_my_datasets,
-                mock_public_datasets,
+                [dict(dataset_id="Not Found", type="existing")],
             )
 
 
