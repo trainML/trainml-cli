@@ -73,6 +73,18 @@ def create(config):
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     help="Local file path to copy as the input data",
 )
+@click.option(
+    "--dataset",
+    type=click.STRING,
+    help="ID or Name of a dataset to add to the job",
+    multiple=True,
+)
+@click.option(
+    "--public-dataset",
+    type=click.STRING,
+    help="ID or Name of a public dataset to add to the job",
+    multiple=True,
+)
 @click.argument("name", type=click.STRING)
 @pass_config
 def notebook(
@@ -85,27 +97,36 @@ def notebook(
     model_dir,
     data_dir,
     name,
+    dataset,
+    public_dataset,
 ):
     """
     Create a notebook.
     """
-    options = dict()
+
+    datasets = [dict(id=item, type="existing") for item in dataset] + [
+        dict(id=item, type="public") for item in public_dataset
+    ]
+
+    options = dict(data=dict(datasets=datasets))
 
     if data_dir:
         click.echo("Creating Dataset..", file=config.stdout)
-        dataset = config.trainml.run(
+        new_dataset = config.trainml.run(
             config.trainml.client.datasets.create(
                 f"Job - {name}", "local", data_dir
             )
         )
         if attach:
-            config.trainml.run(dataset.attach(), dataset.connect())
-            config.trainml.run(dataset.disconnect())
+            config.trainml.run(new_dataset.attach(), new_dataset.connect())
+            config.trainml.run(new_dataset.disconnect())
         else:
-            config.trainml.run(dataset.connect())
-            config.trainml.run(dataset.wait_for("ready"))
-            config.trainml.run(dataset.disconnect())
-        options["data"] = dict(datasets=[dict(id=dataset.id, type="existing")])
+            config.trainml.run(new_dataset.connect())
+            config.trainml.run(new_dataset.wait_for("ready"))
+            config.trainml.run(new_dataset.disconnect())
+        options["data"]["datasets"].append(
+            dict(id=new_dataset.id, type="existing")
+        )
 
     if model_dir:
         options["model"] = dict(source_type="local", source_uri=model_dir)
@@ -125,13 +146,13 @@ def notebook(
         if attach or connect:
             click.echo("Waiting for job to start...", file=config.stdout)
             config.trainml.run(job.connect(), job.attach())
-            config.trainml.run(dataset.disconnect())
+            config.trainml.run(job.disconnect())
             click.echo("Launching...", file=config.stdout)
             browse(job.notebook_url)
         else:
             config.trainml.run(job.connect())
             config.trainml.run(job.wait_for("running"))
-            config.trainml.run(dataset.disconnect())
+            config.trainml.run(job.disconnect())
     elif attach or connect:
         click.echo("Waiting for job to start...", file=config.stdout)
         config.trainml.run(job.wait_for("running"))
