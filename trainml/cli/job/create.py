@@ -537,13 +537,170 @@ def training(
     show_default=True,
     help="GPU type.",
 )
+@click.option(
+    "--input-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    help="Local file path to copy as the input data",
+)
+@click.option(
+    "--input-type",
+    type=click.Choice(
+        ["aws", "gcp", "local", "kaggle", "web"],
+        case_sensitive=False,
+    ),
+    help="Service provider to load the input data",
+)
+@click.option(
+    "--input-uri",
+    type=click.STRING,
+    help="Location in the input-type provider of the input data",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    help="Local file path to save the output results to",
+)
+@click.option(
+    "--output-type",
+    type=click.Choice(
+        ["aws", "gcp", "local", "trainml"],
+        case_sensitive=False,
+    ),
+    help="Service provider to store the output data",
+)
+@click.option(
+    "--output-uri",
+    type=click.STRING,
+    help="Location in the output-type provider to store the output data",
+)
+@click.option(
+    "--environment",
+    type=click.Choice(
+        [
+            "DEEPLEARNING_PY38",
+            "DEEPLEARNING_PY37",
+            "PYTORCH_PY38_18",
+            "PYTORCH_PY38_17",
+            "PYTORCH_PY37_17",
+            "PYTORCH_PY37_16",
+            "PYTORCH_PY37_15",
+            "TENSORFLOW_PY38_24",
+            "TENSORFLOW_PY37_23",
+            "TENSORFLOW_PY37_22",
+            "TENSORFLOW_PY37_114",
+            "MXNET_PY38_18",
+            "MXNET_PY38_17",
+            "MXNET_PY37_16",
+        ],
+        case_sensitive=False,
+    ),
+    default="DEEPLEARNING_PY38",
+    show_default=True,
+    help="Job environment to use",
+)
+@click.option(
+    "--env",
+    type=click.STRING,
+    help="Environment variables to set in the job environment in 'KEY=VALUE' format",
+    multiple=True,
+)
+@click.option(
+    "--key",
+    type=click.Choice(
+        [
+            "aws",
+            "gcp",
+            "kaggle",
+        ],
+        case_sensitive=False,
+    ),
+    help="Third Party Keys to add to the job environment",
+    multiple=True,
+)
+@click.option(
+    "--git-uri",
+    type=click.STRING,
+    help="Git repository to use as the model data",
+)
+@click.option(
+    "--model-id",
+    type=click.STRING,
+    help="trainML Model ID to use as the model data",
+)
+@click.option(
+    "--model-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    help="Local file path to copy as the model data",
+)
 @click.argument("name", type=click.STRING)
+@click.argument(
+    "command",
+    type=click.STRING,
+)
 @pass_config
-def inference(config, attach, connect, disk_size, gpu_count, gpu_type, name):
+def inference(
+    config,
+    attach,
+    connect,
+    disk_size,
+    gpu_count,
+    gpu_type,
+    input_dir,
+    input_type,
+    input_uri,
+    output_dir,
+    output_type,
+    output_uri,
+    environment,
+    env,
+    key,
+    model_dir,
+    git_uri,
+    model_id,
+    name,
+    command,
+):
     """
     Create an inference job.
     """
 
+    options = dict(
+        data=dict(datasets=[]),
+        environment=dict(type=environment, worker_key_types=[k for k in key]),
+    )
+
+    if input_type:
+        options["data"]["input_type"] = input_type
+        options["data"]["input_uri"] = input_uri
+
+    if input_dir:
+        options["data"]["input_type"] = "local"
+        options["data"]["input_uri"] = input_dir
+
+    if output_type:
+        options["data"]["output_type"] = output_type
+        options["data"]["output_uri"] = output_uri
+
+    if output_dir:
+        options["data"]["output_type"] = "local"
+        options["data"]["output_uri"] = output_dir
+
+    try:
+        envs = [
+            {"key": e.split("=")[0], "value": e.split("=")[1]} for e in env
+        ]
+        options["environment"]["env"] = envs
+    except IndexError:
+        raise click.UsageError(
+            "Invalid environment variable format.  Must be in 'KEY=VALUE' format."
+        )
+
+    if git_uri:
+        options["model"] = dict(source_type="git", source_uri=git_uri)
+    if model_id:
+        options["model"] = dict(source_type="trainml", source_uri=model_id)
+    if model_dir:
+        options["model"] = dict(source_type="local", source_uri=model_dir)
     job = config.trainml.run(
         config.trainml.client.jobs.create(
             name=name,
@@ -551,13 +708,18 @@ def inference(config, attach, connect, disk_size, gpu_count, gpu_type, name):
             gpu_type=gpu_type,
             gpu_count=gpu_count,
             disk_size=disk_size,
+            workers=[command],
+            **options,
         )
     )
-    click.echo("Created.", file=config.stdout)
-    if connect:
-        config.trainml.run(job.connect())
-    if attach:
-        config.trainml.run(job.attach())
+    click.echo("Created Job.", file=config.stdout)
+
+    if connect or attach:
+        config.trainml.run(job.wait_for("waiting for data/model download"))
+        if connect:
+            config.trainml.run(job.connect())
+        if attach:
+            config.trainml.run(job.attach())
 
 
 @create.command()
