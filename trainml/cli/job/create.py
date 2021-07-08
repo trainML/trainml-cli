@@ -64,11 +64,6 @@ def create(config):
     help="GPU type.",
 )
 @click.option(
-    "--model-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    help="Local file path to copy as the model data",
-)
-@click.option(
     "--data-dir",
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     help="Local file path to copy as the input data",
@@ -85,6 +80,65 @@ def create(config):
     help="ID or Name of a public dataset to add to the job",
     multiple=True,
 )
+@click.option(
+    "--environment",
+    type=click.Choice(
+        [
+            "DEEPLEARNING_PY38",
+            "DEEPLEARNING_PY37",
+            "PYTORCH_PY38_18",
+            "PYTORCH_PY38_17",
+            "PYTORCH_PY37_17",
+            "PYTORCH_PY37_16",
+            "PYTORCH_PY37_15",
+            "TENSORFLOW_PY38_24",
+            "TENSORFLOW_PY37_23",
+            "TENSORFLOW_PY37_22",
+            "TENSORFLOW_PY37_114",
+            "MXNET_PY38_18",
+            "MXNET_PY38_17",
+            "MXNET_PY37_16",
+        ],
+        case_sensitive=False,
+    ),
+    default="DEEPLEARNING_PY38",
+    show_default=True,
+    help="Job environment to use",
+)
+@click.option(
+    "--env",
+    type=click.STRING,
+    help="Environment variables to set in the job environment in 'KEY=VALUE' format",
+    multiple=True,
+)
+@click.option(
+    "--key",
+    type=click.Choice(
+        [
+            "aws",
+            "gcp",
+            "kaggle",
+        ],
+        case_sensitive=False,
+    ),
+    help="Third Party Keys to add to the job environment",
+    multiple=True,
+)
+@click.option(
+    "--git-uri",
+    type=click.STRING,
+    help="Git repository to use as the model data",
+)
+@click.option(
+    "--model-id",
+    type=click.STRING,
+    help="trainML Model ID to use as the model data",
+)
+@click.option(
+    "--model-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    help="Local file path to copy as the model data",
+)
 @click.argument("name", type=click.STRING)
 @pass_config
 def notebook(
@@ -94,11 +148,16 @@ def notebook(
     disk_size,
     gpu_count,
     gpu_type,
-    model_dir,
     data_dir,
-    name,
     dataset,
     public_dataset,
+    environment,
+    env,
+    key,
+    model_dir,
+    git_uri,
+    model_id,
+    name,
 ):
     """
     Create a notebook.
@@ -108,7 +167,20 @@ def notebook(
         dict(id=item, type="public") for item in public_dataset
     ]
 
-    options = dict(data=dict(datasets=datasets))
+    options = dict(
+        data=dict(datasets=datasets),
+        environment=dict(type=environment, worker_key_types=[k for k in key]),
+    )
+
+    try:
+        envs = [
+            {"key": e.split("=")[0], "value": e.split("=")[1]} for e in env
+        ]
+        options["environment"]["env"] = envs
+    except IndexError:
+        raise click.UsageError(
+            "Invalid environment variable format.  Must be in 'KEY=VALUE' format."
+        )
 
     if data_dir:
         click.echo("Creating Dataset..", file=config.stdout)
@@ -128,6 +200,10 @@ def notebook(
             dict(id=new_dataset.id, type="existing")
         )
 
+    if git_uri:
+        options["model"] = dict(source_type="git", source_uri=git_uri)
+    if model_id:
+        options["model"] = dict(source_type="trainml", source_uri=model_id)
     if model_dir:
         options["model"] = dict(source_type="local", source_uri=model_dir)
     job = config.trainml.run(
