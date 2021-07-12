@@ -160,6 +160,12 @@ To create a multi-GPU notebook job on a specific GPU type with larger scratch di
 trainml job create notebook --gpu-type "RTX 3090" --gpu-count 4 --disk-size 50 "My Notebook Job"
 ```
 
+To run the model training code in the `train.py` file in your local `~/model-code` directory on the training data in your local `~/data` directory:
+
+```
+trainml job create training --model-dir ~/model-code --data-dir ~/data "My Training Job" "python train.py"
+```
+
 Stop a job by job ID:
 
 ```
