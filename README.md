@@ -20,7 +20,7 @@ pip install trainml
 
 You must have a valid [trainML account](https://app.trainml.ai). On the [account settings page](https://app.trainml.ai/account/settings) click the `Create` button in the `API Keys` section. This will automatically download a `credentials.json` file. This file can only be generated once per API key. Treat this file as a password, as anyone with access to your API key will have the ability to create and control resources in your trainML account. You can deactivate any API key by clicking the `Remove` button.
 
-> Creating resources on the trainML platform requires a non-zero credit balance. To purchase credits or sign-up for automatic credit top-ups, visit the [billing page](https://app.trainml.ai/account/payments).
+> Creating resources on the trainML platform requires a non-zero credit balance. To purchase credits or sign-up for automatic credit top-ups, visit the [billing page](https://app.trainml.ai/account/billing).
 
 ### Methods
 

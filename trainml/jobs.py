@@ -76,12 +76,6 @@ class Jobs(object):
         **kwargs,
     ):
 
-        if type in ["headless", "interactive"]:
-            new_type = "notebook" if type == "interactive" else "training"
-            warnings.warn(
-                f"'{type}' type is deprecated, use '{new_type}' instead.",
-                DeprecationWarning,
-            )
         gpu_types = await self.trainml.gpu_types.list()
 
         selected_gpu_type = next(
@@ -371,7 +365,7 @@ class Job:
 
     async def copy(self, name, **kwargs):
         logging.debug(f"copy request - name: {name} ; kwargs: {kwargs}")
-        if self.type not in ["interactive", "notebook"]:
+        if self.type != "notebook":
             raise SpecificationError(
                 "job", "Only notebook job types can be copied"
             )
@@ -408,14 +402,14 @@ class Job:
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
             )
         if (
-            self.type == "headless" or self.type == "training"
+            self.type == "training"
         ) and status == "stopped":
             warnings.warn(
                 "'stopped' status is deprecated for training jobs, use 'finished' instead.",
                 DeprecationWarning,
             )
         if self.status == status or (
-            (self.type == "headless" or self.type == "training")
+            self.type == "training"
             and status == "finished"
             and self.status == "stopped"
         ):
@@ -432,7 +426,7 @@ class Job:
                     return
                 raise e
             if self.status == status or (
-                (self.type == "headless" or self.type == "training")
+                self.type == "training"
                 and status == "finished"
                 and self.status == "stopped"
             ):
