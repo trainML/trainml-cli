@@ -86,11 +86,13 @@ def create(config):
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY37",
+            "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
             "PYTORCH_PY38_17",
             "PYTORCH_PY37_17",
             "PYTORCH_PY37_16",
             "PYTORCH_PY37_15",
+            "TENSORFLOW_PY38_25",
             "TENSORFLOW_PY38_24",
             "TENSORFLOW_PY37_23",
             "TENSORFLOW_PY37_22",
@@ -110,6 +112,21 @@ def create(config):
     type=click.STRING,
     help="Environment variables to set in the job environment in 'KEY=VALUE' format",
     multiple=True,
+)
+@click.option(
+    "--apt-packages",
+    type=click.STRING,
+    help="Apt packages to install as a comma separated list 'p1,p2=v2,p3'",
+)
+@click.option(
+    "--pip-packages",
+    type=click.STRING,
+    help="Pip packages to install as a comma separated list 'p1,p2==v2,p3'",
+)
+@click.option(
+    "--conda-packages",
+    type=click.STRING,
+    help="Conda packages to install as a comma separated list 'p1,\"p2=v2\",p3'",
 )
 @click.option(
     "--key",
@@ -154,6 +171,9 @@ def notebook(
     environment,
     env,
     key,
+    apt_packages,
+    pip_packages,
+    conda_packages,
     model_dir,
     git_uri,
     model_id,
@@ -181,6 +201,17 @@ def notebook(
         raise click.UsageError(
             "Invalid environment variable format.  Must be in 'KEY=VALUE' format."
         )
+
+    if apt_packages or pip_packages or conda_packages:
+        options["environment"]["packages"] = dict()
+        if apt_packages:
+            options["environment"]["packages"]["apt"] = apt_packages.split(",")
+        if pip_packages:
+            options["environment"]["packages"]["pip"] = pip_packages.split(",")
+        if conda_packages:
+            options["environment"]["packages"]["conda"] = conda_packages.split(
+                ","
+            )
 
     if data_dir:
         click.echo("Creating Dataset..", file=config.stdout)
@@ -328,11 +359,13 @@ def notebook(
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY37",
+            "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
             "PYTORCH_PY38_17",
             "PYTORCH_PY37_17",
             "PYTORCH_PY37_16",
             "PYTORCH_PY37_15",
+            "TENSORFLOW_PY38_25",
             "TENSORFLOW_PY38_24",
             "TENSORFLOW_PY37_23",
             "TENSORFLOW_PY37_22",
@@ -365,6 +398,21 @@ def notebook(
     ),
     help="Third Party Keys to add to the job environment",
     multiple=True,
+)
+@click.option(
+    "--apt-packages",
+    type=click.STRING,
+    help="Apt packages to install as a comma separated list 'p1,p2=v2,p3'",
+)
+@click.option(
+    "--pip-packages",
+    type=click.STRING,
+    help="Pip packages to install as a comma separated list 'p1,p2==v2,p3'",
+)
+@click.option(
+    "--conda-packages",
+    type=click.STRING,
+    help="Conda packages to install as a comma separated list 'p1,\"p2=v2\",p3'",
 )
 @click.option(
     "--git-uri",
@@ -404,6 +452,9 @@ def training(
     environment,
     env,
     key,
+    apt_packages,
+    pip_packages,
+    conda_packages,
     model_dir,
     git_uri,
     model_id,
@@ -440,6 +491,17 @@ def training(
         raise click.UsageError(
             "Invalid environment variable format.  Must be in 'KEY=VALUE' format."
         )
+
+    if apt_packages or pip_packages or conda_packages:
+        options["environment"]["packages"] = dict()
+        if apt_packages:
+            options["environment"]["packages"]["apt"] = apt_packages.split(",")
+        if pip_packages:
+            options["environment"]["packages"]["pip"] = pip_packages.split(",")
+        if conda_packages:
+            options["environment"]["packages"]["conda"] = conda_packages.split(
+                ","
+            )
 
     if data_dir:
         click.echo("Creating Dataset..", file=config.stdout)
@@ -579,11 +641,13 @@ def training(
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY37",
+            "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
             "PYTORCH_PY38_17",
             "PYTORCH_PY37_17",
             "PYTORCH_PY37_16",
             "PYTORCH_PY37_15",
+            "TENSORFLOW_PY38_25",
             "TENSORFLOW_PY38_24",
             "TENSORFLOW_PY37_23",
             "TENSORFLOW_PY37_22",
@@ -616,6 +680,21 @@ def training(
     ),
     help="Third Party Keys to add to the job environment",
     multiple=True,
+)
+@click.option(
+    "--apt-packages",
+    type=click.STRING,
+    help="Apt packages to install as a comma separated list 'p1,p2=v2,p3'",
+)
+@click.option(
+    "--pip-packages",
+    type=click.STRING,
+    help="Pip packages to install as a comma separated list 'p1,p2==v2,p3'",
+)
+@click.option(
+    "--conda-packages",
+    type=click.STRING,
+    help="Conda packages to install as a comma separated list 'p1,\"p2=v2\",p3'",
 )
 @click.option(
     "--git-uri",
@@ -654,6 +733,9 @@ def inference(
     environment,
     env,
     key,
+    apt_packages,
+    pip_packages,
+    conda_packages,
     model_dir,
     git_uri,
     model_id,
@@ -694,6 +776,17 @@ def inference(
         raise click.UsageError(
             "Invalid environment variable format.  Must be in 'KEY=VALUE' format."
         )
+
+    if apt_packages or pip_packages or conda_packages:
+        options["environment"]["packages"] = dict()
+        if apt_packages:
+            options["environment"]["packages"]["apt"] = apt_packages.split(",")
+        if pip_packages:
+            options["environment"]["packages"]["pip"] = pip_packages.split(",")
+        if conda_packages:
+            options["environment"]["packages"]["conda"] = conda_packages.split(
+                ","
+            )
 
     if git_uri:
         options["model"] = dict(source_type="git", source_uri=git_uri)

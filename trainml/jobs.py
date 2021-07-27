@@ -73,6 +73,7 @@ class Jobs(object):
         environment=dict(type="DEEPLEARNING_PY38"),
         data=dict(),
         model=dict(),
+        endpoint=dict(),
         **kwargs,
     ):
 
@@ -102,6 +103,7 @@ class Jobs(object):
             environment=environment,
             data=data,
             model=model,
+            endpoint=endpoint,
             source_job_uuid=kwargs.get("source_job_uuid"),
         )
         payload = {
@@ -401,9 +403,7 @@ class Job:
                 "status",
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
             )
-        if (
-            self.type == "training"
-        ) and status == "stopped":
+        if (self.type == "training") and status == "stopped":
             warnings.warn(
                 "'stopped' status is deprecated for training jobs, use 'finished' instead.",
                 DeprecationWarning,

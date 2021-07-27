@@ -23,19 +23,6 @@ async def job(trainml):
     yield job
 
 
-@fixture(scope="class")
-async def model(trainml):
-    model = await trainml.models.create(
-        name="CLI Automated Jobs -  Git Model",
-        source_type="git",
-        source_uri="git@github.com:trainML/test-private.git",
-    )
-    await model.wait_for("ready", 120)
-    assert model.size >= 1000000
-    yield model
-    await model.remove()
-
-
 @mark.create
 @mark.asyncio
 class JobLifeCycleTests:
@@ -179,6 +166,15 @@ class JobFeatureTests:
         assert "Send complete" in captured.out
 
     async def test_job_model_input_and_output(self, trainml, model, capsys):
+
+        model = await trainml.models.create(
+            name="CLI Automated Jobs -  Git Model",
+            source_type="git",
+            source_uri="git@github.com:trainML/test-private.git",
+        )
+        await model.wait_for("ready", 120)
+        assert model.size >= 1000000
+
         job = await trainml.jobs.create(
             "CLI Automated Training With trainML Model Output",
             type="training",
@@ -205,6 +201,7 @@ class JobFeatureTests:
         assert job.status == "finished"
         workers = job.workers
         await job.remove()
+        await model.remove()
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
         sys.stderr.write(captured.err)
