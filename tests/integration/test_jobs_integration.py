@@ -165,7 +165,7 @@ class JobFeatureTests:
         assert "adding: model.ckpt-0001.data-00000-of-00001" in captured.out
         assert "Send complete" in captured.out
 
-    async def test_job_model_input_and_output(self, trainml, model, capsys):
+    async def test_job_model_input_and_output(self, trainml, capsys):
 
         model = await trainml.models.create(
             name="CLI Automated Jobs -  Git Model",
