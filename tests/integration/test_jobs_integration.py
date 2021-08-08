@@ -1,9 +1,9 @@
 import re
 import sys
-import logging
 import tempfile
 import os
 import asyncio
+import aiohttp
 from pytest import mark, fixture, raises
 
 pytestmark = [mark.sdk, mark.integration, mark.jobs]
@@ -18,7 +18,10 @@ async def job(trainml):
         gpu_count=1,
         disk_size=1,
         data=dict(datasets=[dict(name="CIFAR-10", type="public")]),
-        model=dict(git_uri="git@github.com:trainML/test-private.git"),
+        model=dict(
+            source_type="git",
+            source_uri="git@github.com:trainML/test-private.git",
+        ),
     )
     yield job
 
@@ -139,7 +142,10 @@ class JobFeatureTests:
                 output_uri=temp_dir.name,
                 output_type="local",
             ),
-            model=dict(git_uri="git@github.com:trainML/test-private.git"),
+            model=dict(
+                source_type="git",
+                source_uri="git@github.com:trainML/test-private.git",
+            ),
         )
         await job.wait_for("running")
         attach_task = asyncio.create_task(job.attach())
@@ -194,7 +200,7 @@ class JobFeatureTests:
                 ],
                 output_type="trainml",
             ),
-            model=dict(model_uuid=model.id),
+            model=dict(source_type="trainml", source_uri=model.id),
         )
         await job.attach()
         await job.refresh()
@@ -220,3 +226,50 @@ class JobFeatureTests:
             == "Job - CLI Automated Training With trainML Model Output"
         )
         await new_model.remove()
+
+    async def test_endpoint(self, trainml):
+        job = await trainml.jobs.create(
+            "CLI Automated Endpoint",
+            type="endpoint",
+            gpu_type="GTX 1060",
+            gpu_count=1,
+            disk_size=1,
+            model=dict(
+                source_type="git",
+                source_uri="https://github.com/trainML/simple-tensorflow-classifier.git",
+            ),
+            endpoint=dict(
+                routes=[
+                    dict(
+                        path="/predict",
+                        verb="POST",
+                        function="predict_image",
+                        file="predict",
+                        positional=True,
+                        body=[dict(name="filename", type="str")],
+                    )
+                ]
+            ),
+        )
+        await job.wait_for("running")
+        await job.refresh()
+        assert job.url
+        async with aiohttp.ClientSession() as session:
+            retry = True
+            while retry:
+                async with session.request(
+                    "GET",
+                    f"{job.url}/ping",
+                ) as resp:
+                    if resp.status == 503:
+                        resp.close()
+                    else:
+                        retry = False
+                        results = await resp.json()
+                        assert results["message"] == "pong"
+
+        await job.stop()
+        await job.wait_for("stopped")
+        await job.refresh()
+        assert not job.url
+        await job.remove()

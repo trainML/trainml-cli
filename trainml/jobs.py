@@ -177,10 +177,14 @@ class Job:
         return self._credits
 
     @property
+    def url(self) -> str:
+        return self._job.get("endpoint").get("url")
+
+    @property
     def notebook_url(self) -> str:
         if self.type != "notebook":
             return None
-        return f"https://notebook.{self.trainml.domain_suffix}/{self.id}/?token={self._job.get('nb_token')}"
+        return f"{self.url}/{self.id}/?token={self._job.get('nb_token')}"
 
     def __str__(self):
         return json.dumps(self.dict)

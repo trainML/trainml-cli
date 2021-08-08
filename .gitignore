@@ -13,5 +13,6 @@ config-*
 *.bz2
 .prettierrc
 .coverage
+.coverage.*
 .pytest*
 **/__pycache__/
