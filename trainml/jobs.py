@@ -298,14 +298,19 @@ class Job:
         webbrowser.open(self.notebook_url)
 
     async def connect(self):
-        if (
-            self.type == "notebook"
-            and self.status != "waiting for data/model download"
-        ):
+        if self.type == "notebook" and self.status not in [
+            "new",
+            "waiting for data/model download",
+        ]:
             raise SpecificationError(
                 "type",
                 "Notebooks cannot be connected to after model download is complete.  Use open() instead.",
             )
+        if self.type == "endpoint" and self.status not in [
+            "new",
+            "waiting for data/model download",
+        ]:
+            return self.url
         connection = Connection(
             self.trainml, entity_type="job", id=self.id, entity=self
         )
