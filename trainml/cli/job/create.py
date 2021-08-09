@@ -849,3 +849,228 @@ def from_json(config, attach, connect, file):
                 config.trainml.run(job.connect())
             if attach:
                 config.trainml.run(job.attach())
+
+
+@create.command()
+@click.option(
+    "--attach/--no-attach",
+    default=True,
+    show_default=True,
+    help="Auto attach to job.",
+)
+@click.option(
+    "--connect/--no-connect",
+    default=True,
+    show_default=True,
+    help="Auto connect to job.",
+)
+@click.option(
+    "--disk-size",
+    "-ds",
+    type=click.INT,
+    default=10,
+    show_default=True,
+    help="Disk size (GiB).",
+)
+@click.option(
+    "--gpu-count",
+    "-gc",
+    type=click.INT,
+    default=1,
+    show_default=True,
+    help="GPU Count (per Worker.)",
+)
+@click.option(
+    "--gpu-type",
+    "-gt",
+    type=click.Choice(
+        [
+            "GTX 1060",
+            "RTX 2060 Super",
+            "RTX 2070 Super",
+            "RTX 2080 Ti",
+            "RTX 3090",
+            "K80",
+            "P100",
+            "T4",
+            "V100",
+            "A100",
+        ],
+        case_sensitive=False,
+    ),
+    default="RTX 2080 Ti",
+    show_default=True,
+    help="GPU type.",
+)
+@click.option(
+    "--environment",
+    type=click.Choice(
+        [
+            "DEEPLEARNING_PY38",
+            "DEEPLEARNING_PY37",
+            "PYTORCH_PY38_19",
+            "PYTORCH_PY38_18",
+            "PYTORCH_PY38_17",
+            "PYTORCH_PY37_17",
+            "PYTORCH_PY37_16",
+            "PYTORCH_PY37_15",
+            "TENSORFLOW_PY38_25",
+            "TENSORFLOW_PY38_24",
+            "TENSORFLOW_PY37_23",
+            "TENSORFLOW_PY37_22",
+            "TENSORFLOW_PY37_114",
+            "MXNET_PY38_18",
+            "MXNET_PY38_17",
+            "MXNET_PY37_16",
+        ],
+        case_sensitive=False,
+    ),
+    default="DEEPLEARNING_PY38",
+    show_default=True,
+    help="Job environment to use",
+)
+@click.option(
+    "--env",
+    type=click.STRING,
+    help="Environment variables to set in the job environment in 'KEY=VALUE' format",
+    multiple=True,
+)
+@click.option(
+    "--key",
+    type=click.Choice(
+        [
+            "aws",
+            "gcp",
+            "kaggle",
+        ],
+        case_sensitive=False,
+    ),
+    help="Third Party Keys to add to the job environment",
+    multiple=True,
+)
+@click.option(
+    "--apt-packages",
+    type=click.STRING,
+    help="Apt packages to install as a comma separated list 'p1,p2=v2,p3'",
+)
+@click.option(
+    "--pip-packages",
+    type=click.STRING,
+    help="Pip packages to install as a comma separated list 'p1,p2==v2,p3'",
+)
+@click.option(
+    "--conda-packages",
+    type=click.STRING,
+    help="Conda packages to install as a comma separated list 'p1,\"p2=v2\",p3'",
+)
+@click.option(
+    "--git-uri",
+    type=click.STRING,
+    help="Git repository to use as the model data",
+)
+@click.option(
+    "--model-id",
+    type=click.STRING,
+    help="trainML Model ID to use as the model data",
+)
+@click.option(
+    "--model-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    help="Local file path to copy as the model data",
+)
+@click.option(
+    "--route",
+    type=click.STRING,
+    help="Routes to configure in endpoint (in JSON).",
+    multiple=True,
+)
+@click.argument("name", type=click.STRING)
+@pass_config
+def endpoint(
+    config,
+    attach,
+    connect,
+    disk_size,
+    gpu_count,
+    gpu_type,
+    environment,
+    env,
+    key,
+    apt_packages,
+    pip_packages,
+    conda_packages,
+    model_dir,
+    git_uri,
+    model_id,
+    route,
+    name,
+):
+    """
+    Create an inference job.
+    """
+    routes = [json.loads(item) for item in route]
+
+    options = dict(
+        environment=dict(type=environment, worker_key_types=[k for k in key]),
+    )
+
+    try:
+        envs = [
+            {"key": e.split("=")[0], "value": e.split("=")[1]} for e in env
+        ]
+        options["environment"]["env"] = envs
+    except IndexError:
+        raise click.UsageError(
+            "Invalid environment variable format.  Must be in 'KEY=VALUE' format."
+        )
+
+    if apt_packages or pip_packages or conda_packages:
+        options["environment"]["packages"] = dict()
+        if apt_packages:
+            options["environment"]["packages"]["apt"] = apt_packages.split(",")
+        if pip_packages:
+            options["environment"]["packages"]["pip"] = pip_packages.split(",")
+        if conda_packages:
+            options["environment"]["packages"]["conda"] = conda_packages.split(
+                ","
+            )
+
+    if git_uri:
+        options["model"] = dict(source_type="git", source_uri=git_uri)
+    if model_id:
+        options["model"] = dict(source_type="trainml", source_uri=model_id)
+    if model_dir:
+        options["model"] = dict(source_type="local", source_uri=model_dir)
+    job = config.trainml.run(
+        config.trainml.client.jobs.create(
+            name=name,
+            type="endpoint",
+            gpu_type=gpu_type,
+            gpu_count=gpu_count,
+            disk_size=disk_size,
+            endpoint=dict(routes=routes),
+            **options,
+        )
+    )
+    click.echo("Created Job.", file=config.stdout)
+
+    if model_dir:
+        click.echo("Uploading model...", file=config.stdout)
+        config.trainml.run(job.wait_for("waiting for data/model download"))
+        if attach or connect:
+            config.trainml.run(job.connect(), job.attach())
+        else:
+            config.trainml.run(job.connect())
+        click.echo("Waiting for job to start...", file=config.stdout)
+        config.trainml.run(job.wait_for("running"))
+        config.trainml.run(job.disconnect())
+        config.trainml.run(job.refresh())
+        click.echo(f"Endpoint is running at:  {job.url}", file=config.stdout)
+    else:
+        if connect:
+            click.echo("Waiting for job to start...", file=config.stdout)
+            config.trainml.run(job.wait_for("running"))
+            config.trainml.run(job.refresh())
+            click.echo(
+                f"Endpoint is running at:  {job.url}", file=config.stdout
+            )
