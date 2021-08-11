@@ -273,3 +273,46 @@ class JobFeatureTests:
         await job.refresh()
         assert not job.url
         await job.remove()
+
+    async def test_job_custom_container(self, trainml, capsys):
+        job = await trainml.jobs.create(
+            name="Test Custom Container",
+            type="training",
+            gpu_type="GTX 1060",
+            gpu_count=1,
+            disk_size=10,
+            model=dict(
+                source_type="git",
+                source_uri="git@github.com:trainML/test-private.git",
+            ),
+            environment=dict(
+                type="CUSTOM",
+                custom_image="tensorflow/tensorflow:2.4.2-gpu",
+            ),
+            worker_commands=[
+                "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=2 --batch_size=1024",
+            ],
+            data=dict(
+                datasets=[
+                    dict(
+                        name="CIFAR-10",
+                        type="public",
+                    )
+                ],
+                output_uri="s3://trainml-examples/output/resnet_cifar10",
+                output_type="aws",
+            ),
+        )
+        assert job.id
+        await job.attach()
+        await job.refresh()
+        assert job.status == "finished"
+        await job.remove()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert "Epoch 1/2" in captured.out
+        assert "Epoch 2/2" in captured.out
+        assert "adding: model.ckpt-0001.data-00000-of-00001" in captured.out
+        assert "s3://trainml-examples/output/resnet_cifar10" in captured.out
+        assert "Upload complete" in captured.out
