@@ -100,13 +100,18 @@ def create(config):
             "MXNET_PY38_18",
             "MXNET_PY38_17",
             "MXNET_PY37_16",
-            "CUSTOM",
         ],
         case_sensitive=False,
     ),
     default="DEEPLEARNING_PY38",
     show_default=True,
     help="Job environment to use",
+)
+@click.option(
+    "--custom-image",
+    type=click.STRING,
+    help="Docker Image to use for the job.  Implies 'CUSTOM' environment type.",
+    multiple=True,
 )
 @click.option(
     "--env",
@@ -170,6 +175,7 @@ def notebook(
     dataset,
     public_dataset,
     environment,
+    custom_image,
     env,
     key,
     apt_packages,
@@ -190,7 +196,11 @@ def notebook(
 
     options = dict(
         data=dict(datasets=datasets),
-        environment=dict(type=environment, worker_key_types=[k for k in key]),
+        environment=dict(
+            type="CUSTOM" if custom_image else environment,
+            custom_image=custom_image,
+            worker_key_types=[k for k in key],
+        ),
     )
 
     try:
@@ -374,13 +384,18 @@ def notebook(
             "MXNET_PY38_18",
             "MXNET_PY38_17",
             "MXNET_PY37_16",
-            "CUSTOM",
         ],
         case_sensitive=False,
     ),
     default="DEEPLEARNING_PY38",
     show_default=True,
     help="Job environment to use",
+)
+@click.option(
+    "--custom-image",
+    type=click.STRING,
+    help="Docker Image to use for the job.  Implies 'CUSTOM' environment type.",
+    multiple=True,
 )
 @click.option(
     "--env",
@@ -452,6 +467,7 @@ def training(
     output_type,
     output_uri,
     environment,
+    custom_image,
     env,
     key,
     apt_packages,
@@ -473,7 +489,11 @@ def training(
 
     options = dict(
         data=dict(datasets=datasets),
-        environment=dict(type=environment, worker_key_types=[k for k in key]),
+        environment=dict(
+            type="CUSTOM" if custom_image else environment,
+            custom_image=custom_image,
+            worker_key_types=[k for k in key],
+        ),
     )
 
     if output_type:
@@ -657,13 +677,18 @@ def training(
             "MXNET_PY38_18",
             "MXNET_PY38_17",
             "MXNET_PY37_16",
-            "CUSTOM",
         ],
         case_sensitive=False,
     ),
     default="DEEPLEARNING_PY38",
     show_default=True,
     help="Job environment to use",
+)
+@click.option(
+    "--custom-image",
+    type=click.STRING,
+    help="Docker Image to use for the job.  Implies 'CUSTOM' environment type.",
+    multiple=True,
 )
 @click.option(
     "--env",
@@ -734,6 +759,7 @@ def inference(
     output_type,
     output_uri,
     environment,
+    custom_image,
     env,
     key,
     apt_packages,
@@ -751,7 +777,11 @@ def inference(
 
     options = dict(
         data=dict(datasets=[]),
-        environment=dict(type=environment, worker_key_types=[k for k in key]),
+        environment=dict(
+            type="CUSTOM" if custom_image else environment,
+            custom_image=custom_image,
+            worker_key_types=[k for k in key],
+        ),
     )
 
     if input_type:
@@ -925,13 +955,18 @@ def from_json(config, attach, connect, file):
             "MXNET_PY38_18",
             "MXNET_PY38_17",
             "MXNET_PY37_16",
-            "CUSTOM",
         ],
         case_sensitive=False,
     ),
     default="DEEPLEARNING_PY38",
     show_default=True,
     help="Job environment to use",
+)
+@click.option(
+    "--custom-image",
+    type=click.STRING,
+    help="Docker Image to use for the job.  Implies 'CUSTOM' environment type.",
+    multiple=True,
 )
 @click.option(
     "--env",
@@ -998,6 +1033,7 @@ def endpoint(
     gpu_count,
     gpu_type,
     environment,
+    custom_image,
     env,
     key,
     apt_packages,
@@ -1015,7 +1051,11 @@ def endpoint(
     routes = [json.loads(item) for item in route]
 
     options = dict(
-        environment=dict(type=environment, worker_key_types=[k for k in key]),
+        environment=dict(
+            type="CUSTOM" if custom_image else environment,
+            custom_image=custom_image,
+            worker_key_types=[k for k in key],
+        ),
     )
 
     try:
