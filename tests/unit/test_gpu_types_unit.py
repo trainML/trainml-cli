@@ -22,6 +22,7 @@ def gpu_type(mock_trainml):
             "name": "GTX 1060",
             "provider": "trainml",
             "id": "1060-id",
+            "abbrv": "gtx1060",
         },
     )
 
@@ -43,6 +44,7 @@ class GpuTypeTests:
     def test_gpu_type_properties(self, gpu_type):
         assert isinstance(gpu_type.id, str)
         assert isinstance(gpu_type.name, str)
+        assert isinstance(gpu_type.abbrv, str)
         assert isinstance(gpu_type.provider, str)
         assert isinstance(gpu_type.available, int)
         assert isinstance(gpu_type.credits_per_hour, float)
@@ -59,6 +61,7 @@ class GpuTypeTests:
             "name": "GTX 1060",
             "provider": "trainml",
             "id": "1060-id",
+            "abbrv": "gtx1060",
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
         await gpu_type.refresh()

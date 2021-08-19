@@ -18,6 +18,7 @@ class GpuType:
         self._gpu_type = kwargs
         self._id = self._gpu_type.get("id", self._gpu_type.get("gpu_type_id"))
         self._name = self._gpu_type.get("name")
+        self._abbrv = self._gpu_type.get("abbrv")
         self._available = self._gpu_type.get("available")
         self._credits_per_hour = self._gpu_type.get("credits_per_hour")
         self._provider = self._gpu_type.get("provider")
@@ -29,6 +30,10 @@ class GpuType:
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def abbrv(self) -> str:
+        return self._abbrv
 
     @property
     def provider(self) -> str:

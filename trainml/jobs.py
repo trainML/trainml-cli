@@ -77,15 +77,6 @@ class Jobs(object):
         **kwargs,
     ):
 
-        gpu_types = await self.trainml.gpu_types.list()
-
-        selected_gpu_type = next(
-            (g for g in gpu_types if g.name == gpu_type or g.id == gpu_type),
-            None,
-        )
-        if not selected_gpu_type:
-            raise SpecificationError("gpu_type", "GPU Type Not Found")
-
         if data and data.get("datasets"):
             datasets = _clean_datasets_selection(data.get("datasets"))
             data["datasets"] = datasets
@@ -94,7 +85,7 @@ class Jobs(object):
             name=name,
             type=type,
             resources=dict(
-                gpu_type_id=selected_gpu_type.id,
+                gpu_type_id=gpu_type,
                 gpu_count=gpu_count,
                 disk_size=disk_size,
             ),

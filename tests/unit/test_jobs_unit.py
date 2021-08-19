@@ -276,7 +276,7 @@ class JobsTests:
             name="job_name",
             type="notebook",
             resources=dict(
-                gpu_type_id="1060-id",
+                gpu_type_id="GTX 1060",
                 gpu_count=1,
                 disk_size=10,
             ),
@@ -300,7 +300,7 @@ class JobsTests:
         requested_config = dict(
             name="job_name",
             type="notebook",
-            gpu_type="GTX 1060",
+            gpu_type="1060-id",
             gpu_count=1,
             disk_size=10,
             worker_commands=None,
@@ -325,20 +325,6 @@ class JobsTests:
         mock_trainml._query.assert_called_once_with(
             "/job", "POST", None, expected_payload
         )
-
-    async def test_invalid_gpu_type(
-        self,
-        jobs,
-    ):
-        requested_config = dict(
-            name="job_name",
-            type="notebook",
-            gpu_type="1060",
-            gpu_count=1,
-            disk_size=10,
-        )
-        with raises(SpecificationError):
-            await jobs.create(**requested_config)
 
 
 class JobTests:

@@ -29,6 +29,7 @@ async def test_get_gpu_types(gpu_types):
 async def test_gpu_type_properties(gpu_type):
     assert isinstance(gpu_type.id, str)
     assert isinstance(gpu_type.name, str)
+    assert isinstance(gpu_type.abbrv, str)
     assert isinstance(gpu_type.provider, str)
     assert isinstance(gpu_type.available, int)
     assert isinstance(gpu_type.credits_per_hour, float)

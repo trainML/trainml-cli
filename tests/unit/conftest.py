@@ -209,6 +209,7 @@ def mock_gpu_types():
                 "name": "A100",
                 "provider": "gcp",
                 "id": "a100-id",
+                "abbrv": "a100",
             },
         ),
         GpuType(
@@ -219,6 +220,7 @@ def mock_gpu_types():
                 "name": "V100",
                 "provider": "gcp",
                 "id": "v100-id",
+                "abbrv": "v100",
             },
         ),
         GpuType(
@@ -229,6 +231,7 @@ def mock_gpu_types():
                 "name": "RTX 2080 Ti",
                 "provider": "trainml",
                 "id": "2080ti-id",
+                "abbrv": "rtx2080ti",
             },
         ),
         GpuType(
@@ -239,6 +242,7 @@ def mock_gpu_types():
                 "name": "GTX 1060",
                 "provider": "trainml",
                 "id": "1060-id",
+                "abbrv": "gtx1060",
             },
         ),
         GpuType(
@@ -249,6 +253,7 @@ def mock_gpu_types():
                 "name": "RTX 2070 Super",
                 "provider": "trainml",
                 "id": "2070s-id",
+                "abbrv": "rtx2070s",
             },
         ),
         GpuType(
@@ -259,6 +264,7 @@ def mock_gpu_types():
                 "name": "K80",
                 "provider": "gcp",
                 "id": "k80-id",
+                "abbrv": "k80",
             },
         ),
     ]
