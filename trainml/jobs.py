@@ -414,7 +414,12 @@ class Job:
             and self.status == "stopped"
         ):
             return
-        POLL_INTERVAL = 5
+
+        POLL_INTERVAL_MIN = 5
+        POLL_INTERVAL_MAX = 60
+        POLL_INTERVAL = max(
+            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
+        )
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:
