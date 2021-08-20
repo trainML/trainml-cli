@@ -16,11 +16,15 @@ from trainml.connections import Connections
 
 async def ws_heartbeat(ws):
     while not ws.closed:
-        await ws.send_json(
-            dict(
-                action="heartbeat",
+        try:
+            await ws.send_json(
+                dict(
+                    action="heartbeat",
+                )
             )
-        )
+        except:
+            await ws.close()
+            break
         await asyncio.sleep(9 * 60)
 
 
@@ -132,11 +136,12 @@ class TrainML(object):
                         )
                     )
                 )
-                # asyncio.create_task(ws_heartbeat(ws))
+                asyncio.create_task(ws_heartbeat(ws))
                 async for msg in ws:
                     if msg.type in (
                         aiohttp.WSMsgType.CLOSED,
                         aiohttp.WSMsgType.ERROR,
+                        aiohttp.WSMsgType.CLOSE,
                     ):
                         await ws.close()
                         break

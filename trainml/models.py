@@ -166,7 +166,7 @@ class Model:
         return self
 
     async def wait_for(self, status, timeout=300):
-        valid_statuses = ["ready", "archived"]
+        valid_statuses = ["downloading", "ready", "archived"]
         if not status in valid_statuses:
             raise SpecificationError(
                 "status",

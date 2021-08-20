@@ -23,16 +23,17 @@ def list(config):
     )
 
     for env in environments:
-        data.append(
-            [
-                env.id,
-                env.name,
-                env.py_version,
-                env.framework,
-                str(env.version),
-                env.cuda_version,
-            ]
-        )
+        if env.id != "CUSTOM":
+            data.append(
+                [
+                    env.id,
+                    env.name,
+                    env.py_version,
+                    env.framework,
+                    str(env.version),
+                    env.cuda_version,
+                ]
+            )
     for row in data:
         click.echo(
             "{: >21.19} {: >30.28} {: >8.6} {: >15.13} {: >9.7} {: >6.4}"
