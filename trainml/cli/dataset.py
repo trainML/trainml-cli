@@ -214,3 +214,21 @@ def list_public(config):
             "".format(*row),
             file=config.stdout,
         )
+
+
+@dataset.command()
+@click.argument("dataset", type=click.STRING)
+@pass_config
+def remove(config, dataset):
+    """
+    Remove a dataset.
+
+    DATASET may be specified by name or ID, but ID is preferred.
+    """
+    datasets = config.trainml.run(config.trainml.client.datasets.list())
+
+    found = search_by_id_name(dataset, datasets)
+    if None is found:
+        raise click.UsageError("Cannot find specified dataset.")
+
+    return config.trainml.run(found.remove())

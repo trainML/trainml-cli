@@ -185,3 +185,21 @@ def list(config):
             "".format(*row),
             file=config.stdout,
         )
+
+
+@model.command()
+@click.argument("model", type=click.STRING)
+@pass_config
+def remove(config, model):
+    """
+    Remove a model.
+
+    MODEL may be specified by name or ID, but ID is preferred.
+    """
+    models = config.trainml.run(config.trainml.client.models.list())
+
+    found = search_by_id_name(model, models)
+    if None is found:
+        raise click.UsageError("Cannot find specified model.")
+
+    return config.trainml.run(found.remove())
