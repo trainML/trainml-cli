@@ -58,6 +58,39 @@ await trainml.jobs.create(...)
 
 Passing credentials to the TrainML constructor will override all other methods for setting credentials.
 
+## Configuration
+
+By default, all operations using the trainML SDK/CLI will use the Personal [project](https://docs.trainml.ai/reference/projects) for trainML account the API keys were generated from. To change the active project, run the configure command:
+
+```
+trainml configure
+```
+
+This command will output the currently configured active project (`UNSET` defaults to `Personal`) and allows you to specify any project you have access to as the new active project.
+
+```
+Current Active Project: Personal
+Select Active Project: (My Other Project, Personal, Project Shared With Me) [Personal]:
+```
+
+Once you select a project, it will store the results of your selection in the `config.json` file in the `TRAINML_CONFIG_DIR` folder (`~/.trainml` by default). Once the active project is set, all subsequent operations will use the selected project.
+
+This setting can also be overridden at runtime using the environment variable `TRAINML_PROJECT`:
+
+```
+TRAINML_PROJECT=<PROJECT ID> python create_job.py
+```
+
+or by instantiating the trainml client with the `project` keyword argument:
+
+```
+import trainml
+trainml = trainml.TrainML(project="PROJECT ID")
+await trainml.jobs.create(...)
+```
+
+> You must specify the project ID (not name) when using the runtime options. The project ID can be found by running `trainml project list`.
+
 ## Usage
 
 ### Python SDK
