@@ -40,6 +40,7 @@ class Models(object):
             source_options=kwargs.get("source_options"),
             provider=kwargs.get("provider"),
             disk_size=kwargs.get("disk_size"),
+            project_uuid=self.trainml.active_project,
         )
         payload = {k: v for k, v in data.items() if v}
         logging.info(f"Creating Model {name}")

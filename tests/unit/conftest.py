@@ -582,6 +582,7 @@ def mock_trainml(
     mock_projects,
 ):
     trainml = create_autospec(TrainML)
+    trainml.active_project = None
     trainml.datasets = create_autospec(Datasets)
     trainml.models = create_autospec(Models)
     trainml.gpu_types = create_autospec(GpuTypes)

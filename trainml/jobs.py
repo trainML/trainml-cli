@@ -96,6 +96,7 @@ class Jobs(object):
             model=model,
             endpoint=endpoint,
             source_job_uuid=kwargs.get("source_job_uuid"),
+            project_uuid=self.trainml.active_project,
         )
         payload = {
             k: v

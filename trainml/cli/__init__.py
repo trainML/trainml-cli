@@ -128,6 +128,35 @@ def cli(config, debug, output_file, silent, verbosity):
     )
 
 
+@cli.command()
+@pass_config
+def configure(config):
+    active_project_id = config.trainml.client.active_project
+    projects = config.trainml.run(config.trainml.client.projects.list())
+    project_names = [project.name for project in projects]
+
+    active_project = [
+        project for project in projects if project.id == active_project_id
+    ]
+
+    active_project_name = (
+        active_project[0].name if len(active_project) else "UNSET"
+    )
+
+    click.echo(f"Current Active Project: {active_project_name}")
+
+    name = click.prompt(
+        "Select Active Project:",
+        type=click.Choice(project_names, case_sensitive=True),
+        show_choices=True,
+        default=active_project_name,
+    )
+    selected_project = [
+        project for project in projects if project.name == name
+    ]
+    config.trainml.client.set_active_project(selected_project[0].id)
+
+
 from trainml.cli.connection import connection
 from trainml.cli.dataset import dataset
 from trainml.cli.model import model

@@ -41,6 +41,12 @@ class TrainML(object):
             env = json.loads(env_str)
         except OSError:
             env = dict()
+        try:
+            with open(f"{CONFIG_DIR}/config.json", "r") as file:
+                config_str = file.read().replace("\n", "")
+            config = json.loads(config_str)
+        except OSError:
+            config = dict()
         self.domain_suffix = (
             kwargs.get("domain_suffix")
             or os.environ.get("TRAINML_DOMAIN_SUFFIX")
@@ -53,6 +59,11 @@ class TrainML(object):
             region=kwargs.get("region"),
             client_id=kwargs.get("client_id"),
             pool_id=kwargs.get("pool_id"),
+        )
+        self.active_project = (
+            kwargs.get("project")
+            or os.environ.get("TRAINML_PROJECT")
+            or config.get("project")
         )
         self.datasets = Datasets(self)
         self.models = Models(self)
@@ -92,14 +103,26 @@ class TrainML(object):
             if headers
             else {
                 "Authorization": tokens.get("id_token"),
+                "User-Agent": f"trainML-sdk/{self._version}",
             }
         )
+        if self.active_project:
+            params = (
+                {**params, **{"project_uuid": self.active_project}}
+                if params
+                else {"project_uuid": self.active_project}
+            )
+
         if "Content-Type" not in headers:
             headers["Content-Type"] = "application/json"
         url = f"https://{self.api_url}{path}"
         async with aiohttp.ClientSession() as session:
             async with session.request(
-                method, url, data=json.dumps(data), headers=headers
+                method,
+                url,
+                data=json.dumps(data),
+                headers=headers,
+                params=params,
             ) as resp:
                 if (resp.status // 100) in [4, 5]:
                     what = await resp.read()
@@ -126,7 +149,12 @@ class TrainML(object):
                     ws.send_json(
                         dict(
                             action="getlogs",
-                            data=dict(type="init", entity=entity, id=id),
+                            data=dict(
+                                type="init",
+                                entity=entity,
+                                id=id,
+                                project_uuid=self.active_project,
+                            ),
                         )
                     )
                 )
@@ -134,7 +162,12 @@ class TrainML(object):
                     ws.send_json(
                         dict(
                             action="subscribe",
-                            data=dict(type="logs", entity=entity, id=id),
+                            data=dict(
+                                type="logs",
+                                entity=entity,
+                                id=id,
+                                project_uuid=self.active_project,
+                            ),
                         )
                     )
                 )
@@ -148,3 +181,10 @@ class TrainML(object):
                         await ws.close()
                         break
                     msg_handler(msg)
+
+    def set_active_project(self, project_uuid):
+        CONFIG_DIR = os.path.expanduser(
+            os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+        )
+        with open(f"{CONFIG_DIR}/config.json", "w") as file:
+            json.dump(dict(project=project_uuid), file)
