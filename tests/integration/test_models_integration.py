@@ -75,7 +75,7 @@ async def test_model_local(trainml, capsys):
     model = await trainml.models.create(
         name="CLI Automated Local",
         source_type="local",
-        source_uri="~/tensorflow-example",
+        source_uri="~/tensorflow-model",
     )
     attach_task = asyncio.create_task(model.attach())
     connect_task = asyncio.create_task(model.connect())
@@ -86,10 +86,10 @@ async def test_model_local(trainml, capsys):
     size = model.size
     await model.remove()
     assert status == "ready"
-    assert size >= 10000000
+    assert size >= 1000000
     captured = capsys.readouterr()
     sys.stdout.write(captured.out)
     sys.stderr.write(captured.err)
     assert "Starting data upload from local" in captured.out
-    assert "data_batch_1.bin  30733788 bytes" in captured.out
+    assert "official/LICENSE  11456 bytes" in captured.out
     assert "Upload complete" in captured.out

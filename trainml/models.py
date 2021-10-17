@@ -139,8 +139,7 @@ class Model:
         await self.trainml._query(f"/model/pub/{self._id}", "DELETE")
 
     def _get_msg_handler(self, msg_handler):
-        def handler(msg):
-            data = json.loads(msg.data)
+        def handler(data):
             if data.get("type") == "subscription":
                 if msg_handler:
                     msg_handler(data)

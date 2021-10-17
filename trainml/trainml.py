@@ -2,6 +2,7 @@ import json
 import os
 import asyncio
 import aiohttp
+import logging
 from importlib.metadata import version
 
 from trainml.auth import Auth
@@ -15,18 +16,10 @@ from trainml.connections import Connections
 from trainml.projects import Projects
 
 
-async def ws_heartbeat(ws):
-    while not ws.closed:
-        try:
-            await ws.send_json(
-                dict(
-                    action="heartbeat",
-                )
-            )
-        except:
-            await ws.close()
-            break
-        await asyncio.sleep(9 * 60)
+async def delayed_close(ws):
+    await asyncio.sleep(15)
+    if not ws.closed:
+        await ws.close()
 
 
 class TrainML(object):
@@ -140,10 +133,17 @@ class TrainML(object):
                 return results
 
     async def _ws_subscribe(self, entity, id, msg_handler):
+        headers = {
+            "User-Agent": f"trainML-sdk/{self._version}",
+            "Content-Type": "application/json",
+        }
         tokens = self.auth.get_tokens()
         async with aiohttp.ClientSession() as session:
+            done = False
             async with session.ws_connect(
-                f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}"
+                f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}",
+                headers=headers,
+                heartbeat=30,
             ) as ws:
                 asyncio.create_task(
                     ws.send_json(
@@ -171,16 +171,64 @@ class TrainML(object):
                         )
                     )
                 )
-                asyncio.create_task(ws_heartbeat(ws))
                 async for msg in ws:
                     if msg.type in (
                         aiohttp.WSMsgType.CLOSED,
                         aiohttp.WSMsgType.ERROR,
                         aiohttp.WSMsgType.CLOSE,
                     ):
+                        logging.debug(
+                            f"Websocket Received Closed Message.  Done? {done}"
+                        )
                         await ws.close()
                         break
-                    msg_handler(msg)
+                    data = json.loads(msg.data)
+                    if data.get("type") == "end":
+                        done = True
+                        asyncio.create_task(delayed_close(ws))
+                    else:
+                        msg_handler(data)
+            logging.debug(f"Websocket Disconnected.  Done? {done}")
+
+            while not done:
+                tokens = self.auth.get_tokens()
+                async with session.ws_connect(
+                    f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}",
+                    headers=headers,
+                    heartbeat=30,
+                ) as ws:
+                    asyncio.create_task(
+                        ws.send_json(
+                            dict(
+                                action="subscribe",
+                                data=dict(
+                                    type="logs",
+                                    entity=entity,
+                                    id=id,
+                                    project_uuid=self.active_project,
+                                ),
+                            )
+                        )
+                    )
+                    async for msg in ws:
+                        if msg.type in (
+                            aiohttp.WSMsgType.CLOSED,
+                            aiohttp.WSMsgType.ERROR,
+                            aiohttp.WSMsgType.CLOSE,
+                        ):
+
+                            logging.debug(
+                                f"Websocket Received Closed Message.  Done? {done}"
+                            )
+                            await ws.close()
+                            break
+                        data = json.loads(msg.data)
+                        if data.get("type") == "end":
+                            done = True
+                            asyncio.create_task(delayed_close(ws))
+                        else:
+                            msg_handler(data)
+                logging.debug(f"Websocket Disconnected.  Done? {done}")
 
     def set_active_project(self, project_uuid):
         CONFIG_DIR = os.path.expanduser(

@@ -253,21 +253,16 @@ class ModelTests:
         mock_trainml._query.assert_called_once_with("/model/pub/1", "DELETE")
 
     def test_model_default_ws_msg_handler(self, model, capsys):
-        msg = WSMessage(
-            type=WSMsgType.TEXT,
-            data=json.dumps(
-                {
-                    "msg": "download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n",
-                    "time": 1613079345318,
-                    "type": "subscription",
-                    "stream": "worker-id-1",
-                    "job_worker_uuid": "worker-id-1",
-                }
-            ),
-            extra=None,
-        )
+        data = {
+            "msg": "download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n",
+            "time": 1613079345318,
+            "type": "subscription",
+            "stream": "worker-id-1",
+            "job_worker_uuid": "worker-id-1",
+        }
+
         handler = model._get_msg_handler(None)
-        handler(msg)
+        handler(data)
         captured = capsys.readouterr()
         assert (
             captured.out
@@ -278,21 +273,16 @@ class ModelTests:
         def custom_handler(msg):
             print(msg.get("stream"))
 
-        msg = WSMessage(
-            type=WSMsgType.TEXT,
-            data=json.dumps(
-                {
-                    "msg": "download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n",
-                    "time": 1613079345318,
-                    "type": "subscription",
-                    "stream": "worker-id-1",
-                    "job_worker_uuid": "worker-id-1",
-                }
-            ),
-            extra=None,
-        )
+        data = {
+            "msg": "download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n",
+            "time": 1613079345318,
+            "type": "subscription",
+            "stream": "worker-id-1",
+            "job_worker_uuid": "worker-id-1",
+        }
+
         handler = model._get_msg_handler(custom_handler)
-        handler(msg)
+        handler(data)
         captured = capsys.readouterr()
         assert captured.out == "worker-id-1\n"
 

@@ -330,8 +330,7 @@ class Job:
             for ind, w in enumerate(self._workers)
         }
 
-        def handler(msg):
-            data = json.loads(msg.data)
+        def handler(data):
             if data.get("type") == "subscription":
                 data["worker_number"] = worker_numbers.get(data.get("stream"))
                 if msg_handler:

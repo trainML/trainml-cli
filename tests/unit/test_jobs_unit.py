@@ -530,21 +530,17 @@ class JobTests:
         assert response.status == "running"
 
     def test_job_default_ws_msg_handler(self, job, capsys):
-        msg = WSMessage(
-            type=WSMsgType.TEXT,
-            data=json.dumps(
-                {
-                    "msg": "Epoch (1/1000)\n",
-                    "time": 1613079345318,
-                    "type": "subscription",
-                    "stream": "worker-id-1",
-                    "job_worker_uuid": "worker-id-1",
-                }
-            ),
-            extra=None,
-        )
+
+        data = {
+            "msg": "Epoch (1/1000)\n",
+            "time": 1613079345318,
+            "type": "subscription",
+            "stream": "worker-id-1",
+            "job_worker_uuid": "worker-id-1",
+        }
+
         handler = job._get_msg_handler(None)
-        handler(msg)
+        handler(data)
         captured = capsys.readouterr()
         assert captured.out == "02/11/2021, 15:35:45: Epoch (1/1000)\n"
 
@@ -575,21 +571,17 @@ class JobTests:
                 ],
             },
         )
-        msg = WSMessage(
-            type=WSMsgType.TEXT,
-            data=json.dumps(
-                {
-                    "msg": "Epoch (1/1000)\n",
-                    "time": 1613079345318,
-                    "type": "subscription",
-                    "stream": "worker-id-1",
-                    "job_worker_uuid": "worker-id-1",
-                }
-            ),
-            extra=None,
-        )
+
+        data = {
+            "msg": "Epoch (1/1000)\n",
+            "time": 1613079345318,
+            "type": "subscription",
+            "stream": "worker-id-1",
+            "job_worker_uuid": "worker-id-1",
+        }
+
         handler = job._get_msg_handler(None)
-        handler(msg)
+        handler(data)
         captured = capsys.readouterr()
         assert (
             captured.out == "02/11/2021, 15:35:45: Worker 1 - Epoch (1/1000)\n"
@@ -599,21 +591,16 @@ class JobTests:
         def custom_handler(msg):
             print(msg.get("stream"))
 
-        msg = WSMessage(
-            type=WSMsgType.TEXT,
-            data=json.dumps(
-                {
-                    "msg": "Epoch (1/1000)\n",
-                    "time": 1613079345318,
-                    "type": "subscription",
-                    "stream": "worker-id-1",
-                    "job_worker_uuid": "worker-id-1",
-                }
-            ),
-            extra=None,
-        )
+        data = {
+            "msg": "Epoch (1/1000)\n",
+            "time": 1613079345318,
+            "type": "subscription",
+            "stream": "worker-id-1",
+            "job_worker_uuid": "worker-id-1",
+        }
+
         handler = job._get_msg_handler(custom_handler)
-        handler(msg)
+        handler(data)
         captured = capsys.readouterr()
         assert captured.out == "worker-id-1\n"
 
