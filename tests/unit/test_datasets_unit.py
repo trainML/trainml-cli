@@ -28,7 +28,6 @@ def dataset(mock_trainml):
         dataset_uuid="1",
         name="first one",
         status="new",
-        provider="trainml",
         size=100000,
         createdAt="2020-12-31T23:59:59.000Z",
     )
@@ -95,7 +94,6 @@ class DatasetsTests:
             "customer_uuid": "cus-id-1",
             "dataset_uuid": "data-id-1",
             "name": "new dataset",
-            "provider": "trainml",
             "status": "new",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/data/cifar10",
@@ -108,30 +106,12 @@ class DatasetsTests:
             "/dataset/pub", "POST", None, expected_payload
         )
         assert response.id == "data-id-1"
-        assert response.provider == "trainml"
-
-    @mark.asyncio
-    async def test_create_dataset_missing_disk_size_error(
-        self, datasets, mock_trainml
-    ):
-        requested_config = dict(
-            name="new dataset",
-            provider="gcp",
-            source_type="aws",
-            source_uri="s3://trainml-examples/data/cifar10",
-        )
-        api_response = None
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        with raises(SpecificationError):
-            await datasets.create(**requested_config)
-        mock_trainml._query.assert_not_called()
 
 
 class DatasetTests:
     def test_dataset_properties(self, dataset):
         assert isinstance(dataset.id, str)
         assert isinstance(dataset.status, str)
-        assert isinstance(dataset.provider, str)
         assert isinstance(dataset.name, str)
         assert isinstance(dataset.size, int)
 
@@ -208,7 +188,6 @@ class DatasetTests:
             dataset_uuid="1",
             name="first one",
             status="new",
-            provider="trainml",
             size=100000,
             createdAt="2020-12-31T23:59:59.000Z",
             source_type="local",
@@ -308,7 +287,6 @@ class DatasetTests:
             "customer_uuid": "cus-id-1",
             "dataset_uuid": "data-id-1",
             "name": "new dataset",
-            "provider": "trainml",
             "status": "downloading",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/data/cifar10",
@@ -325,7 +303,6 @@ class DatasetTests:
             dataset_uuid="1",
             name="first one",
             status="ready",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         api_response = None
@@ -334,7 +311,6 @@ class DatasetTests:
             "customer_uuid": "cus-id-1",
             "dataset_uuid": "1",
             "name": "new dataset",
-            "provider": "trainml",
             "status": "ready",
             "createdAt": "2020-12-20T16:46:23.909Z",
         }
@@ -348,7 +324,6 @@ class DatasetTests:
             "customer_uuid": "cus-id-1",
             "dataset_uuid": "data-id-1",
             "name": "new dataset",
-            "provider": "trainml",
             "status": "ready",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/data/cifar10",
@@ -366,7 +341,6 @@ class DatasetTests:
             "customer_uuid": "cus-id-1",
             "dataset_uuid": "data-id-1",
             "name": "new dataset",
-            "provider": "trainml",
             "status": "ready",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/data/cifar10",
@@ -385,7 +359,6 @@ class DatasetTests:
             dataset_uuid="1",
             name="first one",
             status="ready",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         api_response = None
@@ -409,14 +382,12 @@ class DatasetTests:
             dataset_uuid="1",
             name="first one",
             status="new",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         api_response_final = dict(
             dataset_uuid="1",
             name="first one",
             status="ready",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         mock_trainml._query = AsyncMock()
@@ -435,7 +406,6 @@ class DatasetTests:
             dataset_uuid="1",
             name="first one",
             status="new",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -451,7 +421,6 @@ class DatasetTests:
             dataset_uuid="1",
             name="first one",
             status="failed",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         mock_trainml._query = AsyncMock(return_value=api_response)

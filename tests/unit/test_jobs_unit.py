@@ -43,7 +43,6 @@ def job(mock_trainml):
                 }
             ],
             "worker_status": "new",
-            "provider": "trainml",
             "resources": {
                 "gpu_count": 1,
                 "gpu_type_id": "1060-id",
@@ -118,7 +117,6 @@ def training_job(mock_trainml):
                 }
             ],
             "worker_status": "running",
-            "provider": "trainml",
             "resources": {
                 "gpu_count": 1,
                 "gpu_type_id": "1060-id",
@@ -332,7 +330,6 @@ class JobTests:
         assert isinstance(job.id, str)
         assert isinstance(job.name, str)
         assert isinstance(job.status, str)
-        assert isinstance(job.provider, str)
         assert isinstance(job.type, str)
 
     def test_job_str(self, job):
@@ -412,7 +409,6 @@ class JobTests:
                 "name": "test notebook",
                 "type": "notebook",
                 "status": "new",
-                "provider": "trainml",
                 "model": {},
                 "data": {
                     "datasets": [],
@@ -453,7 +449,6 @@ class JobTests:
                 "name": "test notebook",
                 "type": "notebook",
                 "status": "new",
-                "provider": "trainml",
                 "model": {"source_type": "local", "source_uri": "~/model_dir"},
                 "data": {
                     "datasets": [],

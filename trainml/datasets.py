@@ -32,19 +32,11 @@ class Datasets(object):
         return datasets
 
     async def create(self, name, source_type, source_uri, **kwargs):
-        if kwargs.get("provider") and kwargs.get("provider") != "trainml":
-            if not kwargs.get("disk_size"):
-                raise SpecificationError(
-                    "disk_size",
-                    "'disk_size' attribute required for non-trainML providers",
-                )
         data = dict(
             name=name,
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
-            provider=kwargs.get("provider"),
-            disk_size=kwargs.get("disk_size"),
             project_uuid=self.trainml.active_project,
         )
         payload = {k: v for k, v in data.items() if v}
@@ -65,7 +57,6 @@ class Dataset:
         self._dataset = kwargs
         self._id = self._dataset.get("id", self._dataset.get("dataset_uuid"))
         self._status = self._dataset.get("status")
-        self._provider = self._dataset.get("provider")
         self._name = self._dataset.get("name")
         self._size = self._dataset.get("size")
 
@@ -76,10 +67,6 @@ class Dataset:
     @property
     def status(self) -> str:
         return self._status
-
-    @property
-    def provider(self) -> str:
-        return self._provider
 
     @property
     def name(self) -> str:

@@ -27,19 +27,11 @@ class Models(object):
         return models
 
     async def create(self, name, source_type, source_uri, **kwargs):
-        if kwargs.get("provider") and kwargs.get("provider") != "trainml":
-            if not kwargs.get("disk_size"):
-                raise SpecificationError(
-                    "disk_size",
-                    "'disk_size' attribute required for non-trainML providers",
-                )
         data = dict(
             name=name,
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
-            provider=kwargs.get("provider"),
-            disk_size=kwargs.get("disk_size"),
             project_uuid=self.trainml.active_project,
         )
         payload = {k: v for k, v in data.items() if v}
@@ -60,7 +52,6 @@ class Model:
         self._model = kwargs
         self._id = self._model.get("id", self._model.get("model_uuid"))
         self._status = self._model.get("status")
-        self._provider = self._model.get("provider")
         self._name = self._model.get("name")
         self._size = self._model.get("size")
 
@@ -71,10 +62,6 @@ class Model:
     @property
     def status(self) -> str:
         return self._status
-
-    @property
-    def provider(self) -> str:
-        return self._provider
 
     @property
     def name(self) -> str:

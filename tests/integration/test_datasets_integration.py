@@ -37,7 +37,6 @@ class GetDatasetTests:
         assert isinstance(dataset.id, str)
         assert isinstance(dataset.status, str)
         assert isinstance(dataset.name, str)
-        assert isinstance(dataset.provider, str)
         assert isinstance(dataset.size, int)
 
     def test_dataset_str(self, dataset):

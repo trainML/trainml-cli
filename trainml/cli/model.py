@@ -163,8 +163,8 @@ def disconnect(config, model):
 def list(config):
     """List models."""
     data = [
-        ["ID", "STATUS", "PROVIDER", "NAME", "SIZE"],
-        ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
+        ["ID", "STATUS", "NAME", "SIZE"],
+        ["-" * 80, "-" * 80, "-" * 80, "-" * 80],
     ]
 
     models = config.trainml.run(config.trainml.client.models.list())
@@ -174,7 +174,6 @@ def list(config):
             [
                 model.id,
                 model.status,
-                model.provider,
                 model.name,
                 pretty_size(model.size),
             ]

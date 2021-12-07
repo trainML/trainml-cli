@@ -9,14 +9,12 @@ from unittest.mock import (
     call,
     mock_open,
 )
-from pytest import mark, fixture, raises
-from aiohttp import WSMessage, WSMsgType
+from pytest import mark, fixture
 from aiodocker.containers import DockerContainer
-
 import trainml.connections as specimen
 from trainml.jobs import Job
 from trainml.datasets import Dataset
-from trainml.exceptions import ApiError, ConnectionError
+
 
 pytestmark = [mark.sdk, mark.unit, mark.connections]
 
@@ -38,7 +36,6 @@ def dataset_con(mock_trainml):
             dataset_uuid="data-id-1",
             name="first one",
             status="new",
-            provider="trainml",
         ),
     )
 
@@ -58,7 +55,6 @@ def job_con(mock_trainml):
                 "name": "test notebook",
                 "type": "interactive",
                 "status": "new",
-                "provider": "trainml",
             },
         ),
     )
@@ -69,7 +65,6 @@ class ConnectionsTests:
     async def test_connections_list(
         self,
         connections,
-        mock_trainml,
     ):
         with patch("trainml.connections.os") as mock_os:
             mock_os.listdir = Mock(
@@ -87,7 +82,6 @@ class ConnectionsTests:
     async def test_connections_cleanup(
         self,
         connections,
-        mock_trainml,
     ):
         with patch("trainml.connections.os") as mock_os:
             dir_list = ["job_job-id-1", "dataset_data-id-1"]
@@ -112,7 +106,6 @@ class ConnectionsTests:
     @mark.asyncio
     async def test_connections_cleanup_containers(
         self,
-        mock_trainml,
     ):
         with patch("trainml.connections.open", mock_open(read_data="keep-me")):
 

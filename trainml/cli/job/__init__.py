@@ -204,12 +204,12 @@ def list(config, format):
 
     if format == "text":
         data = [
-            ["ID", "NAME", "STATUS", "PROVIDER", "TYPE"],
-            ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
+            ["ID", "NAME", "STATUS", "TYPE"],
+            ["-" * 80, "-" * 80, "-" * 80, "-" * 80],
         ]
 
         for job in jobs:
-            data.append([job.id, job.name, job.status, job.provider, job.type])
+            data.append([job.id, job.name, job.status, job.type])
         for row in data:
             click.echo(
                 "{: >38.36} {: >40.38} {: >13.11} {: >10.8} {: >14.12}"

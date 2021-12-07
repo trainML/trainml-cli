@@ -33,7 +33,6 @@ class GetModelTests:
         assert isinstance(model.id, str)
         assert isinstance(model.status, str)
         assert isinstance(model.name, str)
-        assert isinstance(model.provider, str)
         assert isinstance(model.size, int)
 
     def test_model_str(self, model):

@@ -163,8 +163,8 @@ def disconnect(config, dataset):
 def list(config):
     """List datasets."""
     data = [
-        ["ID", "STATUS", "PROVIDER", "NAME", "SIZE"],
-        ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
+        ["ID", "STATUS", "NAME", "SIZE"],
+        ["-" * 80, "-" * 80, "-" * 80, "-" * 80],
     ]
 
     datasets = config.trainml.run(config.trainml.client.datasets.list())
@@ -174,7 +174,6 @@ def list(config):
             [
                 dset.id,
                 dset.status,
-                dset.provider,
                 dset.name,
                 pretty_size(dset.size),
             ]
@@ -192,8 +191,8 @@ def list(config):
 def list_public(config):
     """List public datasets."""
     data = [
-        ["ID", "STATUS", "PROVIDER", "NAME", "SIZE"],
-        ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
+        ["ID", "STATUS", "NAME", "SIZE"],
+        ["-" * 80, "-" * 80, "-" * 80, "-" * 80],
     ]
 
     datasets = config.trainml.run(config.trainml.client.datasets.list_public())
@@ -203,7 +202,6 @@ def list_public(config):
             [
                 dset.id,
                 dset.status,
-                dset.provider,
                 dset.name,
                 pretty_size(dset.size),
             ]

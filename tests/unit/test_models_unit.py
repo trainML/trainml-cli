@@ -28,7 +28,6 @@ def model(mock_trainml):
         model_uuid="1",
         name="first one",
         status="new",
-        provider="trainml",
         size=100000,
         createdAt="2020-12-31T23:59:59.000Z",
     )
@@ -86,7 +85,6 @@ class ModelsTests:
             "customer_uuid": "cus-id-1",
             "model_uuid": "model-id-1",
             "name": "new model",
-            "provider": "trainml",
             "status": "new",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/models/resnet50",
@@ -99,30 +97,12 @@ class ModelsTests:
             "/model/pub", "POST", None, expected_payload
         )
         assert response.id == "model-id-1"
-        assert response.provider == "trainml"
-
-    @mark.asyncio
-    async def test_create_model_missing_disk_size_error(
-        self, models, mock_trainml
-    ):
-        requested_config = dict(
-            name="new model",
-            provider="gcp",
-            source_type="aws",
-            source_uri="s3://trainml-examples/models/resnet50",
-        )
-        api_response = None
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        with raises(SpecificationError):
-            await models.create(**requested_config)
-        mock_trainml._query.assert_not_called()
 
 
 class ModelTests:
     def test_model_properties(self, model):
         assert isinstance(model.id, str)
         assert isinstance(model.status, str)
-        assert isinstance(model.provider, str)
         assert isinstance(model.name, str)
         assert isinstance(model.size, int)
 
@@ -195,7 +175,6 @@ class ModelTests:
             model_uuid="1",
             name="first one",
             status="new",
-            provider="trainml",
             size=100000,
             createdAt="2020-12-31T23:59:59.000Z",
             source_type="local",
@@ -294,7 +273,6 @@ class ModelTests:
             "customer_uuid": "cus-id-1",
             "model_uuid": "data-id-1",
             "name": "new model",
-            "provider": "trainml",
             "status": "downloading",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/data/cifar10",
@@ -311,7 +289,6 @@ class ModelTests:
             model_uuid="1",
             name="first one",
             status="ready",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         api_response = None
@@ -320,7 +297,6 @@ class ModelTests:
             "customer_uuid": "cus-id-1",
             "model_uuid": "1",
             "name": "new model",
-            "provider": "trainml",
             "status": "ready",
             "createdAt": "2020-12-20T16:46:23.909Z",
         }
@@ -334,7 +310,6 @@ class ModelTests:
             "customer_uuid": "cus-id-1",
             "model_uuid": "data-id-1",
             "name": "new model",
-            "provider": "trainml",
             "status": "ready",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/data/cifar10",
@@ -352,7 +327,6 @@ class ModelTests:
             "customer_uuid": "cus-id-1",
             "model_uuid": "data-id-1",
             "name": "new model",
-            "provider": "trainml",
             "status": "ready",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/data/cifar10",
@@ -371,7 +345,6 @@ class ModelTests:
             model_uuid="1",
             name="first one",
             status="ready",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         api_response = None
@@ -393,14 +366,12 @@ class ModelTests:
             model_uuid="1",
             name="first one",
             status="new",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         api_response_final = dict(
             model_uuid="1",
             name="first one",
             status="ready",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         mock_trainml._query = AsyncMock()
@@ -419,7 +390,6 @@ class ModelTests:
             model_uuid="1",
             name="first one",
             status="new",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -433,7 +403,6 @@ class ModelTests:
             model_uuid="1",
             name="first one",
             status="failed",
-            provider="trainml",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         mock_trainml._query = AsyncMock(return_value=api_response)

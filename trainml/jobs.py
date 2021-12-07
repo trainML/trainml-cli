@@ -130,7 +130,6 @@ class Job:
         self._job = kwargs
         self._id = self._job.get("id", self._job.get("job_uuid"))
         self._name = self._job.get("name")
-        self._provider = self._job.get("provider")
         self._status = self._job.get("status")
         self._type = self._job.get("type")
         self._workers = self._job.get("workers")
@@ -151,10 +150,6 @@ class Job:
     @property
     def status(self) -> str:
         return self._status
-
-    @property
-    def provider(self) -> str:
-        return self._provider
 
     @property
     def type(self) -> str:

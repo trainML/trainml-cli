@@ -75,13 +75,10 @@ class ProjectsTests:
         requested_config = dict(
             name="new project",
         )
-        expected_payload = dict(
-            name="new project", provider="trainml", copy_keys=False
-        )
+        expected_payload = dict(name="new project", copy_keys=False)
         api_response = {
             "id": "project-id-1",
             "name": "new project",
-            "provider": "trainml",
             "owner": True,
             "owner_name": "Me",
             "created_name": "Me",

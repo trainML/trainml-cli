@@ -19,7 +19,6 @@ class Projects(object):
     async def create(self, name, copy_keys=False, **kwargs):
         data = dict(
             name=name,
-            provider=kwargs.get("provider") or "trainml",
             copy_keys=copy_keys,
         )
         payload = {k: v for k, v in data.items() if v or k in ["copy_keys"]}

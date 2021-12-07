@@ -52,7 +52,6 @@ class JobLifeCycleTests:
         assert isinstance(job.id, str)
         assert isinstance(job.name, str)
         assert isinstance(job.status, str)
-        assert isinstance(job.provider, str)
         assert isinstance(job.type, str)
 
     def test_job_str(self, job):
