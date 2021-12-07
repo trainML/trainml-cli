@@ -329,6 +329,7 @@ class Job:
             w.get("job_worker_uuid"): ind + 1
             for ind, w in enumerate(self._workers)
         }
+        worker_numbers["data_worker"] = 0
 
         def handler(data):
             if data.get("type") == "subscription":

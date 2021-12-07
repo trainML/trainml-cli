@@ -31,13 +31,13 @@ async def job(trainml):
 class JobLifeCycleTests:
     async def test_wait_for_running(self, job):
         assert job.status != "running"
-        job = await job.wait_for("running", 120)
+        job = await job.wait_for("running", 180)
         assert job.status == "running"
 
     async def test_stop_job(self, job):
         assert job.status == "running"
         await job.stop()
-        job = await job.wait_for("stopped", 60)
+        job = await job.wait_for("stopped", 120)
         assert job.status == "stopped"
 
     async def test_get_jobs(self, trainml, job):
@@ -76,7 +76,7 @@ class JobLifeCycleTests:
     async def test_copy_job(self, job):
         job_copy = await job.copy("CLI Automated Job Copy")
         assert job_copy.id != job.id
-        await job_copy.wait_for("running", 120)
+        await job_copy.wait_for("running", 180)
         assert job_copy.status == "running"
         await job_copy.stop()
         await job_copy.wait_for("stopped", 60)
@@ -119,7 +119,7 @@ class JobLifeCycleTests:
 
 @mark.create
 @mark.asyncio
-class JobFeatureTests:
+class JobIOTests:
     async def test_job_local_output(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(
@@ -227,6 +227,10 @@ class JobFeatureTests:
         )
         await new_model.remove()
 
+
+@mark.create
+@mark.asyncio
+class JobTypeTests:
     async def test_endpoint(self, trainml):
         job = await trainml.jobs.create(
             "CLI Automated Endpoint",
