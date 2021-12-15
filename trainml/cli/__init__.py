@@ -3,6 +3,8 @@ import click
 import logging
 from os import devnull
 from sys import stderr, stdout
+
+
 from trainml.trainml import TrainML
 
 
@@ -61,6 +63,7 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 
 
 @click.group()
+@click.version_option(package_name="trainml", prog_name="trainML CLI and SDK")
 @click.option(
     "--debug",
     "-d",

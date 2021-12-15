@@ -1,6 +1,6 @@
 aiodocker
 aiohttp
 boto3
-Click
+Click>8
 python-jose[cryptography]
 requests
