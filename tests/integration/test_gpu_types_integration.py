@@ -30,16 +30,8 @@ async def test_gpu_type_properties(gpu_type):
     assert isinstance(gpu_type.id, str)
     assert isinstance(gpu_type.name, str)
     assert isinstance(gpu_type.abbrv, str)
-    assert isinstance(gpu_type.provider, str)
-    assert isinstance(gpu_type.available, int)
-    assert isinstance(gpu_type.credits_per_hour, float)
-
-
-@mark.asyncio
-async def test_gpu_type_refresh(gpu_type):
-    gpu_type_id = gpu_type.id
-    refreshed_gpu_type = await gpu_type.refresh()
-    assert gpu_type_id == refreshed_gpu_type.id
+    assert isinstance(gpu_type.credits_per_hour_min, float)
+    assert isinstance(gpu_type.credits_per_hour_max, float)
 
 
 @mark.asyncio

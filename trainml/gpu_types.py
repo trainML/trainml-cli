@@ -7,7 +7,17 @@ class GpuTypes(object):
         self.trainml = trainml
 
     async def list(self):
-        resp = await self.trainml._query(f"/gpu/pub/types", "GET")
+        if self.trainml.active_project:
+            project_id = self.trainml.active_project
+        else:
+            projects = await self.trainml.projects.list()
+            project_id = next(
+                (p.id for p in projects if p.name == "Personal"),
+                None,
+            )
+        resp = await self.trainml._query(
+            f"/project/{project_id}/gputypes", "GET"
+        )
         gpu_types = [GpuType(self.trainml, **gpu_type) for gpu_type in resp]
         return gpu_types
 
@@ -19,9 +29,8 @@ class GpuType:
         self._id = self._gpu_type.get("id", self._gpu_type.get("gpu_type_id"))
         self._name = self._gpu_type.get("name")
         self._abbrv = self._gpu_type.get("abbrv")
-        self._available = self._gpu_type.get("available")
-        self._credits_per_hour = self._gpu_type.get("credits_per_hour")
-        self._provider = self._gpu_type.get("provider")
+        self._credits_per_hour_min = self._gpu_type.get("price").get("min")
+        self._credits_per_hour_max = self._gpu_type.get("price").get("max")
 
     @property
     def id(self) -> str:
@@ -36,16 +45,12 @@ class GpuType:
         return self._abbrv
 
     @property
-    def provider(self) -> str:
-        return self._provider
+    def credits_per_hour_min(self) -> float:
+        return self._credits_per_hour_min
 
     @property
-    def available(self) -> int:
-        return self._available
-
-    @property
-    def credits_per_hour(self) -> float:
-        return self._credits_per_hour
+    def credits_per_hour_max(self) -> float:
+        return self._credits_per_hour_max
 
     def __str__(self):
         return json.dumps(
@@ -58,8 +63,3 @@ class GpuType:
 
     def __repr__(self):
         return f"GpuType( trainml , **{self._gpu_type.__repr__()})"
-
-    async def refresh(self):
-        resp = await self.trainml._query(f"/gpu/pub/types/{self.id}", "GET")
-        self.__init__(self.trainml, **resp)
-        return self

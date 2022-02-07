@@ -17,10 +17,8 @@ def gpu_type(mock_trainml):
     yield specimen.GpuType(
         mock_trainml,
         **{
-            "available": 4,
-            "credits_per_hour": 0.1,
+            "price": {"min": 0.1, "max": 0.1},
             "name": "GTX 1060",
-            "provider": "trainml",
             "id": "1060-id",
             "abbrv": "gtx1060",
         },
@@ -37,7 +35,9 @@ class GpuTypesTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await gpu_types.list()
-        mock_trainml._query.assert_called_once_with(f"/gpu/pub/types", "GET")
+        mock_trainml._query.assert_called_once_with(
+            f"/project/cus-id-1/gputypes", "GET"
+        )
 
 
 class GpuTypeTests:
@@ -45,30 +45,8 @@ class GpuTypeTests:
         assert isinstance(gpu_type.id, str)
         assert isinstance(gpu_type.name, str)
         assert isinstance(gpu_type.abbrv, str)
-        assert isinstance(gpu_type.provider, str)
-        assert isinstance(gpu_type.available, int)
-        assert isinstance(gpu_type.credits_per_hour, float)
-
-    @mark.asyncio
-    async def test_gpu_type_refresh(
-        self,
-        gpu_type,
-        mock_trainml,
-    ):
-        api_response = {
-            "available": 2,
-            "credits_per_hour": 0.1,
-            "name": "GTX 1060",
-            "provider": "trainml",
-            "id": "1060-id",
-            "abbrv": "gtx1060",
-        }
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        await gpu_type.refresh()
-        mock_trainml._query.assert_called_once_with(
-            f"/gpu/pub/types/{gpu_type.id}", "GET"
-        )
-        assert gpu_type.available == 2
+        assert isinstance(gpu_type.credits_per_hour_min, float)
+        assert isinstance(gpu_type.credits_per_hour_max, float)
 
     def test_gpu_type_str(self, gpu_type):
         string = str(gpu_type)

@@ -11,7 +11,7 @@ pytestmark = [mark.sdk, mark.integration, mark.providers]
 class GetProvidersTests:
     @fixture(scope="class")
     async def provider(self, trainml):
-        provider = await trainml.providers.enable(type="physical")
+        provider = await trainml.providers.enable(type="test")
         yield provider
         await provider.remove()
 
@@ -27,7 +27,7 @@ class GetProvidersTests:
         assert isinstance(provider.id, str)
         assert isinstance(provider.type, str)
         assert isinstance(provider.regions, list)
-        assert provider.type == "physical"
+        assert provider.type == "test"
         assert len(provider.regions) == 0
         assert provider.credits == 0
 

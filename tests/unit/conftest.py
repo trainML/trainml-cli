@@ -159,10 +159,8 @@ def mock_gpu_types():
         GpuType(
             trainml,
             **{
-                "available": 0,
-                "credits_per_hour": 3.9,
                 "name": "A100",
-                "provider": "gcp",
+                "price": {"min": 2.78, "max": 4.9},
                 "id": "a100-id",
                 "abbrv": "a100",
             },
@@ -170,10 +168,8 @@ def mock_gpu_types():
         GpuType(
             trainml,
             **{
-                "available": 100,
-                "credits_per_hour": 2.8,
+                "price": {"min": 1, "max": 3.94},
                 "name": "V100",
-                "provider": "gcp",
                 "id": "v100-id",
                 "abbrv": "v100",
             },
@@ -181,10 +177,8 @@ def mock_gpu_types():
         GpuType(
             trainml,
             **{
-                "available": 20,
-                "credits_per_hour": 0.35,
+                "price": {"min": 0.35, "max": 0.35},
                 "name": "RTX 2080 Ti",
-                "provider": "trainml",
                 "id": "2080ti-id",
                 "abbrv": "rtx2080ti",
             },
@@ -192,34 +186,10 @@ def mock_gpu_types():
         GpuType(
             trainml,
             **{
-                "available": 4,
-                "credits_per_hour": 0.1,
+                "price": {"min": 0.1, "max": 0.1},
                 "name": "GTX 1060",
-                "provider": "trainml",
                 "id": "1060-id",
                 "abbrv": "gtx1060",
-            },
-        ),
-        GpuType(
-            trainml,
-            **{
-                "available": 0,
-                "credits_per_hour": 0.28,
-                "name": "RTX 2070 Super",
-                "provider": "trainml",
-                "id": "2070s-id",
-                "abbrv": "rtx2070s",
-            },
-        ),
-        GpuType(
-            trainml,
-            **{
-                "available": 16,
-                "credits_per_hour": 0.7,
-                "name": "K80",
-                "provider": "gcp",
-                "id": "k80-id",
-                "abbrv": "k80",
             },
         ),
     ]

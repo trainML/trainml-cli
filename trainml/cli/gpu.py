@@ -16,7 +16,7 @@ def gpu(config):
 def list(config):
     """List GPUs."""
     data = [
-        ["ID", "NAME", "ABBRV", "PROVIDER", "AVAILABLE", "CREDITS/HR"],
+        ["ID", "NAME", "ABBRV", "CREDITS/HR MIN", "CREDITS/HR MAX"],
         ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
     ]
 
@@ -28,9 +28,8 @@ def list(config):
                 gpu.id,
                 gpu.name,
                 gpu.abbrv,
-                gpu.provider,
-                f"{gpu.available}",
-                f"{gpu.credits_per_hour:.2f}",
+                f"{gpu.credits_per_hour_min:.2f}",
+                f"{gpu.credits_per_hour_max:.2f}",
             ]
         )
     for row in data:
