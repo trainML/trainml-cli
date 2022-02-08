@@ -17,7 +17,7 @@ def list(config):
     """List GPUs."""
     data = [
         ["ID", "NAME", "ABBRV", "CREDITS/HR MIN", "CREDITS/HR MAX"],
-        ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
+        ["-" * 80, "-" * 80, "-" * 80, "-" * 80, "-" * 80],
     ]
 
     gpus = config.trainml.run(config.trainml.client.gpu_types.list())
@@ -34,7 +34,7 @@ def list(config):
         )
     for row in data:
         click.echo(
-            "{: >36.34} {: >16.14} {: >10.8} {: >10.8} {: >11.9} {: >12.10}"
+            "{: >36.34} {: >16.14} {: >10.8} {: >16.14} {: >16.14}"
             "".format(*row),
             file=config.stdout,
         )
