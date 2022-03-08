@@ -47,6 +47,7 @@ def job(mock_trainml):
                 "gpu_count": 1,
                 "gpu_type_id": "1060-id",
                 "disk_size": 10,
+                "max_price": 10,
             },
             "model": {
                 "size": 7176192,
@@ -121,6 +122,7 @@ def training_job(mock_trainml):
                 "gpu_count": 1,
                 "gpu_type_id": "1060-id",
                 "disk_size": 10,
+                "max_price": 10,
             },
             "model": {
                 "size": 7176192,
@@ -274,9 +276,7 @@ class JobsTests:
             name="job_name",
             type="notebook",
             resources=dict(
-                gpu_type_id="GTX 1060",
-                gpu_count=1,
-                disk_size=10,
+                gpu_type_id="GTX 1060", gpu_count=1, disk_size=10, max_price=10
             ),
             environment=dict(type="DEEPLEARNING_PY38"),
             model=dict(),
@@ -301,6 +301,7 @@ class JobsTests:
             gpu_type="1060-id",
             gpu_count=1,
             disk_size=10,
+            max_price=2,
             worker_commands=None,
             environment=None,
             data=None,
@@ -310,9 +311,7 @@ class JobsTests:
             name="job_name",
             type="notebook",
             resources=dict(
-                gpu_type_id="1060-id",
-                gpu_count=1,
-                disk_size=10,
+                gpu_type_id="1060-id", gpu_count=1, disk_size=10, max_price=2
             ),
             source_job_uuid="job-id-1",
         )
@@ -674,6 +673,7 @@ class JobTests:
             "gpu_type": "1060-id",
             "gpu_count": 1,
             "disk_size": 10,
+            "max_price": 10,
             "worker_commands": None,
             "workers": None,
             "environment": None,

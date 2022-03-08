@@ -16,7 +16,7 @@ class GetDatasetTests:
             source_type="aws",
             source_uri="s3://trainml-examples/data/cifar10",
         )
-        dataset = await dataset.wait_for("ready", 60)
+        dataset = await dataset.wait_for("ready", 300)
         yield dataset
         await dataset.remove()
         dataset = await dataset.wait_for("archived", 60)
@@ -74,7 +74,7 @@ class GetDatasetTests:
         assert response.get("contents") == []
         assert response.get("count") == "8"
         assert response.get("name") == "/"
-        assert response.get("size") == "177M"
+        assert response.get("size") == "177M" or response.get("size") == "176M"
 
 
 @mark.create
@@ -85,7 +85,7 @@ async def test_dataset_aws(trainml, capsys):
         source_type="aws",
         source_uri="s3://trainml-examples/data/cifar10",
     )
-    dataset = await dataset.wait_for("ready", 60)
+    dataset = await dataset.wait_for("ready", 300)
     status = dataset.status
     size = dataset.size
     await dataset.remove()

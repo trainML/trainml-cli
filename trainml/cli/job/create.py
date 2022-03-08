@@ -64,6 +64,14 @@ def create(config):
     help="GPU type.",
 )
 @click.option(
+    "--max-price",
+    "-mp",
+    type=click.FLOAT,
+    default=10.0,
+    show_default=True,
+    help="Max Price (per GPU).",
+)
+@click.option(
     "--data-dir",
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     help="Local file path to copy as the input data",
@@ -165,6 +173,7 @@ def notebook(
     disk_size,
     gpu_count,
     gpu_type,
+    max_price,
     data_dir,
     dataset,
     public_dataset,
@@ -189,6 +198,7 @@ def notebook(
     ]
 
     options = dict(
+        max_price=max_price,
         data=dict(datasets=datasets),
         environment=dict(
             type="CUSTOM" if custom_image else environment,
@@ -324,6 +334,14 @@ def notebook(
     help="GPU type.",
 )
 @click.option(
+    "--max-price",
+    "-mp",
+    type=click.FLOAT,
+    default=10.0,
+    show_default=True,
+    help="Max Price (per GPU).",
+)
+@click.option(
     "--data-dir",
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     help="Local file path to copy as the input data",
@@ -448,6 +466,7 @@ def training(
     disk_size,
     gpu_count,
     gpu_type,
+    max_price,
     data_dir,
     dataset,
     public_dataset,
@@ -476,6 +495,7 @@ def training(
     ]
 
     options = dict(
+        max_price=max_price,
         data=dict(datasets=datasets),
         environment=dict(
             type="CUSTOM" if custom_image else environment,
@@ -610,6 +630,14 @@ def training(
     help="GPU type.",
 )
 @click.option(
+    "--max-price",
+    "-mp",
+    type=click.FLOAT,
+    default=10.0,
+    show_default=True,
+    help="Max Price (per GPU).",
+)
+@click.option(
     "--input-dir",
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     help="Local file path to copy as the input data",
@@ -734,6 +762,7 @@ def inference(
     disk_size,
     gpu_count,
     gpu_type,
+    max_price,
     input_dir,
     input_type,
     input_uri,
@@ -758,6 +787,7 @@ def inference(
     """
 
     options = dict(
+        max_price=max_price,
         data=dict(datasets=[]),
         environment=dict(
             type="CUSTOM" if custom_image else environment,
@@ -918,6 +948,14 @@ def from_json(config, attach, connect, file):
     help="GPU type.",
 )
 @click.option(
+    "--max-price",
+    "-mp",
+    type=click.FLOAT,
+    default=10.0,
+    show_default=True,
+    help="Max Price (per GPU).",
+)
+@click.option(
     "--environment",
     type=click.Choice(
         [
@@ -1008,6 +1046,7 @@ def endpoint(
     disk_size,
     gpu_count,
     gpu_type,
+    max_price,
     environment,
     custom_image,
     env,
@@ -1027,6 +1066,7 @@ def endpoint(
     routes = [json.loads(item) for item in route]
 
     options = dict(
+        max_price=max_price,
         environment=dict(
             type="CUSTOM" if custom_image else environment,
             custom_image=custom_image,

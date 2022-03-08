@@ -69,6 +69,7 @@ class Jobs(object):
         gpu_type,
         gpu_count,
         disk_size,
+        max_price=10,
         worker_commands=[],
         environment=dict(type="DEEPLEARNING_PY38"),
         data=dict(),
@@ -88,6 +89,7 @@ class Jobs(object):
                 gpu_type_id=gpu_type,
                 gpu_count=gpu_count,
                 disk_size=disk_size,
+                max_price=max_price,
             ),
             worker_commands=worker_commands,
             workers=kwargs.get("workers"),
@@ -192,7 +194,13 @@ class Job:
             "environment",
             "workers",
         ]
-        resources_keys = ["gpu_count", "gpu_type_id", "disk_size"]
+        resources_keys = [
+            "gpu_count",
+            "gpu_type_id",
+            "disk_size",
+            "max_price",
+            "preemptible",
+        ]
         model_keys = ["git_uri", "model_uuid"]
         data_keys = [
             "datasets",
@@ -377,6 +385,8 @@ class Job:
             or self._job.get("resources").get("gpu_count"),
             disk_size=kwargs.get("disk_size")
             or self._job.get("resources").get("disk_size"),
+            max_price=kwargs.get("max_price")
+            or self._job.get("resources").get("max_price"),
             worker_commands=kwargs.get("worker_commands"),
             workers=kwargs.get("workers"),
             environment=kwargs.get("environment"),

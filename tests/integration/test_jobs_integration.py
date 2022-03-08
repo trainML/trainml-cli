@@ -75,7 +75,7 @@ class JobLifeCycleTests:
     async def test_copy_job(self, job):
         job_copy = await job.copy("CLI Automated Job Copy")
         assert job_copy.id != job.id
-        await job_copy.wait_for("running", 180)
+        await job_copy.wait_for("running", 300)
         assert job_copy.status == "running"
         await job_copy.stop()
         await job_copy.wait_for("stopped", 60)
@@ -101,7 +101,7 @@ class JobLifeCycleTests:
             ),
         )
         assert training_job.id
-        training_job = await training_job.wait_for("finished", 180)
+        training_job = await training_job.wait_for("finished", 300)
         assert training_job.status == "finished"
         assert training_job.credits > 0
         assert training_job.credits < 0.1

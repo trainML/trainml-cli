@@ -60,7 +60,7 @@ async def test_model_aws(trainml, capsys):
         source_type="aws",
         source_uri="s3://trainml-examples/models/mxnet-model.zip",
     )
-    model = await model.wait_for("ready", 60)
+    model = await model.wait_for("ready", 300)
     status = model.status
     size = model.size
     await model.remove()
