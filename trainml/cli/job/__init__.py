@@ -212,8 +212,7 @@ def list(config, format):
             data.append([job.id, job.name, job.status, job.type])
         for row in data:
             click.echo(
-                "{: >38.36} {: >40.38} {: >13.11} {: >10.8} {: >14.12}"
-                "".format(*row),
+                "{: >38.36} {: >40.38} {: >13.11} {: >14.12}" "".format(*row),
                 file=config.stdout,
             )
     elif format == "json":

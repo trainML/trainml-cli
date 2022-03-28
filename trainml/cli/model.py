@@ -180,8 +180,7 @@ def list(config):
         )
     for row in data:
         click.echo(
-            "{: >38.36} {: >13.11} {: >10.8} {: >40.38} {: >14.12}"
-            "".format(*row),
+            "{: >38.36} {: >13.11} {: >40.38} {: >14.12}" "".format(*row),
             file=config.stdout,
         )
 

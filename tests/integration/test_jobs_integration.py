@@ -177,7 +177,7 @@ class JobIOTests:
             source_type="git",
             source_uri="git@github.com:trainML/test-private.git",
         )
-        await model.wait_for("ready", 120)
+        await model.wait_for("ready", 300)
         assert model.size >= 1000000
 
         job = await trainml.jobs.create(
