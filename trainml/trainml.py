@@ -3,6 +3,7 @@ import os
 import asyncio
 import aiohttp
 import logging
+import traceback
 from importlib.metadata import version
 
 from trainml.auth import Auth
@@ -192,45 +193,60 @@ class TrainML(object):
                         msg_handler(data)
             logging.debug(f"Websocket Disconnected.  Done? {done}")
 
+            connection_tries = 0
             while not done:
                 tokens = self.auth.get_tokens()
-                async with session.ws_connect(
-                    f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}",
-                    headers=headers,
-                    heartbeat=30,
-                ) as ws:
-                    asyncio.create_task(
-                        ws.send_json(
-                            dict(
-                                action="subscribe",
-                                data=dict(
-                                    type="logs",
-                                    entity=entity,
-                                    id=id,
-                                    project_uuid=self.active_project,
-                                ),
+                try:
+                    async with session.ws_connect(
+                        f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}",
+                        headers=headers,
+                        heartbeat=30,
+                    ) as ws:
+                        asyncio.create_task(
+                            ws.send_json(
+                                dict(
+                                    action="subscribe",
+                                    data=dict(
+                                        type="logs",
+                                        entity=entity,
+                                        id=id,
+                                        project_uuid=self.active_project,
+                                    ),
+                                )
                             )
                         )
-                    )
-                    async for msg in ws:
-                        if msg.type in (
-                            aiohttp.WSMsgType.CLOSED,
-                            aiohttp.WSMsgType.ERROR,
-                            aiohttp.WSMsgType.CLOSE,
-                        ):
+                        async for msg in ws:
+                            if msg.type in (
+                                aiohttp.WSMsgType.CLOSED,
+                                aiohttp.WSMsgType.ERROR,
+                                aiohttp.WSMsgType.CLOSE,
+                            ):
 
-                            logging.debug(
-                                f"Websocket Received Closed Message.  Done? {done}"
-                            )
-                            await ws.close()
-                            break
-                        data = json.loads(msg.data)
-                        if data.get("type") == "end":
-                            done = True
-                            asyncio.create_task(delayed_close(ws))
-                        else:
-                            msg_handler(data)
-                logging.debug(f"Websocket Disconnected.  Done? {done}")
+                                logging.debug(
+                                    f"Websocket Received Closed Message.  Done? {done}"
+                                )
+                                await ws.close()
+                                break
+                            data = json.loads(msg.data)
+                            if data.get("type") == "end":
+                                done = True
+                                asyncio.create_task(delayed_close(ws))
+                            else:
+                                msg_handler(data)
+                    connection_tries = 0
+                    logging.debug(f"Websocket Disconnected.  Done? {done}")
+                except Exception as e:
+                    connection_tries += 1
+                    logging.debug(
+                        f"Connection error: {traceback.format_exc()}"
+                    )
+                    if connection_tries == 5:
+                        raise ApiError(
+                            500,
+                            {
+                                "message": f"Connection error: {traceback.format_exc()}"
+                            },
+                        )
 
     def set_active_project(self, project_uuid):
         CONFIG_DIR = os.path.expanduser(
