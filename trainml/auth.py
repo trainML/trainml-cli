@@ -188,7 +188,9 @@ import hmac
 import re
 import json
 import requests
-from datetime import datetime, timedelta
+import logging
+import time
+from datetime import datetime
 
 import boto3
 import os
@@ -562,6 +564,7 @@ class Auth(object):
         self.id_token = None
         self.access_token = None
         self.refresh_token = None
+        self.expires = 0
 
     def get_keys(self):
         pool_jwk = requests.get(
@@ -605,28 +608,31 @@ class Auth(object):
         id_verify = self.verify_token(
             tokens["AuthenticationResult"]["IdToken"], "id_token"
         )
+        logging.debug(f"ID Token Verification: {id_verify}")
         if id_verify:
             id_token = tokens["AuthenticationResult"]["IdToken"]
         access_verify = self.verify_token(
             tokens["AuthenticationResult"]["AccessToken"], "access_token"
         )
+        logging.debug(f"Access Token Verification: {access_verify}")
         if access_verify:
             access_token = tokens["AuthenticationResult"]["AccessToken"]
 
         self.id_token = id_token
         self.access_token = access_token
         self.refresh_token = refresh_token
-        self.expires = datetime.fromtimestamp(
-            id_verify.get("exp")
-        ) - timedelta(
-            minutes=5
+        self.expires = (
+            id_verify.get("exp") - 300
         )  ## prevent just about to expire tokens from being used
 
     def get_tokens(self):
+        logging.debug(f"Token expires: {self.expires}")
+        logging.debug(f"Token is expired: {self.expires < time.time()}")
         if not self.id_token:
             self.get_new_tokens()
-        elif self.expires < datetime.utcnow():
+        elif self.expires < time.time():
             self.get_new_tokens()
+        logging.debug(f"New token expires: {self.expires}")
 
         return dict(
             id_token=self.id_token,

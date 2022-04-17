@@ -85,6 +85,7 @@ class TrainML(object):
         try:
             tokens = self.auth.get_tokens()
         except Exception:
+            logging.debug(traceback.format_exc())
             raise TrainMLException(
                 "Error getting authorization tokens.  Verify configured credentials."
             )
