@@ -399,6 +399,7 @@ class Job:
     async def wait_for(self, status, timeout=300):
         valid_statuses = [
             "waiting for data/model download",
+            "waiting for GPUs",
             "running",
             "stopped",
             "finished",
@@ -436,10 +437,18 @@ class Job:
                 if status == "archived" and e.status == 404:
                     return
                 raise e
-            if self.status == status or (
-                self.type == "training"
-                and status == "finished"
-                and self.status == "stopped"
+            if (
+                self.status == status
+                or (
+                    self.type == "training"
+                    and status == "finished"
+                    and self.status == "stopped"
+                )
+                or (
+                    status
+                    == "waiting for GPUs"  ## this status could be very short and the polling could miss it
+                    and self.status in ["starting", "provisioning", "running"]
+                )
             ):
                 return self
             elif self.status == "failed":

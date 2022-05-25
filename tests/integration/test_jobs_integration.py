@@ -69,7 +69,7 @@ class JobLifeCycleTests:
     async def test_start_job(self, job):
         assert job.status == "stopped"
         await job.start()
-        job = await job.wait_for("running", 60)
+        job = await job.wait_for("running", 120)
         assert job.status == "running"
 
     async def test_copy_job(self, job):
@@ -257,6 +257,7 @@ class JobTypeTests:
         await job.wait_for("running")
         await job.refresh()
         assert job.url
+        tries = 0
         async with aiohttp.ClientSession() as session:
             retry = True
             while retry:
@@ -264,8 +265,13 @@ class JobTypeTests:
                     "GET",
                     f"{job.url}/ping",
                 ) as resp:
-                    if resp.status == 503:
+                    if resp.status in [404, 502, 503]:
+                        tries += 1
                         resp.close()
+                        if tries == 5:
+                            raise Exception("Too many errors")
+                        else:
+                            await asyncio.sleep(1)
                     else:
                         retry = False
                         results = await resp.json()
