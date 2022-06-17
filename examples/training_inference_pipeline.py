@@ -23,7 +23,7 @@ training_job = asyncio.run(
     trainml_client.jobs.create(
         name="Example Training Job",
         type="training",
-        gpu_type="GTX 1060",
+        gpu_type="gtx1060",
         gpu_count=1,
         disk_size=10,
         workers=[
@@ -33,7 +33,10 @@ training_job = asyncio.run(
             datasets=[dict(id=dataset.id, type="existing")],
             output_type="trainml",
         ),
-        model=dict(git_uri="git@github.com:trainML/test-private.git"),
+        model=dict(
+            source_type="git",
+            source_uri="git@github.com:trainML/test-private.git",
+        ),
     )
 )
 print(training_job)
@@ -56,7 +59,7 @@ inference_job = asyncio.run(
     trainml_client.jobs.create(
         name="Example Inference Job",
         type="inference",
-        gpu_type="GTX 1060",
+        gpu_type="gtx1060",
         gpu_count=1,
         disk_size=10,
         workers=[
@@ -68,7 +71,7 @@ inference_job = asyncio.run(
             output_type="aws",
             output_uri="s3://trainml-examples/output/model_predictions",
         ),
-        model=dict(model_uuid=model.id),
+        model=dict(source_type="trainml", source_uri=model.id),
     )
 )
 print(inference_job)
