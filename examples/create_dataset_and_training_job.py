@@ -23,7 +23,7 @@ job = asyncio.run(
     trainml_client.jobs.create(
         name="Example Training Job",
         type="headless",
-        gpu_type="GTX 1060",
+        gpu_type="gtx1060",
         gpu_count=1,
         disk_size=10,
         workers=[
@@ -34,7 +34,10 @@ job = asyncio.run(
             output_uri="s3://trainml-examples/output/resnet_cifar10",
             output_type="aws",
         ),
-        model=dict(git_uri="git@github.com:trainML/test-private.git"),
+        model=dict(
+            source_type="git",
+            source_uri="git@github.com:trainML/test-private.git",
+        ),
     )
 )
 print(job)
