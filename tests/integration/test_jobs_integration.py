@@ -271,7 +271,7 @@ class JobTypeTests:
                         if tries == 5:
                             raise Exception("Too many errors")
                         else:
-                            await asyncio.sleep(1)
+                            await asyncio.sleep(5)
                     else:
                         retry = False
                         results = await resp.json()

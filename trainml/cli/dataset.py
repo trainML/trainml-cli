@@ -3,6 +3,8 @@ from trainml.cli import cli, pass_config, search_by_id_name
 
 
 def pretty_size(num):
+    if not num:
+        num = 0.0
     s = ("  B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB")
     n = 0
     while num > 1023:
