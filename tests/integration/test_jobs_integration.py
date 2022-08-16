@@ -14,13 +14,13 @@ async def job(trainml):
     job = await trainml.jobs.create(
         name="CLI Automated Job Lifecycle",
         type="notebook",
-        gpu_type="GTX 1060",
+        gpu_types=["gtx1060"],
         gpu_count=1,
-        disk_size=1,
+        disk_size=10,
         data=dict(datasets=[dict(name="CIFAR-10", type="public")]),
         model=dict(
             source_type="git",
-            source_uri="git@github.com:trainML/test-private.git",
+            source_uri="git@github.com:trainML/environment-tests.git",
         ),
     )
     yield job
@@ -84,11 +84,9 @@ class JobLifeCycleTests:
 
     async def test_convert_job(self, job):
         training_job = await job.copy(
-            "CLI Automated Job Convert",
+            name="CLI Automated Job Convert",
             type="training",
-            workers=[
-                "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024"
-            ],
+            workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
             data=dict(
                 datasets=[
                     dict(
@@ -122,15 +120,13 @@ class JobIOTests:
     async def test_job_local_output(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(
-            "CLI Automated Tensorflow Test",
+            name="CLI Automated Tensorflow Test",
             type="training",
-            gpu_type="GTX 1060",
+            gpu_types=["gtx1060"],
             gpu_count=1,
-            disk_size=1,
-            workers=[
-                "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=2 --batch_size=1024"
-            ],
-            environment=dict(type="TENSORFLOW_PY38_24"),
+            disk_size=10,
+            workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
+            environment=dict(type="TENSORFLOW_PY38_25"),
             data=dict(
                 datasets=[
                     dict(
@@ -143,7 +139,7 @@ class JobIOTests:
             ),
             model=dict(
                 source_type="git",
-                source_uri="git@github.com:trainML/test-private.git",
+                source_uri="git@github.com:trainML/environment-tests.git",
             ),
         )
         await job.wait_for("running")
@@ -175,21 +171,19 @@ class JobIOTests:
         model = await trainml.models.create(
             name="CLI Automated Jobs -  Git Model",
             source_type="git",
-            source_uri="git@github.com:trainML/test-private.git",
+            source_uri="git@github.com:trainML/environment-tests.git",
         )
         await model.wait_for("ready", 300)
-        assert model.size >= 1000000
+        assert model.size >= 500000
 
         job = await trainml.jobs.create(
             "CLI Automated Training With trainML Model Output",
             type="training",
-            gpu_type="GTX 1060",
+            gpu_types=["gtx1060"],
             gpu_count=1,
-            disk_size=1,
-            worker_commands=[
-                "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=2 --batch_size=1024"
-            ],
-            environment=dict(type="TENSORFLOW_PY38_24"),
+            disk_size=10,
+            worker_commands=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
+            environment=dict(type="TENSORFLOW_PY38_25"),
             data=dict(
                 datasets=[
                     dict(
@@ -236,7 +230,7 @@ class JobTypeTests:
             type="endpoint",
             gpu_type="GTX 1060",
             gpu_count=1,
-            disk_size=1,
+            disk_size=10,
             model=dict(
                 source_type="git",
                 source_uri="https://github.com/trainML/simple-tensorflow-classifier.git",
@@ -267,6 +261,7 @@ class JobTypeTests:
                 ) as resp:
                     if resp.status in [404, 502, 503]:
                         tries += 1
+                        print(resp)
                         resp.close()
                         if tries == 5:
                             raise Exception("Too many errors")
@@ -287,19 +282,29 @@ class JobTypeTests:
         job = await trainml.jobs.create(
             name="Test Custom Container",
             type="training",
-            gpu_type="GTX 1060",
+            gpu_types=["gtx1060", "rtx3090", "a100", "v100", "rtx2080ti"],
             gpu_count=1,
             disk_size=10,
             model=dict(
                 source_type="git",
-                source_uri="git@github.com:trainML/test-private.git",
+                source_uri="git@github.com:trainML/environment-tests.git",
             ),
             environment=dict(
                 type="CUSTOM",
-                custom_image="tensorflow/tensorflow:2.4.2-gpu",
+                custom_image="tensorflow/tensorflow:2.5.1-gpu",
+                packages=dict(
+                    pip=[
+                        "tensorflow_addons",
+                        "matplotlib",
+                        "scipy",
+                        "tensorflow_hub",
+                        "keras_applications",
+                        "keras_preprocessing",
+                    ]
+                ),
             ),
             worker_commands=[
-                "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=2 --batch_size=1024",
+                "python $TRAINML_MODEL_PATH/tensorflow/main.py",
             ],
             data=dict(
                 datasets=[

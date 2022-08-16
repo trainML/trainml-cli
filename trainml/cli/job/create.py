@@ -59,7 +59,7 @@ def create(config):
         ],
         case_sensitive=False,
     ),
-    default="rtx2080ti",
+    default="rtx3090",
     show_default=True,
     help="GPU type.",
 )
@@ -329,7 +329,7 @@ def notebook(
         ],
         case_sensitive=False,
     ),
-    default="rtx2080ti",
+    default="rtx3090",
     show_default=True,
     help="GPU type.",
 )
@@ -625,7 +625,7 @@ def training(
         ],
         case_sensitive=False,
     ),
-    default="rtx2080ti",
+    default="rtx3090",
     show_default=True,
     help="GPU type.",
 )
@@ -943,7 +943,7 @@ def from_json(config, attach, connect, file):
         ],
         case_sensitive=False,
     ),
-    default="rtx2080ti",
+    default="rtx3090",
     show_default=True,
     help="GPU type.",
 )

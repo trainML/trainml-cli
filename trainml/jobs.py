@@ -66,9 +66,10 @@ class Jobs(object):
         self,
         name,
         type,
-        gpu_type,
-        gpu_count,
-        disk_size,
+        gpu_type=None,
+        gpu_types=[],
+        gpu_count=1,
+        disk_size=10,
         max_price=10,
         worker_commands=[],
         environment=dict(type="DEEPLEARNING_PY38"),
@@ -82,15 +83,26 @@ class Jobs(object):
             datasets = _clean_datasets_selection(data.get("datasets"))
             data["datasets"] = datasets
 
+        resources = dict(
+            gpu_count=gpu_count,
+            disk_size=disk_size,
+            max_price=max_price,
+        )
+
+        if len(gpu_types):
+            resources["gpu_types"] = gpu_types
+        elif gpu_type:
+            resources["gpu_type_id"] = gpu_type
+        else:
+            raise SpecificationError(
+                "resources",
+                "Invalid resource specification, either 'gpu_type' or 'gpu_types' must be provided",
+            )
+
         config = dict(
             name=name,
             type=type,
-            resources=dict(
-                gpu_type_id=gpu_type,
-                gpu_count=gpu_count,
-                disk_size=disk_size,
-                max_price=max_price,
-            ),
+            resources=resources,
             worker_commands=worker_commands,
             workers=kwargs.get("workers"),
             environment=environment,
