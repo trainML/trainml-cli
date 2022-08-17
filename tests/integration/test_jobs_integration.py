@@ -126,7 +126,7 @@ class JobIOTests:
             gpu_count=1,
             disk_size=10,
             workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
-            environment=dict(type="TENSORFLOW_PY38_25"),
+            environment=dict(type="TENSORFLOW_PY39_29"),
             data=dict(
                 datasets=[
                     dict(
@@ -183,7 +183,7 @@ class JobIOTests:
             gpu_count=1,
             disk_size=10,
             worker_commands=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
-            environment=dict(type="TENSORFLOW_PY38_25"),
+            environment=dict(type="TENSORFLOW_PY39_29"),
             data=dict(
                 datasets=[
                     dict(
@@ -252,6 +252,7 @@ class JobTypeTests:
         await job.refresh()
         assert job.url
         tries = 0
+        await asyncio.sleep(10)
         async with aiohttp.ClientSession() as session:
             retry = True
             while retry:

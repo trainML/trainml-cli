@@ -72,7 +72,7 @@ class Jobs(object):
         disk_size=10,
         max_price=10,
         worker_commands=[],
-        environment=dict(type="DEEPLEARNING_PY38"),
+        environment=dict(type="DEEPLEARNING_PY39"),
         data=dict(),
         model=dict(),
         endpoint=dict(),

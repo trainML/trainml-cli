@@ -278,7 +278,7 @@ class JobsTests:
             resources=dict(
                 gpu_type_id="GTX 1060", gpu_count=1, disk_size=10, max_price=10
             ),
-            environment=dict(type="DEEPLEARNING_PY38"),
+            environment=dict(type="DEEPLEARNING_PY39"),
             model=dict(),
             worker_commands=[],
         )
