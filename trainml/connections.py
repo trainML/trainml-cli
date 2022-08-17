@@ -247,9 +247,17 @@ class Connection:
             await self._download_connection_details()
 
         docker = aiodocker.Docker()
-        await asyncio.gather(
-            docker.pull(VPN_IMAGE), docker.pull(STORAGE_IMAGE)
-        )
+        try:
+            await asyncio.gather(
+                docker.pull(VPN_IMAGE), docker.pull(STORAGE_IMAGE)
+            )
+        except Exception as e:
+            exists = await asyncio.gather(
+                _image_exists(VPN_IMAGE), _image_exists(STORAGE_IMAGE)
+            )
+            if any([not i for i in exists]):
+                raise e
+
         entity_details = self._entity.get_connection_details()
         if (
             entity_details.get("model_path")
@@ -440,3 +448,13 @@ def _get_storage_container_config(
         Labels=dict(type="storage", service="trainml", id=id),
     )
     return config
+
+
+async def _image_exists(client, id):
+    if not id:
+        return False
+    try:
+        await client.images.inspect(id)
+        return True
+    except aiodocker.exceptions.DockerError:
+        return False
