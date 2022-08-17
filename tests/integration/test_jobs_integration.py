@@ -252,7 +252,7 @@ class JobTypeTests:
         await job.refresh()
         assert job.url
         tries = 0
-        await asyncio.sleep(10)
+        await asyncio.sleep(30)
         async with aiohttp.ClientSession() as session:
             retry = True
             while retry:
