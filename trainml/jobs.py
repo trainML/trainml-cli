@@ -280,6 +280,8 @@ class Job:
 
     def get_connection_details(self):
         details = dict(
+            entity_type="job",
+            project_uuid=self._job.get("project_uuid"),
             cidr=self.dict.get("vpn").get("cidr"),
             ssh_port=self._job.get("vpn").get("client").get("ssh_port")
             if self._job.get("vpn").get("client")

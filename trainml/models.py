@@ -99,6 +99,8 @@ class Model:
     def get_connection_details(self):
         if self._model.get("vpn"):
             details = dict(
+                entity_type="model",
+                project_uuid=self._model.get("project_uuid"),
                 cidr=self._model.get("vpn").get("cidr"),
                 ssh_port=self._model.get("vpn").get("client").get("ssh_port"),
                 input_path=self._model.get("source_uri"),

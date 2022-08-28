@@ -268,6 +268,8 @@ class Connection:
             storage_container = await docker.containers.run(
                 _get_storage_container_config(
                     self.id,
+                    entity_details.get("project_uuid"),
+                    entity_details.get("entity_type"),
                     entity_details.get("cidr"),
                     f"{self._dir}/data",
                     entity_details.get("ssh_port"),
@@ -285,7 +287,11 @@ class Connection:
         logging.debug(f"Starting VPN container")
         vpn_container = await docker.containers.run(
             _get_vpn_container_config(
-                self.id, entity_details.get("cidr"), f"{self._dir}/data"
+                self.id,
+                entity_details.get("project_uuid"),
+                entity_details.get("entity_type"),
+                entity_details.get("cidr"),
+                f"{self._dir}/data",
             )
         )
         logging.debug(f"VPN container started, id: {vpn_container.id}")
@@ -386,7 +392,7 @@ def _parse_cidr(cidr):
     return net
 
 
-def _get_vpn_container_config(id, cidr, data_dir):
+def _get_vpn_container_config(id, project_uuid, entity_type, cidr, data_dir):
     config = dict(
         Image=VPN_IMAGE,
         Hostname=id,
@@ -405,13 +411,21 @@ def _get_vpn_container_config(id, cidr, data_dir):
             NetworkMode="host",
             CapAdd=["NET_ADMIN"],
         ),
-        Labels=dict(type="vpn", service="trainml", id=id),
+        Labels=dict(
+            type="vpn",
+            service="trainml",
+            id=id,
+            project=project_uuid,
+            entity_type=entity_type,
+        ),
     )
     return config
 
 
 def _get_storage_container_config(
     id,
+    project_uuid,
+    entity_type,
     cidr,
     data_dir,
     ssh_port,
@@ -445,7 +459,13 @@ def _get_storage_container_config(
                 f"22/tcp": [dict(HostPort=f"{ssh_port}", HostIP="0.0.0.0")],
             },
         ),
-        Labels=dict(type="storage", service="trainml", id=id),
+        Labels=dict(
+            type="storage",
+            service="trainml",
+            id=id,
+            project=project_uuid,
+            entity_type=entity_type,
+        ),
     )
     return config
 

@@ -106,6 +106,8 @@ class Dataset:
     def get_connection_details(self):
         if self._dataset.get("vpn"):
             details = dict(
+                entity_type="dataset",
+                project_uuid=self._dataset.get("project_uuid"),
                 cidr=self._dataset.get("vpn").get("cidr"),
                 ssh_port=self._dataset.get("vpn")
                 .get("client")
