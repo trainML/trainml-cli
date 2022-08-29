@@ -26,6 +26,7 @@ def dataset(mock_trainml):
     yield specimen.Dataset(
         mock_trainml,
         dataset_uuid="1",
+        project_uuid="a",
         name="first one",
         status="new",
         size=100000,
@@ -186,6 +187,7 @@ class DatasetTests:
         dataset = specimen.Dataset(
             mock_trainml,
             dataset_uuid="1",
+            project_uuid="a",
             name="first one",
             status="new",
             size=100000,
@@ -201,11 +203,12 @@ class DatasetTests:
                     "address": "10.106.171.253",
                     "ssh_port": 46600,
                 },
-                "net_prefix_type_id": 1,
             },
         )
         details = dataset.get_connection_details()
         expected_details = dict(
+            project_uuid="a",
+            entity_type="dataset",
             cidr="10.106.171.0/24",
             ssh_port=46600,
             input_path="~/tensorflow-example/data",

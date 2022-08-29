@@ -99,7 +99,7 @@ async def test_dataset_local(trainml, capsys):
     dataset = await trainml.datasets.create(
         name="CLI Automated Local",
         source_type="local",
-        source_uri="~/tensorflow-example/data",
+        source_uri="~/cifar-10",
     )
     attach_task = asyncio.create_task(dataset.attach())
     connect_task = asyncio.create_task(dataset.connect())

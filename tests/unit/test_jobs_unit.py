@@ -27,6 +27,7 @@ def job(mock_trainml):
         mock_trainml,
         **{
             "customer_uuid": "cus-id-1",
+            "project_uuid": "proj-id-1",
             "job_uuid": "job-id-1",
             "name": "test notebook",
             "start": "2021-02-11T15:46:22.455Z",
@@ -102,6 +103,7 @@ def training_job(mock_trainml):
         mock_trainml,
         **{
             "customer_uuid": "cus-id-1",
+            "project_uuid": "proj-id-1",
             "job_uuid": "job-id-1",
             "name": "test training",
             "start": "2021-02-11T15:46:22.455Z",
@@ -391,6 +393,8 @@ class JobTests:
     def test_job_get_connection_details_no_data(self, job):
         details = job.get_connection_details()
         expected_details = dict(
+            project_uuid="proj-id-1",
+            entity_type="job",
             cidr="10.106.171.0/24",
             ssh_port=None,
             model_path=None,
@@ -404,6 +408,7 @@ class JobTests:
             mock_trainml,
             **{
                 "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
                 "job_uuid": "job-id-1",
                 "name": "test notebook",
                 "type": "notebook",
@@ -429,6 +434,8 @@ class JobTests:
         )
         details = job.get_connection_details()
         expected_details = dict(
+            project_uuid="proj-id-1",
+            entity_type="job",
             cidr="10.106.171.0/24",
             ssh_port=46600,
             model_path=None,
@@ -444,6 +451,7 @@ class JobTests:
             mock_trainml,
             **{
                 "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
                 "job_uuid": "job-id-1",
                 "name": "test notebook",
                 "type": "notebook",
@@ -469,6 +477,8 @@ class JobTests:
         )
         details = job.get_connection_details()
         expected_details = dict(
+            project_uuid="proj-id-1",
+            entity_type="job",
             cidr="10.106.171.0/24",
             ssh_port=46600,
             model_path="~/model_dir",

@@ -26,6 +26,7 @@ def model(mock_trainml):
     yield specimen.Model(
         mock_trainml,
         model_uuid="1",
+        project_uuid="a",
         name="first one",
         status="new",
         size=100000,
@@ -173,6 +174,7 @@ class ModelTests:
         model = specimen.Model(
             mock_trainml,
             model_uuid="1",
+            project_uuid="a",
             name="first one",
             status="new",
             size=100000,
@@ -193,6 +195,8 @@ class ModelTests:
         )
         details = model.get_connection_details()
         expected_details = dict(
+            project_uuid="a",
+            entity_type="model",
             cidr="10.106.171.0/24",
             ssh_port=46600,
             input_path="~/tensorflow-example",
