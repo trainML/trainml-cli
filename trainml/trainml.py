@@ -81,6 +81,10 @@ class TrainML(object):
             or "api-ws.trainml.ai"
         )
 
+    @property
+    def project(self) -> str:
+        return self.active_project
+
     async def _query(self, path, method, params=None, data=None, headers=None):
         try:
             tokens = self.auth.get_tokens()

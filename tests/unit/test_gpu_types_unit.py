@@ -36,7 +36,7 @@ class GpuTypesTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await gpu_types.list()
         mock_trainml._query.assert_called_once_with(
-            f"/project/cus-id-1/gputypes", "GET"
+            f"/project/proj-id-a/gputypes", "GET"
         )
 
 

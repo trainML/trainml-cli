@@ -78,6 +78,7 @@ class ModelsTests:
             source_uri="s3://trainml-examples/models/resnet50",
         )
         expected_payload = dict(
+            project_uuid="proj-id-a",
             name="new model",
             source_type="aws",
             source_uri="s3://trainml-examples/models/resnet50",

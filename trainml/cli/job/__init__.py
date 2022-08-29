@@ -71,7 +71,11 @@ def connect(config, job, attach):
                 pass
             raise
     else:
-        if found.status == "waiting for data/model download":
+        if found.status in [
+            "new",
+            "waiting for data/model download",
+            "waiting for GPUs",
+        ]:
             try:
                 if attach:
                     config.trainml.run(found.connect(), found.attach())
@@ -86,6 +90,13 @@ def connect(config, job, attach):
                 except:
                     pass
                 raise
+        elif found.status not in [
+            "starting",
+            "running",
+            "reinitializing",
+            "copying",
+        ]:
+            raise click.UsageError("Notebook job not running.")
         else:
             config.trainml.run(found.wait_for("running"))
             click.echo("Launching...", file=config.stdout)

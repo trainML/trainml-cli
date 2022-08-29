@@ -47,7 +47,15 @@ def remove(config, id):
 
 
 @connection.command()
+@click.option(
+    "--all-projects/--no-all-projects",
+    default=False,
+    show_default=True,
+    help="Auto attach to dataset and show creation logs.",
+)
 @pass_config
-def remove_all(config):
+def remove_all(config, all_projects):
     """Clear and clean-up all TrainML connections."""
-    return config.trainml.run(config.trainml.client.connections.remove_all())
+    return config.trainml.run(
+        config.trainml.client.connections.remove_all(all_projects=all_projects)
+    )

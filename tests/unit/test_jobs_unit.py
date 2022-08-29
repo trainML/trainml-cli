@@ -275,6 +275,7 @@ class JobsTests:
             disk_size=10,
         )
         expected_payload = dict(
+            project_uuid="proj-id-a",
             name="job_name",
             type="notebook",
             resources=dict(
@@ -311,6 +312,7 @@ class JobsTests:
         )
         expected_payload = dict(
             name="job_name",
+            project_uuid="proj-id-a",
             type="notebook",
             resources=dict(
                 gpu_type_id="1060-id", gpu_count=1, disk_size=10, max_price=2

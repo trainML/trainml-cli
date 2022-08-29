@@ -24,15 +24,15 @@ STATUSES = dict(
     STOPPED="stopped",
     REMOVED="removed",
 )
+CONFIG_DIR = os.path.expanduser(
+    os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
+)
 
 
 class Connections(object):
     def __init__(self, trainml):
         self.trainml = trainml
-        CONFIG_DIR = os.path.expanduser(
-            os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
-        )
-        self.dir = f"{CONFIG_DIR}/connections"
+        self.dir = f"{CONFIG_DIR}/connections/{self.trainml.project}"
         os.makedirs(
             self.dir,
             exist_ok=True,
@@ -55,24 +55,67 @@ class Connections(object):
         await asyncio.gather(*con_tasks)
         return connections
 
-    async def cleanup(self):
+    async def cleanup_connections(self):
+        logging.info("Start cleanup connections")
         con_dirs = os.listdir(self.dir)
+        con_tasks = []
+        logging.debug(f"con_dirs: {con_dirs}")
+        for con_dir in con_dirs:
+            try:
+                con_type, con_id = con_dir.split("_")
+            except ValueError:
+                # unintelligible directory
+                logging.debug(f"unintelligible con_dir: {con_dir}")
+                shutil.rmtree(con_dir)
+                continue
+            connection = Connection(self.trainml, con_type, con_id)
+            con_task = asyncio.create_task(connection._validate_entity())
+            con_tasks.append(con_task)
+        await asyncio.gather(*con_tasks)
+        await self.cleanup_containers()
+        logging.info("Finish cleanup connections")
+
+    async def cleanup_containers(self, project=None):
+        logging.info("Start cleanup containers")
+        con_dirs = (
+            os.listdir(f"{CONFIG_DIR}/connections/{project}")
+            if project
+            else os.listdir(self.dir)
+        )
         await asyncio.gather(
             asyncio.create_task(
-                _cleanup_containers(self.dir, con_dirs, "vpn")
+                _cleanup_containers(
+                    project or self.trainml.project, self.dir, con_dirs, "vpn"
+                )
             ),
             asyncio.create_task(
-                _cleanup_containers(self.dir, con_dirs, "storage")
+                _cleanup_containers(
+                    project or self.trainml.project,
+                    self.dir,
+                    con_dirs,
+                    "storage",
+                )
             ),
         )
+        logging.info("Finish cleanup containers")
 
-    async def remove_all(self):
-        shutil.rmtree(self.dir)
-        os.makedirs(
-            self.dir,
-            exist_ok=True,
-        )
-        await self.cleanup()
+    async def remove_all(self, all_projects=False):
+        if all_projects:
+            proj_dirs = os.listdir(f"{CONFIG_DIR}/connections")
+            for proj_dir in proj_dirs:
+                shutil.rmtree(f"{CONFIG_DIR}/connections/{proj_dir}")
+                os.makedirs(
+                    f"{CONFIG_DIR}/connections/{proj_dir}",
+                    exist_ok=True,
+                )
+                await self.cleanup_containers(project=proj_dir)
+        else:
+            shutil.rmtree(self.dir)
+            os.makedirs(
+                self.dir,
+                exist_ok=True,
+            )
+            await self.cleanup_containers()
 
 
 class Connection:
@@ -82,10 +125,7 @@ class Connection:
         self._type = entity_type
         self._status = STATUSES.get("UNKNOWN")
         self._entity = entity
-        CONFIG_DIR = os.path.expanduser(
-            os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
-        )
-        CONNECTIONS_DIR = f"{CONFIG_DIR}/connections"
+        CONNECTIONS_DIR = f"{CONFIG_DIR}/connections/{self.trainml.project}"
         self._dir = f"{CONNECTIONS_DIR}/{entity_type}_{id}"
         os.makedirs(
             self._dir,
@@ -152,7 +192,7 @@ class Connection:
         net = _parse_cidr(entity_details.get("cidr"))
         target_ip = f"{net.get('first_octet')}.{net.get('second_octet')}.{net.get('third_octet')}.254"
 
-        logging.debug("")
+        logging.debug("Testing connection")
         ping = await container.exec(
             ["ping", "-c", "1", target_ip],
             stdout=True,
@@ -169,17 +209,38 @@ class Connection:
             return True
         return False
 
+    async def _validate_entity(self):
+        try:
+            await self._get_entity()
+            logging.debug(f"entity: {self._entity}")
+            if self._entity.status in [
+                "failed",
+                "finished",
+                "canceled",
+                "archived",
+                "removed",
+                "removing",
+                "ready",
+            ]:
+                shutil.rmtree(self._dir)
+                logging.debug(f"remove: {self._dir}")
+                return False
+            else:
+                return True
+        except ApiError as e:
+            if e.status == 404:
+                shutil.rmtree(self._dir)
+                logging.debug(f"remove: {self._dir}")
+                return False
+            else:
+                raise e
+
     async def check(self):
         if not self._entity:
-            try:
-                await self._get_entity()
-            except ApiError as e:
-                if e.status == 404:
-                    self._status = STATUSES.get("REMOVED")
-                    self._status = STATUSES.get("REMOVED")
-                    shutil.rmtree(self._dir)
-                else:
-                    raise e
+            valid = await self._validate_entity()
+            if not valid:
+                self._status = STATUSES.get("REMOVED")
+                return
         if not os.path.isdir(f"{self._dir}/data"):
             self._status = STATUSES.get("NEW")
             return
@@ -228,7 +289,10 @@ class Connection:
             self._status = STATUSES.get("NOT_CONNECTED")
 
     async def start(self):
-        logging.debug(f"Beginning start {self.type} connection {self.id}")
+        logging.info(f"Beginning start {self.type} connection {self.id}")
+        cleanup_task = asyncio.create_task(
+            self.trainml.connections.cleanup_connections()
+        )
         if self.status == STATUSES.get("UNKNOWN"):
             await self.check()
         if self.status in [
@@ -251,9 +315,10 @@ class Connection:
             await asyncio.gather(
                 docker.pull(VPN_IMAGE), docker.pull(STORAGE_IMAGE)
             )
-        except Exception as e:
+        except DockerError as e:
             exists = await asyncio.gather(
-                _image_exists(VPN_IMAGE), _image_exists(STORAGE_IMAGE)
+                _image_exists(docker, VPN_IMAGE),
+                _image_exists(docker, STORAGE_IMAGE),
             )
             if any([not i for i in exists]):
                 raise e
@@ -313,6 +378,7 @@ class Connection:
             raise ConnectionError(f"Unable to connect {self.type} {self.id}")
         self._status = STATUSES.get("CONNECTED")
         logging.info(f"Connection Successful.")
+        await cleanup_task
         logging.debug(f"Completed start {self.type} connection {self.id}")
 
     async def stop(self):
@@ -357,7 +423,7 @@ class Connection:
         logging.debug(f"Completed stop {self.type} connection {self.id}")
 
 
-async def _cleanup_containers(path, con_dirs, type):
+async def _cleanup_containers(project, path, con_dirs, type):
     containers_target = []
     for con_dir in con_dirs:
         try:
@@ -370,7 +436,15 @@ async def _cleanup_containers(path, con_dirs, type):
     docker = aiodocker.Docker()
     containers = await docker.containers.list(
         all=True,
-        filters=json.dumps(dict(label=["service=trainml", f"type={type}"])),
+        filters=json.dumps(
+            dict(
+                label=[
+                    "service=trainml",
+                    f"type={type}",
+                    f"project={project}",
+                ]
+            )
+        ),
     )
 
     tasks = [
@@ -476,5 +550,5 @@ async def _image_exists(client, id):
     try:
         await client.images.inspect(id)
         return True
-    except aiodocker.exceptions.DockerError:
+    except DockerError:
         return False

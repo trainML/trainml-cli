@@ -310,6 +310,7 @@ class Job:
         if self.type == "notebook" and self.status not in [
             "new",
             "waiting for data/model download",
+            "waiting for GPUs",
         ]:
             raise SpecificationError(
                 "type",
@@ -320,6 +321,18 @@ class Job:
             "waiting for data/model download",
         ]:
             return self.url
+        if self.status in [
+            "failed",
+            "finished",
+            "canceled",
+            "archived",
+            "removed",
+            "removing",
+        ]:
+            raise SpecificationError(
+                "status",
+                f"You can only connect to active jobs.",
+            )
         connection = Connection(
             self.trainml, entity_type="job", id=self.id, entity=self
         )

@@ -26,7 +26,7 @@ def dataset(mock_trainml):
     yield specimen.Dataset(
         mock_trainml,
         dataset_uuid="1",
-        project_uuid="a",
+        project_uuid="proj-id-a",
         name="first one",
         status="new",
         size=100000,
@@ -87,12 +87,14 @@ class DatasetsTests:
             source_uri="s3://trainml-examples/data/cifar10",
         )
         expected_payload = dict(
+            project_uuid="proj-id-a",
             name="new dataset",
             source_type="aws",
             source_uri="s3://trainml-examples/data/cifar10",
         )
         api_response = {
             "customer_uuid": "cus-id-1",
+            "project_uuid": "proj-id-a",
             "dataset_uuid": "data-id-1",
             "name": "new dataset",
             "status": "new",
@@ -187,7 +189,7 @@ class DatasetTests:
         dataset = specimen.Dataset(
             mock_trainml,
             dataset_uuid="1",
-            project_uuid="a",
+            project_uuid="proj-id-a",
             name="first one",
             status="new",
             size=100000,
@@ -207,7 +209,7 @@ class DatasetTests:
         )
         details = dataset.get_connection_details()
         expected_details = dict(
-            project_uuid="a",
+            project_uuid="proj-id-a",
             entity_type="dataset",
             cidr="10.106.171.0/24",
             ssh_port=46600,

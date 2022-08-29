@@ -120,6 +120,11 @@ class Dataset:
         return details
 
     async def connect(self):
+        if self.status in ["ready", "failed"]:
+            raise SpecificationError(
+                "status",
+                f"You can only connect to new or downloading datasets.",
+            )
         connection = Connection(
             self.trainml, entity_type="dataset", id=self.id, entity=self
         )

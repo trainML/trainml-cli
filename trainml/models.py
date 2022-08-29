@@ -111,6 +111,11 @@ class Model:
         return details
 
     async def connect(self):
+        if self.status in ["ready", "failed"]:
+            raise SpecificationError(
+                "status",
+                f"You can only connect to new or downloading models.",
+            )
         connection = Connection(
             self.trainml, entity_type="model", id=self.id, entity=self
         )

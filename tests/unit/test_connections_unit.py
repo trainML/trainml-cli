@@ -34,6 +34,7 @@ def dataset_con(mock_trainml):
         entity=DatasetMock(
             mock_trainml,
             dataset_uuid="data-id-1",
+            project_uuid="proj-id-a",
             name="first one",
             status="new",
         ),
@@ -51,6 +52,7 @@ def job_con(mock_trainml):
             mock_trainml,
             **{
                 "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-a",
                 "job_uuid": "job-id-1",
                 "name": "test notebook",
                 "type": "interactive",
@@ -86,18 +88,21 @@ class ConnectionsTests:
         with patch("trainml.connections.os") as mock_os:
             dir_list = ["job_job-id-1", "dataset_data-id-1"]
             mock_os.listdir = Mock(return_value=dir_list)
+
             with patch(
                 "trainml.connections._cleanup_containers"
             ) as mock_cleanup:
-                await connections.cleanup()
+                await connections.cleanup_connections()
                 assert mock_cleanup.mock_calls == [
                     call(
-                        os.path.expanduser("~/.trainml/connections"),
+                        "proj-id-a",
+                        os.path.expanduser("~/.trainml/connections/proj-id-a"),
                         dir_list,
                         "vpn",
                     ),
                     call(
-                        os.path.expanduser("~/.trainml/connections"),
+                        "proj-id-a",
+                        os.path.expanduser("~/.trainml/connections/proj-id-a"),
                         dir_list,
                         "storage",
                     ),
@@ -122,14 +127,21 @@ class ConnectionsTests:
                 docker.containers = AsyncMock()
                 docker.containers.list = AsyncMock(return_value=containers)
                 await specimen._cleanup_containers(
-                    os.path.expanduser("~/.trainml/connections"),
+                    "proj-id-a",
+                    os.path.expanduser("~/.trainml/connections/proj-id-a"),
                     ["dir_1"],
                     "job",
                 )
                 docker.containers.list.assert_called_once_with(
                     all=True,
                     filters=json.dumps(
-                        dict(label=["service=trainml", "type=job"])
+                        dict(
+                            label=[
+                                "service=trainml",
+                                "type=job",
+                                "project=proj-id-a",
+                            ]
+                        )
                     ),
                 )
                 containers[0].delete.assert_not_called

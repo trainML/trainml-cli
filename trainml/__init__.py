@@ -7,7 +7,8 @@ with warnings.catch_warnings():
     from .trainml import TrainML
 
 logging.basicConfig(
-    format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
+    format="%(asctime)s  %(levelname)s  %(message)s",
+    datefmt="%m/%d/%Y %I:%M:%S %p",
 )
 logger = logging.getLogger(__name__)
 

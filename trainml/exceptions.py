@@ -1,3 +1,6 @@
+import logging
+
+
 class TrainMLException(Exception):
     def __init__(self, message, *args):
         super().__init__(message, *args)
@@ -14,7 +17,7 @@ class ApiError(TrainMLException):
     def __init__(self, status, data, *args):
         super().__init__(data, *args)
         self.status = status
-        print(data)
+        logging.debug(data)
         self.message = data.get("errorMessage") or data.get("message")
 
     def __repr__(self):
