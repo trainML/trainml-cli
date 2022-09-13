@@ -43,7 +43,9 @@ class Models(object):
         return model
 
     async def remove(self, id):
-        await self.trainml._query(f"/model/pub/{id}", "DELETE")
+        await self.trainml._query(
+            f"/model/pub/{id}", "DELETE", dict(force=True)
+        )
 
 
 class Model:
@@ -129,8 +131,10 @@ class Model:
         await connection.stop()
         return connection.status
 
-    async def remove(self):
-        await self.trainml._query(f"/model/pub/{self._id}", "DELETE")
+    async def remove(self, force=False):
+        await self.trainml._query(
+            f"/model/pub/{self._id}", "DELETE", dict(force=force)
+        )
 
     def _get_msg_handler(self, msg_handler):
         def handler(data):

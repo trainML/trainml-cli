@@ -32,7 +32,7 @@ async def run_job(dataset):
     job = await trainml_client.jobs.create(
         name="Training Job with Local Output",
         type="training",
-        gpu_type="GTX 1060",
+        gpu_types=["rtx2080ti", "rtx3090"],
         gpu_count=1,
         disk_size=10,
         workers=[

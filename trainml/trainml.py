@@ -107,6 +107,15 @@ class TrainML(object):
                 "User-Agent": f"trainML-sdk/{self._version}",
             }
         )
+        if params:
+            if not isinstance(params, dict):
+                raise TrainMLException(
+                    "Query parameters must be a valid dictionary"
+                )
+            params = {
+                k: (str(v).lower() if isinstance(v, bool) else v)
+                for k, v in params.items()
+            }  ## aiohttp doesn't support boolean
         if self.active_project:
             params = (
                 {**params, **{"project_uuid": self.active_project}}

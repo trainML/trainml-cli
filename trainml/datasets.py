@@ -48,7 +48,9 @@ class Datasets(object):
         return dataset
 
     async def remove(self, id):
-        await self.trainml._query(f"/dataset/pub/{id}", "DELETE")
+        await self.trainml._query(
+            f"/dataset/pub/{id}", "DELETE", dict(force=True)
+        )
 
 
 class Dataset:
@@ -138,8 +140,10 @@ class Dataset:
         await connection.stop()
         return connection.status
 
-    async def remove(self):
-        await self.trainml._query(f"/dataset/pub/{self._id}", "DELETE")
+    async def remove(self, force=False):
+        await self.trainml._query(
+            f"/dataset/pub/{self._id}", "DELETE", dict(force=force)
+        )
 
     def _get_msg_handler(self, msg_handler):
         def handler(data):

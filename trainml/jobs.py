@@ -346,8 +346,10 @@ class Job:
         await connection.stop()
         return connection.status
 
-    async def remove(self):
-        await self.trainml._query(f"/job/{self._id}", "DELETE")
+    async def remove(self, force=False):
+        await self.trainml._query(
+            f"/job/{self._id}", "DELETE", dict(force=force)
+        )
 
     async def refresh(self):
         resp = await self.trainml._query(f"/job/{self.id}", "GET")

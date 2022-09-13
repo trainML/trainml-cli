@@ -23,7 +23,7 @@ training_job = asyncio.run(
     trainml_client.jobs.create(
         name="Example Training Job",
         type="training",
-        gpu_type="gtx1060",
+        gpu_types=["rtx2080ti", "rtx3090"],
         gpu_count=1,
         disk_size=10,
         workers=[
@@ -59,7 +59,7 @@ inference_job = asyncio.run(
     trainml_client.jobs.create(
         name="Example Inference Job",
         type="inference",
-        gpu_type="gtx1060",
+        gpu_types=["rtx2080ti", "rtx3090"],
         gpu_count=1,
         disk_size=10,
         workers=[

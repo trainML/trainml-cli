@@ -120,7 +120,7 @@ class JobIOTests:
     async def test_job_local_output(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(
-            name="CLI Automated Tensorflow Test",
+            name="CLI Automated Local Output Test",
             type="training",
             gpu_types=["gtx1060"],
             gpu_count=1,
