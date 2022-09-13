@@ -76,7 +76,7 @@ class DatasetsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.remove("4567")
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/4567", "DELETE"
+            "/dataset/pub/4567", "DELETE", dict(force=True)
         )
 
     @mark.asyncio
@@ -247,7 +247,9 @@ class DatasetTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await dataset.remove()
-        mock_trainml._query.assert_called_once_with("/dataset/pub/1", "DELETE")
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub/1", "DELETE", dict(force=False)
+        )
 
     def test_dataset_default_ws_msg_handler(self, dataset, capsys):
 

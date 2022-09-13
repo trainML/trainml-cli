@@ -67,7 +67,7 @@ class ModelsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await models.remove("4567")
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/4567", "DELETE"
+            "/model/pub/4567", "DELETE", dict(force=True)
         )
 
     @mark.asyncio
@@ -234,7 +234,9 @@ class ModelTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await model.remove()
-        mock_trainml._query.assert_called_once_with("/model/pub/1", "DELETE")
+        mock_trainml._query.assert_called_once_with(
+            "/model/pub/1", "DELETE", dict(force=False)
+        )
 
     def test_model_default_ws_msg_handler(self, model, capsys):
         data = {

@@ -518,7 +518,9 @@ class JobTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await job.remove()
-        mock_trainml._query.assert_called_once_with("/job/job-id-1", "DELETE")
+        mock_trainml._query.assert_called_once_with(
+            "/job/job-id-1", "DELETE", dict(force=False)
+        )
 
     @mark.asyncio
     async def test_job_refresh(self, job, mock_trainml):
