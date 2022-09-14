@@ -204,24 +204,34 @@ class Job:
             "model",
             "data",
             "environment",
+            "endpoint",
             "workers",
         ]
         resources_keys = [
             "gpu_count",
-            "gpu_type_id",
+            "gpu_types",
             "disk_size",
             "max_price",
             "preemptible",
         ]
-        model_keys = ["git_uri", "model_uuid"]
+        model_keys = ["source_type", "source_uri", "project_uuid"]
         data_keys = [
             "datasets",
             "input_type",
             "input_uri",
+            "input_options",
             "output_type",
             "output_uri",
+            "output_options",
         ]
-        environment_keys = ["type", "env", "worker_key_types"]
+        environment_keys = [
+            "type",
+            "env",
+            "custom_image",
+            "worker_key_types",
+            "packages",
+        ]
+        endpoint_keys = ["routes", "start_command"]
         create_json = dict()
         for k, v in self.dict.items():
             if k in root_keys:
@@ -249,6 +259,12 @@ class Job:
                         if k2 in environment_keys:
                             environment[k2] = v2
                     create_json["environment"] = environment
+                elif k == "endpoint":
+                    endpoint = dict()
+                    for k2, v2 in v.items():
+                        if k2 in endpoint_keys:
+                            endpoint[k2] = v2
+                    create_json["endpoint"] = endpoint
                 elif k == "workers":
                     workers = []
                     for worker in v:
