@@ -5,6 +5,7 @@ import os
 import asyncio
 import aiohttp
 from pytest import mark, fixture, raises
+from trainml.exceptions import ApiError
 
 pytestmark = [mark.sdk, mark.integration, mark.jobs]
 
@@ -16,7 +17,7 @@ async def job(trainml):
         type="notebook",
         gpu_types=["gtx1060"],
         gpu_count=1,
-        disk_size=10,
+        disk_size=11,
         data=dict(datasets=[dict(name="CIFAR-10", type="public")]),
         model=dict(
             source_type="git",
@@ -72,6 +73,17 @@ class JobLifeCycleTests:
         job = await job.wait_for("running", 120)
         assert job.status == "running"
 
+    async def test_copy_job_not_enough_disk(self, job):
+        with raises(ApiError) as error:
+            await job.copy(
+                "CLI Automated Job Copy Not Enough Disk", disk_size=10
+            )
+
+        assert (
+            "Invalid Request - Copied job disk_size must be greater than or equal to source job disk_size"
+            in error.value.message
+        )
+
     async def test_copy_job(self, job):
         job_copy = await job.copy("CLI Automated Job Copy")
         assert job_copy.id != job.id
@@ -114,6 +126,144 @@ class JobLifeCycleTests:
         assert job is None
 
 
+@mark.asyncio
+class JobAPIValidationTests:
+    async def test_invalid_gpu_type(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid GPU Type",
+                type="training",
+                gpu_types=["k80"],
+                disk_size=10,
+            )
+        assert "Invalid Request - GPU Type k80 Invalid" in error.value.message
+
+    async def test_invalid_disk_size(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid Disk Size",
+                type="training",
+                gpu_types=["rtx3090"],
+                disk_size=1,
+            )
+        assert (
+            "Invalid Request - Disk Size must be between 10 and 2000"
+            in error.value.message
+        )
+
+    async def test_combine_cpu_and_gpu_types(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Combine CPU and GPU Types",
+                type="training",
+                gpu_types=["cpu", "rtx3090"],
+                disk_size=10,
+            )
+        assert (
+            "Invalid Request - None (CPU Only) may be not be combined with other GPU Types"
+            in error.value.message
+        )
+
+    async def test_missing_cpu_count(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Missing CPU Count",
+                type="training",
+                gpu_types=["cpu"],
+                disk_size=10,
+            )
+        assert (
+            "Invalid Request - cpu_count required for CPU only jobs"
+            in error.value.message
+        )
+
+    async def test_invalid_cpu_count(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid CPU Count",
+                type="training",
+                gpu_types=["cpu"],
+                cpu_count=1,
+                disk_size=10,
+            )
+        assert (
+            "Invalid Request - CPU Count must be a multiple of 4"
+            in error.value.message
+        )
+
+    async def test_invalid_gpu_count_for_cpu(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid GPU Count For CPU",
+                type="training",
+                gpu_types=["cpu"],
+                gpu_count=1,
+                cpu_count=4,
+                disk_size=10,
+            )
+        assert (
+            "Invalid Request - gpu_count not valid for CPU only jobs"
+            in error.value.message
+        )
+
+    async def test_invalid_cpu_count_for_gpu(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid CPU Count for GPU",
+                type="notebook",
+                gpu_types=["rtx3090"],
+                cpu_count=4,
+                disk_size=10,
+            )
+        assert (
+            "Invalid Request - CPU Count must be at least 8 for gpu types rtx3090"
+            in error.value.message
+        )
+
+    async def test_invalid_cpu_count_for_gpu_2(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid CPU Count for GPU 2",
+                type="notebook",
+                gpu_types=["rtx2080ti"],
+                gpu_count=2,
+                cpu_count=4,
+                disk_size=10,
+            )
+        assert (
+            "Invalid Request - CPU Count must be at least 8 for gpu types rtx2080ti and gpu_count 2"
+            in error.value.message
+        )
+
+    async def test_invalid_cpu_count_for_gpu_3(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid CPU Count for GPU 3",
+                type="training",
+                gpu_types=["rtx2080ti", "rtx3090"],
+                gpu_count=2,
+                cpu_count=8,
+                disk_size=10,
+            )
+        assert (
+            "Invalid Request - CPU Count must be at least 16 for gpu types rtx2080ti,rtx3090 and gpu_count 2"
+            in error.value.message
+        )
+
+    async def test_invalid_workers(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid Workers for Training Job",
+                type="training",
+                gpu_types=["rtx3090"],
+                disk_size=10,
+            )
+        assert (
+            " Invalid Request - Training jobs must have at least one worker"
+            in error.value.message
+        )
+
+
 @mark.create
 @mark.asyncio
 class JobIOTests:
@@ -123,7 +273,6 @@ class JobIOTests:
             name="CLI Automated Local Output Test",
             type="training",
             gpu_types=["gtx1060"],
-            gpu_count=1,
             disk_size=10,
             workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
             environment=dict(type="TENSORFLOW_PY39_29"),
@@ -181,6 +330,7 @@ class JobIOTests:
             type="training",
             gpu_types=["gtx1060"],
             gpu_count=1,
+            cpu_count=8,
             disk_size=10,
             worker_commands=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
             environment=dict(type="TENSORFLOW_PY39_29"),
@@ -283,7 +433,7 @@ class JobTypeTests:
         job = await trainml.jobs.create(
             name="Test Custom Container",
             type="training",
-            gpu_types=["gtx1060", "rtx3090", "a100", "v100", "rtx2080ti"],
+            gpu_types=["gtx1060", "rtx3090", "rtx2080ti"],
             gpu_count=1,
             disk_size=10,
             model=dict(
@@ -331,3 +481,41 @@ class JobTypeTests:
         assert "adding: model.ckpt-0001.data-00000-of-00001" in captured.out
         assert "s3://trainml-examples/output/resnet_cifar10" in captured.out
         assert "Upload complete" in captured.out
+
+
+@mark.create
+@mark.asyncio
+class JobFeatureTests:
+    async def test_cpu_instance(self, trainml, capsys):
+        job = await trainml.jobs.create(
+            name="Test CPU Instance",
+            type="training",
+            gpu_types=["cpu"],
+            cpu_count=4,
+            disk_size=10,
+            model=dict(
+                source_type="git",
+                source_uri="git@github.com:trainML/environment-tests.git",
+            ),
+            worker_commands=[
+                "python $TRAINML_MODEL_PATH/pytorch/main.py",
+            ],
+            data=dict(
+                datasets=[
+                    dict(
+                        name="CIFAR-10",
+                        type="public",
+                    )
+                ],
+            ),
+        )
+        assert job.id
+        await job.attach()
+        await job.refresh()
+        assert job.status == "finished"
+        await job.remove()
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert "Train Epoch: 1 [0/60000 (0%)]" in captured.out
+        assert "Train Epoch: 1 [59520/60000 (99%)]" in captured.out

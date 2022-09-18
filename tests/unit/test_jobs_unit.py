@@ -46,6 +46,7 @@ def job(mock_trainml):
             "worker_status": "new",
             "resources": {
                 "gpu_count": 1,
+                "gpu_types": ["1060-id"],
                 "gpu_type_id": "1060-id",
                 "disk_size": 10,
                 "max_price": 10,
@@ -325,6 +326,23 @@ class JobsTests:
         await jobs.create(**requested_config)
         mock_trainml._query.assert_called_once_with(
             "/job", "POST", None, expected_payload
+        )
+
+    async def test_job_missing_gpu_type(
+        self,
+        jobs,
+    ):
+        requested_config = dict(
+            name="job_name",
+            type="notebook",
+            disk_size=10,
+        )
+
+        with raises(SpecificationError) as error:
+            await jobs.create(**requested_config)
+        assert (
+            "Invalid resource specification, either 'gpu_type' or 'gpu_types' must be provided"
+            in error.value.message
         )
 
 
@@ -684,8 +702,10 @@ class JobTests:
         )
         expected_kwargs = {
             "type": "notebook",
-            "gpu_type": "1060-id",
+            "gpu_type": None,
+            "gpu_types": ["1060-id"],
             "gpu_count": 1,
+            "cpu_count": None,
             "disk_size": 10,
             "max_price": 10,
             "worker_commands": None,

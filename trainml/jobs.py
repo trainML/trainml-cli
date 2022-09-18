@@ -68,7 +68,8 @@ class Jobs(object):
         type,
         gpu_type=None,
         gpu_types=[],
-        gpu_count=1,
+        gpu_count=None,
+        cpu_count=None,
         disk_size=10,
         max_price=10,
         worker_commands=[],
@@ -83,11 +84,16 @@ class Jobs(object):
             datasets = _clean_datasets_selection(data.get("datasets"))
             data["datasets"] = datasets
 
-        resources = dict(
-            gpu_count=gpu_count,
-            disk_size=disk_size,
-            max_price=max_price,
-        )
+        resources = {
+            k: v
+            for k, v in dict(
+                gpu_count=gpu_count,
+                disk_size=disk_size,
+                max_price=max_price,
+                cpu_count=cpu_count,
+            ).items()
+            if v is not None
+        }
 
         if len(gpu_types):
             resources["gpu_types"] = gpu_types
@@ -424,10 +430,13 @@ class Job:
         job = await self.trainml.jobs.create(
             name,
             type=kwargs.get("type") or self.type,
-            gpu_type=kwargs.get("gpu_type")
-            or self._job.get("resources").get("gpu_type_id"),
+            gpu_type=kwargs.get("gpu_type"),
+            gpu_types=kwargs.get("gpu_types")
+            or self._job.get("resources").get("gpu_types"),
             gpu_count=kwargs.get("gpu_count")
             or self._job.get("resources").get("gpu_count"),
+            cpu_count=kwargs.get("cpu_count")
+            or self._job.get("resources").get("cpu_count"),
             disk_size=kwargs.get("disk_size")
             or self._job.get("resources").get("disk_size"),
             max_price=kwargs.get("max_price")

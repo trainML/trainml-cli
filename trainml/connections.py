@@ -9,7 +9,12 @@ import re
 import logging
 from datetime import datetime
 
-from .exceptions import ConnectionError, ApiError, SpecificationError
+from .exceptions import (
+    ConnectionError,
+    ApiError,
+    SpecificationError,
+    TrainMLException,
+)
 from aiodocker.exceptions import DockerError
 
 
@@ -253,6 +258,8 @@ class Connection:
             return
 
         docker = aiodocker.Docker()
+        await _check_docker_status(docker)
+
         try:
             container = await docker.containers.get(vpn_id)
         except DockerError as e:
@@ -290,9 +297,7 @@ class Connection:
 
     async def start(self):
         logging.info(f"Beginning start {self.type} connection {self.id}")
-        cleanup_task = asyncio.create_task(
-            self.trainml.connections.cleanup_connections()
-        )
+
         if self.status == STATUSES.get("UNKNOWN"):
             await self.check()
         if self.status in [
@@ -311,6 +316,7 @@ class Connection:
             await self._download_connection_details()
 
         docker = aiodocker.Docker()
+        await _check_docker_status(docker)
         try:
             await asyncio.gather(
                 docker.pull(VPN_IMAGE), docker.pull(STORAGE_IMAGE)
@@ -364,6 +370,10 @@ class Connection:
         with open(f"{self._dir}/vpn_id", "w") as f:
             f.write(vpn_container.id)
 
+        cleanup_task = asyncio.create_task(
+            self.trainml.connections.cleanup_connections()
+        )
+
         count = 0
         while count <= 30:
             logging.debug(f"Test connectivity attempt {count+1}")
@@ -386,6 +396,8 @@ class Connection:
         if not self._entity:
             await self._get_entity()
         docker = aiodocker.Docker()
+        await _check_docker_status(docker)
+
         tasks = []
         logging.info("Disconnecting...")
         try:
@@ -434,6 +446,8 @@ async def _cleanup_containers(project, path, con_dirs, type):
             continue
 
     docker = aiodocker.Docker()
+    await _check_docker_status(docker)
+
     containers = await docker.containers.list(
         all=True,
         filters=json.dumps(
@@ -552,3 +566,15 @@ async def _image_exists(client, id):
         return True
     except DockerError:
         return False
+
+
+async def _check_docker_status(client):
+    try:
+        await client.version()
+    except DockerError:
+        raise TrainMLException(
+            "Docker is not installed, not running, or your user does not have docker privileges. "
+            + "Ensure docker is installed, then add your user to the docker group. "
+            + "Commonly, this is accomplished by entering 'sudo gpasswd -a <username> docker'. "
+            + "You may need to logout and log back in to your computer for this to take effect"
+        )
