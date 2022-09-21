@@ -13,7 +13,7 @@ pytestmark = [mark.sdk, mark.integration, mark.jobs]
 @fixture(scope="class")
 async def job(trainml):
     job = await trainml.jobs.create(
-        name="CLI Automated Job Lifecycle",
+        name="CLI Automated Tests - Job Lifecycle",
         type="notebook",
         gpu_types=["gtx1060"],
         gpu_count=1,
@@ -76,7 +76,7 @@ class JobLifeCycleTests:
     async def test_copy_job_not_enough_disk(self, job):
         with raises(ApiError) as error:
             await job.copy(
-                "CLI Automated Job Copy Not Enough Disk", disk_size=10
+                "CLI Automated Tests - Job Copy Not Enough Disk", disk_size=10
             )
 
         assert (
@@ -85,7 +85,7 @@ class JobLifeCycleTests:
         )
 
     async def test_copy_job(self, job):
-        job_copy = await job.copy("CLI Automated Job Copy")
+        job_copy = await job.copy("CLI Automated Tests - Job Copy")
         assert job_copy.id != job.id
         await job_copy.wait_for("running", 300)
         assert job_copy.status == "running"
@@ -96,7 +96,7 @@ class JobLifeCycleTests:
 
     async def test_convert_job(self, job):
         training_job = await job.copy(
-            name="CLI Automated Job Convert",
+            name="CLI Automated Tests - Job Convert",
             type="training",
             workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
             data=dict(
@@ -270,7 +270,7 @@ class JobIOTests:
     async def test_job_local_output(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(
-            name="CLI Automated Local Output Test",
+            name="CLI Automated Tests - Local Output",
             type="training",
             gpu_types=["gtx1060"],
             disk_size=10,
@@ -318,7 +318,7 @@ class JobIOTests:
     async def test_job_model_input_and_output(self, trainml, capsys):
 
         model = await trainml.models.create(
-            name="CLI Automated Jobs -  Git Model",
+            name="CLI Automated Tests - Job Git Model",
             source_type="git",
             source_uri="git@github.com:trainML/environment-tests.git",
         )
@@ -326,7 +326,7 @@ class JobIOTests:
         assert model.size >= 500000
 
         job = await trainml.jobs.create(
-            "CLI Automated Training With trainML Model Output",
+            "CLI Automated Tests - Training With trainML Model Output",
             type="training",
             gpu_types=["gtx1060"],
             gpu_count=1,
@@ -366,7 +366,7 @@ class JobIOTests:
         assert new_model.size > model.size + 1000000
         assert (
             new_model.name
-            == "Job - CLI Automated Training With trainML Model Output"
+            == "Job - CLI Automated Tests - Training With trainML Model Output"
         )
         await new_model.remove()
 
@@ -376,7 +376,7 @@ class JobIOTests:
 class JobTypeTests:
     async def test_endpoint(self, trainml):
         job = await trainml.jobs.create(
-            "CLI Automated Endpoint",
+            "CLI Automated Tests - Endpoint",
             type="endpoint",
             gpu_type="GTX 1060",
             gpu_count=1,
@@ -431,7 +431,7 @@ class JobTypeTests:
 
     async def test_job_custom_container(self, trainml, capsys):
         job = await trainml.jobs.create(
-            name="Test Custom Container",
+            name="CLI Automated Tests - Custom Container",
             type="training",
             gpu_types=["gtx1060", "rtx3090", "rtx2080ti"],
             gpu_count=1,
@@ -464,8 +464,11 @@ class JobTypeTests:
                         type="public",
                     )
                 ],
-                output_uri="s3://trainml-examples/output/resnet_cifar10",
-                output_type="aws",
+                output_type="wasabi",
+                output_uri="s3://trainml-example/output/resnet_cifar10",
+                output_options=dict(
+                    endpoint_url="https://s3.wasabisys.com", archive=False
+                ),
             ),
         )
         assert job.id
@@ -478,8 +481,14 @@ class JobTypeTests:
         sys.stderr.write(captured.err)
         assert "Epoch 1/2" in captured.out
         assert "Epoch 2/2" in captured.out
-        assert "adding: model.ckpt-0001.data-00000-of-00001" in captured.out
-        assert "s3://trainml-examples/output/resnet_cifar10" in captured.out
+        assert (
+            "Uploading s3://trainml-example/output/resnet_cifar10"
+            in captured.out
+        )
+        assert (
+            "upload: ./model.ckpt-0002.data-00000-of-00001 to s3://trainml-example/output/resnet_cifar10/model.ckpt-0002.data-00000-of-00001"
+            in captured.out
+        )
         assert "Upload complete" in captured.out
 
 
@@ -488,7 +497,7 @@ class JobTypeTests:
 class JobFeatureTests:
     async def test_cpu_instance(self, trainml, capsys):
         job = await trainml.jobs.create(
-            name="Test CPU Instance",
+            name="CLI Automated Tests - CPU Instance",
             type="training",
             gpu_types=["cpu"],
             cpu_count=4,
@@ -519,3 +528,53 @@ class JobFeatureTests:
         sys.stderr.write(captured.err)
         assert "Train Epoch: 1 [0/60000 (0%)]" in captured.out
         assert "Train Epoch: 1 [59520/60000 (99%)]" in captured.out
+
+    async def test_inference_job(self, trainml, capsys):
+        temp_dir = tempfile.TemporaryDirectory()
+        job = await trainml.jobs.create(
+            name="CLI Automated Tests - Inference Job",
+            type="inference",
+            gpu_type="GTX 1060",
+            gpu_count=1,
+            disk_size=10,
+            workers=[
+                "python $TRAINML_MODEL_PATH/tensorflow/main.py",
+            ],
+            data=dict(
+                input_type="wasabi",
+                input_uri="s3://trainml-example/input/cifar-10",
+                input_options=dict(endpoint_url="https://s3.wasabisys.com"),
+                output_type="local",
+                output_uri=temp_dir.name,
+                output_options=dict(archive=False),
+            ),
+            model=dict(git_uri="git@github.com:trainML/environment-tests.git"),
+        )
+        assert job.id
+        await job.wait_for("running")
+        await job.connect()
+        await job.attach()
+        await job.refresh()
+        assert job.status == "finished"
+        await job.disconnect()
+        await job.remove()
+        await job.wait_for("archived")
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        upload_contents = os.listdir(temp_dir.name)
+        assert len(upload_contents) > 4
+        result = any(
+            "model.ckpt-0002.data-00000-of-00001" in content
+            for content in upload_contents
+        )
+        assert result is not None
+        temp_dir.cleanup()
+
+        captured = capsys.readouterr()
+        sys.stdout.write(captured.out)
+        sys.stderr.write(captured.err)
+        assert "Epoch 1/2" in captured.out
+        assert "Epoch 2/2" in captured.out
+        assert "Number of regular files transferred: 7" in captured.out
+        assert "Send complete" in captured.out

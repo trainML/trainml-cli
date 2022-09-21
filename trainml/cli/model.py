@@ -188,9 +188,15 @@ def list(config):
 
 
 @model.command()
+@click.option(
+    "--force/--no-force",
+    default=False,
+    show_default=True,
+    help="Force removal.",
+)
 @click.argument("model", type=click.STRING)
 @pass_config
-def remove(config, model):
+def remove(config, model, force):
     """
     Remove a model.
 
@@ -200,6 +206,9 @@ def remove(config, model):
 
     found = search_by_id_name(model, models)
     if None is found:
-        raise click.UsageError("Cannot find specified model.")
+        if force:
+            config.trainml.run(found.client.models.remove(model))
+        else:
+            raise click.UsageError("Cannot find specified model.")
 
-    return config.trainml.run(found.remove())
+    return config.trainml.run(found.remove(force=force))

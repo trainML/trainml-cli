@@ -116,7 +116,11 @@ class TrainML(object):
                 k: (str(v).lower() if isinstance(v, bool) else v)
                 for k, v in params.items()
             }  ## aiohttp doesn't support boolean
-        if self.active_project:
+        if (
+            method != "POST"
+            and self.active_project
+            and (not params or "project_uuid" not in params.keys())
+        ):
             params = (
                 {**params, **{"project_uuid": self.active_project}}
                 if params
@@ -149,7 +153,7 @@ class TrainML(object):
                 results = await resp.json()
                 return results
 
-    async def _ws_subscribe(self, entity, id, msg_handler):
+    async def _ws_subscribe(self, entity, project_uuid, id, msg_handler):
         headers = {
             "User-Agent": f"trainML-sdk/{self._version}",
             "Content-Type": "application/json",
@@ -170,7 +174,7 @@ class TrainML(object):
                                 type="init",
                                 entity=entity,
                                 id=id,
-                                project_uuid=self.active_project,
+                                project_uuid=project_uuid,
                             ),
                         )
                     )
@@ -183,7 +187,7 @@ class TrainML(object):
                                 type="logs",
                                 entity=entity,
                                 id=id,
-                                project_uuid=self.active_project,
+                                project_uuid=project_uuid,
                             ),
                         )
                     )
@@ -224,7 +228,7 @@ class TrainML(object):
                                         type="logs",
                                         entity=entity,
                                         id=id,
-                                        project_uuid=self.active_project,
+                                        project_uuid=project_uuid,
                                     ),
                                 )
                             )

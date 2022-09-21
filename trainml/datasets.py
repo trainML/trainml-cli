@@ -37,7 +37,8 @@ class Datasets(object):
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
-            project_uuid=self.trainml.active_project,
+            project_uuid=kwargs.get("project_uuid")
+            or self.trainml.active_project,
         )
         payload = {k: v for k, v in data.items() if v}
         logging.info(f"Creating Dataset {name}")
@@ -61,6 +62,7 @@ class Dataset:
         self._status = self._dataset.get("status")
         self._name = self._dataset.get("name")
         self._size = self._dataset.get("size")
+        self._project_uuid = self._dataset.get("project_uuid")
 
     @property
     def id(self) -> str:
@@ -89,19 +91,25 @@ class Dataset:
 
     async def get_log_url(self):
         resp = await self.trainml._query(
-            f"/dataset/pub/{self._id}/logs", "GET"
+            f"/dataset/pub/{self._id}/logs",
+            "GET",
+            dict(project_uuid=self._project_uuid),
         )
         return resp
 
     async def get_details(self):
         resp = await self.trainml._query(
-            f"/dataset/pub/{self._id}/details", "GET"
+            f"/dataset/pub/{self._id}/details",
+            "GET",
+            dict(project_uuid=self._project_uuid),
         )
         return resp
 
     async def get_connection_utility_url(self):
         resp = await self.trainml._query(
-            f"/dataset/pub/{self._id}/download", "GET"
+            f"/dataset/pub/{self._id}/download",
+            "GET",
+            dict(project_uuid=self._project_uuid),
         )
         return resp
 
@@ -142,7 +150,9 @@ class Dataset:
 
     async def remove(self, force=False):
         await self.trainml._query(
-            f"/dataset/pub/{self._id}", "DELETE", dict(force=force)
+            f"/dataset/pub/{self._id}",
+            "DELETE",
+            dict(project_uuid=self._project_uuid, force=force),
         )
 
     def _get_msg_handler(self, msg_handler):
@@ -164,11 +174,18 @@ class Dataset:
         await self.refresh()
         if self.status not in ["ready", "failed"]:
             await self.trainml._ws_subscribe(
-                "dataset", self.id, self._get_msg_handler(msg_handler)
+                "dataset",
+                self._project_uuid,
+                self.id,
+                self._get_msg_handler(msg_handler),
             )
 
     async def refresh(self):
-        resp = await self.trainml._query(f"/dataset/pub/{self.id}", "GET")
+        resp = await self.trainml._query(
+            f"/dataset/pub/{self.id}",
+            "GET",
+            dict(project_uuid=self._project_uuid),
+        )
         self.__init__(self.trainml, **resp)
         return self
 

@@ -116,7 +116,8 @@ class Jobs(object):
             model=model,
             endpoint=endpoint,
             source_job_uuid=kwargs.get("source_job_uuid"),
-            project_uuid=self.trainml.active_project,
+            project_uuid=kwargs.get("project_uuid")
+            or self.trainml.active_project,
         )
         payload = {
             k: v
@@ -154,6 +155,7 @@ class Job:
         self._type = self._job.get("type")
         self._workers = self._job.get("workers")
         self._credits = self._job.get("credits")
+        self._project_uuid = self._job.get("project_uuid")
 
     @property
     def dict(self) -> dict:
@@ -282,22 +284,34 @@ class Job:
 
     async def start(self):
         await self.trainml._query(
-            f"/job/{self._id}", "PATCH", None, dict(command="start")
+            f"/job/{self._id}",
+            "PATCH",
+            dict(project_uuid=self._project_uuid),
+            dict(command="start"),
         )
 
     async def stop(self):
         await self.trainml._query(
-            f"/job/{self._id}", "PATCH", None, dict(command="stop")
+            f"/job/{self._id}",
+            "PATCH",
+            dict(project_uuid=self._project_uuid),
+            dict(command="stop"),
         )
 
     async def get_worker_log_url(self, job_worker_uuid):
         resp = await self.trainml._query(
-            f"/job/{self._id}/worker/{job_worker_uuid}/logs", "GET"
+            f"/job/{self._id}/worker/{job_worker_uuid}/logs",
+            "GET",
+            dict(project_uuid=self._project_uuid),
         )
         return resp
 
     async def get_connection_utility_url(self):
-        resp = await self.trainml._query(f"/job/{self._id}/download", "GET")
+        resp = await self.trainml._query(
+            f"/job/{self._id}/download",
+            "GET",
+            dict(project_uuid=self._project_uuid),
+        )
         return resp
 
     def get_connection_details(self):
@@ -370,11 +384,15 @@ class Job:
 
     async def remove(self, force=False):
         await self.trainml._query(
-            f"/job/{self._id}", "DELETE", dict(force=force)
+            f"/job/{self._id}",
+            "DELETE",
+            dict(project_uuid=self._project_uuid, force=force),
         )
 
     async def refresh(self):
-        resp = await self.trainml._query(f"/job/{self.id}", "GET")
+        resp = await self.trainml._query(
+            f"/job/{self.id}", "GET", dict(project_uuid=self._project_uuid)
+        )
         self.__init__(self.trainml, **resp)
         return self
 
@@ -417,7 +435,10 @@ class Job:
         await self.refresh()
         if self.status not in ["finished", "failed"]:
             await self.trainml._ws_subscribe(
-                "job", self.id, self._get_msg_handler(msg_handler)
+                "job",
+                self._project_uuid,
+                self.id,
+                self._get_msg_handler(msg_handler),
             )
 
     async def copy(self, name, **kwargs):

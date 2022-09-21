@@ -215,9 +215,15 @@ def list_public(config):
 
 
 @dataset.command()
+@click.option(
+    "--force/--no-force",
+    default=False,
+    show_default=True,
+    help="Force removal.",
+)
 @click.argument("dataset", type=click.STRING)
 @pass_config
-def remove(config, dataset):
+def remove(config, dataset, force):
     """
     Remove a dataset.
 
@@ -227,6 +233,9 @@ def remove(config, dataset):
 
     found = search_by_id_name(dataset, datasets)
     if None is found:
-        raise click.UsageError("Cannot find specified dataset.")
+        if force:
+            config.trainml.run(config.trainml.client.datasets.remove(dataset))
+        else:
+            raise click.UsageError("Cannot find specified dataset.")
 
-    return config.trainml.run(found.remove())
+    return config.trainml.run(found.remove(force=force))

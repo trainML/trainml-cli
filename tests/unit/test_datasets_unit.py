@@ -44,7 +44,10 @@ class DatasetsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.get("1234")
-        mock_trainml._query.assert_called_once_with("/dataset/pub/1234", "GET")
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub/1234",
+            "GET",
+        )
 
     @mark.asyncio
     async def test_list_datasets(
@@ -55,7 +58,10 @@ class DatasetsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.list()
-        mock_trainml._query.assert_called_once_with("/dataset/pub", "GET")
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/pub",
+            "GET",
+        )
 
     @mark.asyncio
     async def test_list_public_datasets(self, datasets, mock_trainml):
@@ -63,7 +69,8 @@ class DatasetsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.list_public()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/public", "GET"
+            "/dataset/pub/public",
+            "GET",
         )
 
     @mark.asyncio
@@ -76,7 +83,9 @@ class DatasetsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.remove("4567")
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/4567", "DELETE", dict(force=True)
+            "/dataset/pub/4567",
+            "DELETE",
+            dict(force=True),
         )
 
     @mark.asyncio
@@ -146,7 +155,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_log_url()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/logs", "GET"
+            "/dataset/pub/1/logs", "GET", dict(project_uuid="proj-id-a")
         )
         assert response == api_response
 
@@ -163,7 +172,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_details()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/details", "GET"
+            "/dataset/pub/1/details", "GET", dict(project_uuid="proj-id-a")
         )
         assert response == api_response
 
@@ -176,7 +185,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/download", "GET"
+            "/dataset/pub/1/download", "GET", dict(project_uuid="proj-id-a")
         )
         assert response == api_response
 
@@ -248,7 +257,9 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await dataset.remove()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1", "DELETE", dict(force=False)
+            "/dataset/pub/1",
+            "DELETE",
+            dict(project_uuid="proj-id-a", force=False),
         )
 
     def test_dataset_default_ws_msg_handler(self, dataset, capsys):
@@ -338,7 +349,9 @@ class DatasetTests:
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.refresh()
-        mock_trainml._query.assert_called_once_with(f"/dataset/pub/1", "GET")
+        mock_trainml._query.assert_called_once_with(
+            f"/dataset/pub/1", "GET", dict(project_uuid="proj-id-a")
+        )
         assert dataset.id == "data-id-1"
         assert response.id == "data-id-1"
 
@@ -355,7 +368,9 @@ class DatasetTests:
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.wait_for("ready")
-        mock_trainml._query.assert_called_once_with(f"/dataset/pub/1", "GET")
+        mock_trainml._query.assert_called_once_with(
+            f"/dataset/pub/1", "GET", dict(project_uuid="proj-id-a")
+        )
         assert dataset.id == "data-id-1"
         assert response.id == "data-id-1"
 

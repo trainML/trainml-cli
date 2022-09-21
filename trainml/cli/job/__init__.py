@@ -182,9 +182,15 @@ def start(config, job, connect):
 
 
 @job.command()
+@click.option(
+    "--force/--no-force",
+    default=False,
+    show_default=True,
+    help="Force removal.",
+)
 @click.argument("job", type=click.STRING)
 @pass_config
-def remove(config, job):
+def remove(config, job, force):
     """
     Remove a job.
 
@@ -194,9 +200,12 @@ def remove(config, job):
 
     found = search_by_id_name(job, jobs)
     if None is found:
-        raise click.UsageError("Cannot find specified job.")
+        if force:
+            config.trainml.run(config.trainml.client.jobs.remove(job))
+        else:
+            raise click.UsageError("Cannot find specified job.")
 
-    return config.trainml.run(found.remove())
+    return config.trainml.run(found.remove(force=force))
 
 
 @job.command()

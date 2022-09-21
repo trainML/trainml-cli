@@ -32,7 +32,8 @@ class Models(object):
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
-            project_uuid=self.trainml.active_project,
+            project_uuid=kwargs.get("project_uuid")
+            or self.trainml.active_project,
         )
         payload = {k: v for k, v in data.items() if v}
         logging.info(f"Creating Model {name}")
@@ -56,6 +57,7 @@ class Model:
         self._status = self._model.get("status")
         self._name = self._model.get("name")
         self._size = self._model.get("size")
+        self._project_uuid = self._model.get("project_uuid")
 
     @property
     def id(self) -> str:
@@ -83,18 +85,26 @@ class Model:
         return bool(self._id)
 
     async def get_log_url(self):
-        resp = await self.trainml._query(f"/model/pub/{self._id}/logs", "GET")
+        resp = await self.trainml._query(
+            f"/model/pub/{self._id}/logs",
+            "GET",
+            dict(project_uuid=self._project_uuid),
+        )
         return resp
 
     async def get_details(self):
         resp = await self.trainml._query(
-            f"/model/pub/{self._id}/details", "GET"
+            f"/model/pub/{self._id}/details",
+            "GET",
+            dict(project_uuid=self._project_uuid),
         )
         return resp
 
     async def get_connection_utility_url(self):
         resp = await self.trainml._query(
-            f"/model/pub/{self._id}/download", "GET"
+            f"/model/pub/{self._id}/download",
+            "GET",
+            dict(project_uuid=self._project_uuid),
         )
         return resp
 
@@ -133,7 +143,9 @@ class Model:
 
     async def remove(self, force=False):
         await self.trainml._query(
-            f"/model/pub/{self._id}", "DELETE", dict(force=force)
+            f"/model/pub/{self._id}",
+            "DELETE",
+            dict(project_uuid=self._project_uuid, force=force),
         )
 
     def _get_msg_handler(self, msg_handler):
@@ -155,11 +167,18 @@ class Model:
         await self.refresh()
         if self.status not in ["ready", "failed"]:
             await self.trainml._ws_subscribe(
-                "model", self.id, self._get_msg_handler(msg_handler)
+                "model",
+                self._project_uuid,
+                self.id,
+                self._get_msg_handler(msg_handler),
             )
 
     async def refresh(self):
-        resp = await self.trainml._query(f"/model/pub/{self.id}", "GET")
+        resp = await self.trainml._query(
+            f"/model/pub/{self.id}",
+            "GET",
+            dict(project_uuid=self._project_uuid),
+        )
         self.__init__(self.trainml, **resp)
         return self
 

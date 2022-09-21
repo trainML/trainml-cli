@@ -376,7 +376,10 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await job.start()
         mock_trainml._query.assert_called_once_with(
-            "/job/job-id-1", "PATCH", None, dict(command="start")
+            "/job/job-id-1",
+            "PATCH",
+            dict(project_uuid="proj-id-1"),
+            dict(command="start"),
         )
 
     @mark.asyncio
@@ -385,7 +388,10 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await job.stop()
         mock_trainml._query.assert_called_once_with(
-            "/job/job-id-1", "PATCH", None, dict(command="stop")
+            "/job/job-id-1",
+            "PATCH",
+            dict(project_uuid="proj-id-1"),
+            dict(command="stop"),
         )
 
     @mark.asyncio
@@ -395,7 +401,9 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await job.get_worker_log_url("worker-id-1")
         mock_trainml._query.assert_called_once_with(
-            "/job/job-id-1/worker/worker-id-1/logs", "GET"
+            "/job/job-id-1/worker/worker-id-1/logs",
+            "GET",
+            dict(project_uuid="proj-id-1"),
         )
         assert response == api_response
 
@@ -406,7 +414,7 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await job.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
-            "/job/job-id-1/download", "GET"
+            "/job/job-id-1/download", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -537,7 +545,9 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await job.remove()
         mock_trainml._query.assert_called_once_with(
-            "/job/job-id-1", "DELETE", dict(force=False)
+            "/job/job-id-1",
+            "DELETE",
+            dict(project_uuid="proj-id-1", force=False),
         )
 
     @mark.asyncio
@@ -551,7 +561,9 @@ class JobTests:
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await job.refresh()
-        mock_trainml._query.assert_called_once_with("/job/job-id-1", "GET")
+        mock_trainml._query.assert_called_once_with(
+            "/job/job-id-1", "GET", dict(project_uuid="proj-id-1")
+        )
         assert job.status == "running"
         assert response.status == "running"
 
@@ -763,7 +775,9 @@ class JobTests:
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await job.wait_for("running")
-        mock_trainml._query.assert_called_once_with("/job/job-id-1", "GET")
+        mock_trainml._query.assert_called_once_with(
+            "/job/job-id-1", "GET", dict(project_uuid="proj-id-1")
+        )
         assert job.status == "running"
         assert response.status == "running"
 
