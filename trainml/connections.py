@@ -82,26 +82,58 @@ class Connections(object):
 
     async def cleanup_containers(self, project=None):
         logging.info("Start cleanup containers")
-        con_dirs = (
-            os.listdir(f"{CONFIG_DIR}/connections/{project}")
-            if project
-            else os.listdir(self.dir)
-        )
-        await asyncio.gather(
-            asyncio.create_task(
-                _cleanup_containers(
-                    project or self.trainml.project, self.dir, con_dirs, "vpn"
-                )
-            ),
-            asyncio.create_task(
-                _cleanup_containers(
-                    project or self.trainml.project,
-                    self.dir,
-                    con_dirs,
-                    "storage",
-                )
-            ),
-        )
+        if project:
+            con_dirs = os.listdir(f"{CONFIG_DIR}/connections/{project}")
+            await asyncio.gather(
+                asyncio.create_task(
+                    _cleanup_containers(
+                        project or self.trainml.project,
+                        self.dir,
+                        con_dirs,
+                        "vpn",
+                    )
+                ),
+                asyncio.create_task(
+                    _cleanup_containers(
+                        project or self.trainml.project,
+                        self.dir,
+                        con_dirs,
+                        "storage",
+                    )
+                ),
+            )
+        else:
+            con_dirs = []
+            proj_dirs = os.listdir(f"{CONFIG_DIR}/connections")
+            logging.info(f"proj_dirs {proj_dirs}")
+            for proj_dir in proj_dirs:
+                con_dirs += [
+                    f"{proj_dir}/{con_dir}"
+                    for con_dir in os.listdir(
+                        f"{CONFIG_DIR}/connections/{project}"
+                    )
+                ]
+
+            logging.info(f"con_dirs {con_dirs}")
+            await asyncio.gather(
+                asyncio.create_task(
+                    _cleanup_containers(
+                        None,
+                        f"{CONFIG_DIR}/connections",
+                        con_dirs,
+                        "vpn",
+                    )
+                ),
+                asyncio.create_task(
+                    _cleanup_containers(
+                        None,
+                        f"{CONFIG_DIR}/connections",
+                        con_dirs,
+                        "storage",
+                    )
+                ),
+            )
+
         logging.info("Finish cleanup containers")
 
     async def remove_all(self, all_projects=False):
@@ -113,14 +145,14 @@ class Connections(object):
                     f"{CONFIG_DIR}/connections/{proj_dir}",
                     exist_ok=True,
                 )
-                await self.cleanup_containers(project=proj_dir)
+            await self.cleanup_containers()
         else:
             shutil.rmtree(self.dir)
             os.makedirs(
                 self.dir,
                 exist_ok=True,
             )
-            await self.cleanup_containers()
+            await self.cleanup_containers(project=self.trainml.project)
 
 
 class Connection:
@@ -448,17 +480,25 @@ async def _cleanup_containers(project, path, con_dirs, type):
     docker = aiodocker.Docker()
     await _check_docker_status(docker)
 
+    if project:
+        filter = dict(
+            label=[
+                "service=trainml",
+                f"type={type}",
+                f"project={project}",
+            ]
+        )
+    else:
+        filter = dict(
+            label=[
+                "service=trainml",
+                f"type={type}",
+            ]
+        )
+
     containers = await docker.containers.list(
         all=True,
-        filters=json.dumps(
-            dict(
-                label=[
-                    "service=trainml",
-                    f"type={type}",
-                    f"project={project}",
-                ]
-            )
-        ),
+        filters=json.dumps(filter),
     )
 
     tasks = [
