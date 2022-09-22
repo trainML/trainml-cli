@@ -77,7 +77,7 @@ class Connections(object):
             con_task = asyncio.create_task(connection._validate_entity())
             con_tasks.append(con_task)
         await asyncio.gather(*con_tasks)
-        await self.cleanup_containers()
+        await self.cleanup_containers(project=self.trainml.project)
         logging.info("Finish cleanup connections")
 
     async def cleanup_containers(self, project=None):
@@ -87,7 +87,7 @@ class Connections(object):
             await asyncio.gather(
                 asyncio.create_task(
                     _cleanup_containers(
-                        project or self.trainml.project,
+                        project,
                         self.dir,
                         con_dirs,
                         "vpn",
@@ -95,7 +95,7 @@ class Connections(object):
                 ),
                 asyncio.create_task(
                     _cleanup_containers(
-                        project or self.trainml.project,
+                        project,
                         self.dir,
                         con_dirs,
                         "storage",

@@ -14,9 +14,9 @@ class GetModelTests:
         model = await trainml.models.create(
             name="CLI Automated",
             source_type="git",
-            source_uri="git@github.com:trainML/test-private.git",
+            source_uri="git@github.com:trainML/environment-tests.git",
         )
-        model = await model.wait_for("ready", 60)
+        model = await model.wait_for("ready", 120)
         yield model
         await model.remove()
         model = await model.wait_for("archived", 60)
