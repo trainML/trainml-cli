@@ -127,7 +127,7 @@ class JobLifeCycleTests:
 
 
 @mark.asyncio
-class JobAPIValidationTests:
+class JobAPIResourceValidationTests:
     async def test_invalid_gpu_type(self, trainml):
         with raises(ApiError) as error:
             await trainml.jobs.create(
@@ -250,16 +250,111 @@ class JobAPIValidationTests:
             in error.value.message
         )
 
-    async def test_invalid_workers(self, trainml):
+
+@mark.asyncio
+class JobAPIDataValidationTests:
+    async def test_invalid_output_type_for_notebook(self, trainml):
         with raises(ApiError) as error:
             await trainml.jobs.create(
-                name="Invalid Workers for Training Job",
+                name="Invalid Output Type for Notebook",
+                type="notebook",
+                gpu_types=["rtx3090"],
+                disk_size=10,
+                data=dict(
+                    output_uri="s3://trainml-examples/output/resnet_cifar10",
+                    output_type="aws",
+                ),
+            )
+        assert (
+            "Invalid Request - Only regional datastore are allowed for Notebook and Endpoint output locations"
+            in error.value.message
+        )
+
+    async def test_invalid_output_type_for_endpoint(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid Output Type for Endpoint",
+                type="endpoint",
+                gpu_types=["rtx3090"],
+                disk_size=10,
+                endpoint=dict(
+                    routes=[
+                        dict(
+                            path="/predict",
+                            verb="POST",
+                            function="predict_image",
+                            file="predict",
+                            positional=True,
+                            body=[dict(name="filename", type="str")],
+                        )
+                    ]
+                ),
+                data=dict(
+                    output_uri="s3://trainml-examples/output/resnet_cifar10",
+                    output_type="aws",
+                ),
+            )
+        assert (
+            "Invalid Request - Only regional datastore are allowed for Notebook and Endpoint output locations"
+            in error.value.message
+        )
+
+    async def test_invalid_datasets_for_inference(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Datasets for Inference Job",
+                type="inference",
+                gpu_types=["rtx3090"],
+                disk_size=10,
+                data=dict(datasets=[dict(id="CIFAR-10", type="public")]),
+                workers=["python predict.py"],
+            )
+        assert (
+            "Invalid Request - Inference jobs cannot use datasets"
+            in error.value.message
+        )
+
+
+@mark.asyncio
+class JobAPIWorkerValidationTests:
+    async def test_missing_workers_for_training(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Missing Workers for Training Job",
                 type="training",
                 gpu_types=["rtx3090"],
                 disk_size=10,
             )
         assert (
-            " Invalid Request - Training jobs must have at least one worker"
+            "Invalid Request - Training jobs must have at least one worker"
+            in error.value.message
+        )
+
+    async def test_too_many_workers_for_inference(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Too Many Workers for Inference Job",
+                type="inference",
+                gpu_types=["rtx3090"],
+                disk_size=10,
+                workers=["python predict.py", "python predict.py"],
+            )
+        assert (
+            "Invalid Request - Inference jobs must have exactly one worker"
+            in error.value.message
+        )
+
+    async def test_invalid_worker_spec_for_endpoint(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid Worker Spec for Endpoint",
+                type="endpoint",
+                gpu_types=["rtx3090"],
+                disk_size=10,
+                workers=["python predict.py"],
+            )
+        assert (
+            "Invalid Request - Endpoints do not use worker commands"
             in error.value.message
         )
 
