@@ -507,7 +507,7 @@ async def _cleanup_containers(project, path, con_dirs, type):
         if container.id not in containers_target
     ]
 
-    await asyncio.gather(*tasks)
+    await asyncio.gather(*tasks, return_exceptions=True)
     await docker.close()
 
 
