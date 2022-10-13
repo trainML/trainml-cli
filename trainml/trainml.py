@@ -88,10 +88,11 @@ class TrainML(object):
     async def _query(self, path, method, params=None, data=None, headers=None):
         try:
             tokens = self.auth.get_tokens()
+        except TrainMLException as e:
+            raise e
         except Exception:
-            logging.debug(traceback.format_exc())
             raise TrainMLException(
-                "Error getting authorization tokens.  Verify configured credentials."
+                f"Error getting authorization tokens.  Verify configured credentials. Error: {traceback.format_exc()}"
             )
         headers = (
             {
@@ -158,7 +159,14 @@ class TrainML(object):
             "User-Agent": f"trainML-sdk/{self._version}",
             "Content-Type": "application/json",
         }
-        tokens = self.auth.get_tokens()
+        try:
+            tokens = self.auth.get_tokens()
+        except TrainMLException as e:
+            raise e
+        except Exception:
+            raise TrainMLException(
+                f"Error getting authorization tokens.  Verify configured credentials. Error: {traceback.format_exc()}"
+            )
         async with aiohttp.ClientSession() as session:
             done = False
             async with session.ws_connect(

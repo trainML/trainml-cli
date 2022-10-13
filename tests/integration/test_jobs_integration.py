@@ -537,7 +537,7 @@ class JobTypeTests:
             ),
             environment=dict(
                 type="CUSTOM",
-                custom_image="tensorflow/tensorflow:2.5.1-gpu",
+                custom_image="tensorflow/tensorflow:2.10.0-gpu",
                 packages=dict(
                     pip=[
                         "tensorflow_addons",

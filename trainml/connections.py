@@ -76,7 +76,7 @@ class Connections(object):
             connection = Connection(self.trainml, con_type, con_id)
             con_task = asyncio.create_task(connection._validate_entity())
             con_tasks.append(con_task)
-        await asyncio.gather(*con_tasks)
+        await asyncio.gather(*con_tasks, return_exceptions=True)
         await self.cleanup_containers(project=self.trainml.project)
         logging.info("Finish cleanup connections")
 
