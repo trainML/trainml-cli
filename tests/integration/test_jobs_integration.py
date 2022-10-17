@@ -386,7 +386,7 @@ class JobIOTests:
                 source_uri="git@github.com:trainML/environment-tests.git",
             ),
         )
-        await job.wait_for("running")
+        await job.wait_for("waiting for data/model download")
         attach_task = asyncio.create_task(job.attach())
         connect_task = asyncio.create_task(job.connect())
         await asyncio.gather(attach_task, connect_task)

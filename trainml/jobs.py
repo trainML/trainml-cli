@@ -524,6 +524,11 @@ class Job:
                     == "waiting for GPUs"  ## this status could be very short and the polling could miss it
                     and self.status in ["starting", "provisioning", "running"]
                 )
+                or (
+                    status
+                    == "waiting for data/model download"  ## this status could be very short and the polling could miss it
+                    and self.status in ["starting", "provisioning", "running"]
+                )
             ):
                 return self
             elif self.status == "failed":
