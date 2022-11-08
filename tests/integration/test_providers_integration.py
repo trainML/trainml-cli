@@ -26,9 +26,7 @@ class GetProvidersTests:
     async def test_provider_properties(self, provider):
         assert isinstance(provider.id, str)
         assert isinstance(provider.type, str)
-        assert isinstance(provider.regions, list)
         assert provider.type == "test"
-        assert len(provider.regions) == 0
         assert provider.credits == 0
 
     def test_provider_str(self, provider):

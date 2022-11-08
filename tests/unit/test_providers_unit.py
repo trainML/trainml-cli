@@ -30,7 +30,6 @@ def provider(mock_trainml):
         payment_mode="credits",
         createdAt="2020-12-31T23:59:59.000Z",
         credits=0.0,
-        regions=[],
     )
 
 
@@ -81,7 +80,6 @@ class ProvidersTests:
             "credits": 0.0,
             "payment_mode": "credits",
             "createdAt": "2020-12-31T23:59:59.000Z",
-            "regions": [],
         }
 
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -97,7 +95,6 @@ class providerTests:
         assert isinstance(provider.id, str)
         assert isinstance(provider.type, str)
         assert isinstance(provider.credits, float)
-        assert isinstance(provider.regions, list)
 
     def test_provider_str(self, provider):
         string = str(provider)

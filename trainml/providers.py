@@ -36,7 +36,6 @@ class Provider:
         self._provider = kwargs
         self._id = self._provider.get("provider_uuid")
         self._type = self._provider.get("type")
-        self._regions = self._provider.get("regions")
         self._credits = self._provider.get("credits")
 
     @property
@@ -46,10 +45,6 @@ class Provider:
     @property
     def type(self) -> str:
         return self._type
-
-    @property
-    def regions(self) -> list:
-        return self._regions
 
     @property
     def credits(self) -> float:
