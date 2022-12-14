@@ -32,7 +32,7 @@ async def job(trainml):
 class JobLifeCycleTests:
     async def test_wait_for_running(self, job):
         assert job.status != "running"
-        job = await job.wait_for("running", 180)
+        job = await job.wait_for("running")
         assert job.status == "running"
 
     async def test_stop_job(self, job):
@@ -85,6 +85,7 @@ class JobLifeCycleTests:
         )
 
     async def test_copy_job(self, job):
+        await job.wait_for("running", 300)
         job_copy = await job.copy("CLI Automated Tests - Job Copy")
         assert job_copy.id != job.id
         await job_copy.wait_for("running", 300)
@@ -95,6 +96,7 @@ class JobLifeCycleTests:
         await job_copy.remove()
 
     async def test_convert_job(self, job):
+        await job.wait_for("running", 300)
         training_job = await job.copy(
             name="CLI Automated Tests - Job Convert",
             type="training",
@@ -113,6 +115,8 @@ class JobLifeCycleTests:
         assert training_job.id
         training_job = await training_job.wait_for("finished", 300)
         assert training_job.status == "finished"
+        await asyncio.sleep(10)  ## give billing a chance to update
+        await training_job.refresh()
         assert training_job.credits > 0
         assert training_job.credits < 0.1
         await training_job.remove()
@@ -370,7 +374,7 @@ class JobIOTests:
             gpu_types=["gtx1060"],
             disk_size=10,
             workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
-            environment=dict(type="TENSORFLOW_PY39_29"),
+            environment=dict(type="DEEPLEARNING_PY39"),
             data=dict(
                 datasets=[
                     dict(
@@ -428,7 +432,7 @@ class JobIOTests:
             cpu_count=8,
             disk_size=10,
             worker_commands=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
-            environment=dict(type="TENSORFLOW_PY39_29"),
+            environment=dict(type="DEEPLEARNING_PY39"),
             data=dict(
                 datasets=[
                     dict(

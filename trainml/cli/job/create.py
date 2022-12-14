@@ -56,6 +56,7 @@ def create(config):
             "v100",
             "a100",
             "a6000",
+            "a4000",
             "cpu",
         ],
         case_sensitive=False,
@@ -96,12 +97,13 @@ def create(config):
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY39",
+            "PYTORCH_PY39_113",
             "PYTORCH_PY39_112",
             "PYTORCH_PY38_110",
             "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
-            "TENSORFLOW_PY39_29",
-            "TENSORFLOW_PY39_28",
+            "TENSORFLOW_PY39_211",
+            "TENSORFLOW_PY39_210",
             "TENSORFLOW_PY38_26",
             "MXNET_PY39_19",
             "MXNET_PY38_18",
@@ -142,11 +144,7 @@ def create(config):
 @click.option(
     "--key",
     type=click.Choice(
-        [
-            "aws",
-            "gcp",
-            "kaggle",
-        ],
+        ["aws", "gcp", "kaggle", "azure", "wasabi"],
         case_sensitive=False,
     ),
     help="Third Party Keys to add to the job environment",
@@ -166,6 +164,13 @@ def create(config):
     "--model-dir",
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     help="Local file path to copy as the model data",
+)
+@click.option(
+    "--timeout",
+    type=click.INT,
+    default=300,
+    show_default=True,
+    help="Seconds to wait for job to start",
 )
 @click.argument("name", type=click.STRING)
 @pass_config
@@ -190,6 +195,7 @@ def notebook(
     model_dir,
     git_uri,
     model_id,
+    timeout,
     name,
 ):
     """
@@ -280,9 +286,9 @@ def notebook(
             config.trainml.run(job.disconnect())
     elif attach or connect:
         click.echo("Waiting for job to start...", file=config.stdout)
-        config.trainml.run(job.wait_for("running"))
+        config.trainml.run(job.wait_for("running", timeout))
         click.echo("Launching...", file=config.stdout)
-        browse(job.notebook_url)
+        config.trainml.run(job.open())
 
 
 @create.command()
@@ -329,6 +335,7 @@ def notebook(
             "v100",
             "a100",
             "a6000",
+            "a4000",
             "cpu",
         ],
         case_sensitive=False,
@@ -370,7 +377,7 @@ def notebook(
 @click.option(
     "--output-type",
     type=click.Choice(
-        ["aws", "gcp", "local", "trainml"],
+        ["aws", "gcp", "local", "trainml", "azure", "wasabi"],
         case_sensitive=False,
     ),
     help="Service provider to store the output data",
@@ -386,12 +393,13 @@ def notebook(
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY39",
+            "PYTORCH_PY39_113",
             "PYTORCH_PY39_112",
             "PYTORCH_PY38_110",
             "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
-            "TENSORFLOW_PY39_29",
-            "TENSORFLOW_PY39_28",
+            "TENSORFLOW_PY39_211",
+            "TENSORFLOW_PY39_210",
             "TENSORFLOW_PY38_26",
             "MXNET_PY39_19",
             "MXNET_PY38_18",
@@ -417,11 +425,7 @@ def notebook(
 @click.option(
     "--key",
     type=click.Choice(
-        [
-            "aws",
-            "gcp",
-            "kaggle",
-        ],
+        ["aws", "gcp", "kaggle", "azure", "wasabi"],
         case_sensitive=False,
     ),
     help="Third Party Keys to add to the job environment",
@@ -627,6 +631,7 @@ def training(
             "v100",
             "a100",
             "a6000",
+            "a4000",
             "cpu",
         ],
         case_sensitive=False,
@@ -651,7 +656,7 @@ def training(
 @click.option(
     "--input-type",
     type=click.Choice(
-        ["aws", "gcp", "local", "kaggle", "web"],
+        ["aws", "gcp", "local", "kaggle", "web", "azure", "wasabi"],
         case_sensitive=False,
     ),
     help="Service provider to load the input data",
@@ -669,7 +674,7 @@ def training(
 @click.option(
     "--output-type",
     type=click.Choice(
-        ["aws", "gcp", "local", "trainml"],
+        ["aws", "gcp", "local", "trainml", "azure", "wasabi"],
         case_sensitive=False,
     ),
     help="Service provider to store the output data",
@@ -685,12 +690,13 @@ def training(
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY39",
+            "PYTORCH_PY39_113",
             "PYTORCH_PY39_112",
             "PYTORCH_PY38_110",
             "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
-            "TENSORFLOW_PY39_29",
-            "TENSORFLOW_PY39_28",
+            "TENSORFLOW_PY39_211",
+            "TENSORFLOW_PY39_210",
             "TENSORFLOW_PY38_26",
             "MXNET_PY39_19",
             "MXNET_PY38_18",
@@ -716,11 +722,7 @@ def training(
 @click.option(
     "--key",
     type=click.Choice(
-        [
-            "aws",
-            "gcp",
-            "kaggle",
-        ],
+        ["aws", "gcp", "kaggle", "azure", "wasabi"],
         case_sensitive=False,
     ),
     help="Third Party Keys to add to the job environment",
@@ -947,6 +949,7 @@ def from_json(config, attach, connect, file):
             "v100",
             "a100",
             "a6000",
+            "a4000",
             "cpu",
         ],
         case_sensitive=False,
@@ -969,12 +972,13 @@ def from_json(config, attach, connect, file):
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY39",
+            "PYTORCH_PY39_113",
             "PYTORCH_PY39_112",
             "PYTORCH_PY38_110",
             "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
-            "TENSORFLOW_PY39_29",
-            "TENSORFLOW_PY39_28",
+            "TENSORFLOW_PY39_211",
+            "TENSORFLOW_PY39_210",
             "TENSORFLOW_PY38_26",
             "MXNET_PY39_19",
             "MXNET_PY38_18",
@@ -1000,11 +1004,7 @@ def from_json(config, attach, connect, file):
 @click.option(
     "--key",
     type=click.Choice(
-        [
-            "aws",
-            "gcp",
-            "kaggle",
-        ],
+        ["aws", "gcp", "kaggle", "azure", "wasabi"],
         case_sensitive=False,
     ),
     help="Third Party Keys to add to the job environment",
@@ -1046,6 +1046,13 @@ def from_json(config, attach, connect, file):
     help="Routes to configure in endpoint (in JSON).",
     multiple=True,
 )
+@click.option(
+    "--timeout",
+    type=click.INT,
+    default=300,
+    show_default=True,
+    help="Seconds to wait for job to start",
+)
 @click.argument("name", type=click.STRING)
 @pass_config
 def endpoint(
@@ -1067,10 +1074,11 @@ def endpoint(
     git_uri,
     model_id,
     route,
+    timeout,
     name,
 ):
     """
-    Create an inference job.
+    Create an endpoint.
     """
     routes = [json.loads(item) for item in route]
 
@@ -1131,14 +1139,14 @@ def endpoint(
         else:
             config.trainml.run(job.connect())
         click.echo("Waiting for job to start...", file=config.stdout)
-        config.trainml.run(job.wait_for("running"))
+        config.trainml.run(job.wait_for("running", timeout))
         config.trainml.run(job.disconnect())
         config.trainml.run(job.refresh())
         click.echo(f"Endpoint is running at:  {job.url}", file=config.stdout)
     else:
         if connect:
             click.echo("Waiting for job to start...", file=config.stdout)
-            config.trainml.run(job.wait_for("running"))
+            config.trainml.run(job.wait_for("running", timeout))
             config.trainml.run(job.refresh())
             click.echo(
                 f"Endpoint is running at:  {job.url}", file=config.stdout
