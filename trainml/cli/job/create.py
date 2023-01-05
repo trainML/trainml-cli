@@ -388,6 +388,12 @@ def notebook(
     help="Location in the output-type provider to store the output data",
 )
 @click.option(
+    "--archive/--no-archive",
+    default=False,
+    show_default=True,
+    help="Zip the output contents before uploading.",
+)
+@click.option(
     "--environment",
     type=click.Choice(
         [
@@ -482,6 +488,7 @@ def training(
     output_dir,
     output_type,
     output_uri,
+    archive,
     environment,
     custom_image,
     env,
@@ -516,10 +523,14 @@ def training(
     if output_type:
         options["data"]["output_type"] = output_type
         options["data"]["output_uri"] = output_uri
+        if not archive:
+            options["data"]["output_options"] = dict(archive=False)
 
     if output_dir:
         options["data"]["output_type"] = "local"
         options["data"]["output_uri"] = output_dir
+        if not archive:
+            options["data"]["output_options"] = dict(archive=False)
 
     try:
         envs = [
@@ -685,6 +696,12 @@ def training(
     help="Location in the output-type provider to store the output data",
 )
 @click.option(
+    "--archive/--no-archive",
+    default=False,
+    show_default=True,
+    help="Zip the output contents before uploading.",
+)
+@click.option(
     "--environment",
     type=click.Choice(
         [
@@ -778,6 +795,7 @@ def inference(
     output_dir,
     output_type,
     output_uri,
+    archive,
     environment,
     custom_image,
     env,
@@ -816,10 +834,14 @@ def inference(
     if output_type:
         options["data"]["output_type"] = output_type
         options["data"]["output_uri"] = output_uri
+        if not archive:
+            options["data"]["output_options"] = dict(archive=False)
 
     if output_dir:
         options["data"]["output_type"] = "local"
         options["data"]["output_uri"] = output_dir
+        if not archive:
+            options["data"]["output_options"] = dict(archive=False)
 
     try:
         envs = [

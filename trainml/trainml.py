@@ -9,6 +9,7 @@ from importlib.metadata import version
 from trainml.auth import Auth
 from trainml.datasets import Datasets
 from trainml.models import Models
+from trainml.checkpoints import Checkpoints
 from trainml.jobs import Jobs
 from trainml.gpu_types import GpuTypes
 from trainml.environments import Environments
@@ -62,6 +63,7 @@ class TrainML(object):
         )
         self.datasets = Datasets(self)
         self.models = Models(self)
+        self.checkpoints = Checkpoints(self)
         self.jobs = Jobs(self)
         self.gpu_types = GpuTypes(self)
         self.environments = Environments(self)

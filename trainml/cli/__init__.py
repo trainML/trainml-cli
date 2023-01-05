@@ -163,6 +163,7 @@ def configure(config):
 from trainml.cli.connection import connection
 from trainml.cli.dataset import dataset
 from trainml.cli.model import model
+from trainml.cli.checkpoint import checkpoint
 from trainml.cli.environment import environment
 from trainml.cli.gpu import gpu
 from trainml.cli.job import job

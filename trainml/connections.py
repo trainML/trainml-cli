@@ -194,9 +194,11 @@ class Connection:
             self._entity = await self.trainml.jobs.get(self.id)
         elif self.type == "model":
             self._entity = await self.trainml.models.get(self.id)
+        elif self.type == "checkpoint":
+            self._entity = await self.trainml.checkpoints.get(self.id)
         else:
             raise TypeError(
-                "Connection type must be in: ['dataset', 'model', 'job']"
+                "Connection type must be in: ['dataset', 'model', 'checkpoint', 'job']"
             )
 
     async def _download_connection_details(self):

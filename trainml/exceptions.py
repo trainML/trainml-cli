@@ -86,6 +86,27 @@ class ModelError(TrainMLException):
         return "ModelError({self.status}, {self.message})".format(self=self)
 
 
+class CheckpointError(TrainMLException):
+    def __init__(self, status, data, *args):
+        super().__init__(data, *args)
+        self._status = status
+        self._message = data
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    def __repr__(self):
+        return "CheckpointError({self.status}, {self.message})".format(
+            self=self
+        )
+
+    def __str__(self):
+        return "CheckpointError({self.status}, {self.message})".format(
+            self=self
+        )
+
+
 class ConnectionError(TrainMLException):
     def __init__(self, message, *args):
         super().__init__(message, *args)

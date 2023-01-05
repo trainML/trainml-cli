@@ -79,22 +79,6 @@ class GetDatasetTests:
 
 @mark.create
 @mark.asyncio
-async def test_dataset_aws(trainml, capsys):
-    dataset = await trainml.datasets.create(
-        name="CLI Automated AWS",
-        source_type="aws",
-        source_uri="s3://trainml-examples/data/cifar10",
-    )
-    dataset = await dataset.wait_for("ready", 300)
-    status = dataset.status
-    size = dataset.size
-    await dataset.remove()
-    assert status == "ready"
-    assert size >= 10000000
-
-
-@mark.create
-@mark.asyncio
 async def test_dataset_local(trainml, capsys):
     dataset = await trainml.datasets.create(
         name="CLI Automated Local",

@@ -11,6 +11,7 @@ markers = [
     "environments: Environment tests",
     "datasets: Datasets tests",
     "models: Models tests",
+    "checkpoints: Checkpoints tests",
     "jobs: Jobs tests",
     "connections: Connections tests",
     "projects: Projects tests",
