@@ -6,6 +6,7 @@ from unittest.mock import Mock, AsyncMock, patch, create_autospec
 from trainml.trainml import TrainML
 from trainml.auth import Auth
 from trainml.datasets import Dataset, Datasets
+from trainml.checkpoints import Checkpoint, Checkpoints
 from trainml.models import Model, Models
 from trainml.gpu_types import GpuType, GpuTypes
 from trainml.environments import Environment, Environments
@@ -24,7 +25,7 @@ def mock_my_datasets():
         Dataset(
             trainml,
             dataset_uuid="1",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="first one",
             status="ready",
             size=100000000,
@@ -33,7 +34,7 @@ def mock_my_datasets():
         Dataset(
             trainml,
             dataset_uuid="2",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="second one",
             status="ready",
             size=100000000,
@@ -42,7 +43,7 @@ def mock_my_datasets():
         Dataset(
             trainml,
             dataset_uuid="3",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="first one",
             status="ready",
             size=100000000,
@@ -51,7 +52,7 @@ def mock_my_datasets():
         Dataset(
             trainml,
             dataset_uuid="4",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="other one",
             status="ready",
             size=100000000,
@@ -60,7 +61,7 @@ def mock_my_datasets():
         Dataset(
             trainml,
             dataset_uuid="5",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="not ready",
             status="new",
             size=100000000,
@@ -69,7 +70,7 @@ def mock_my_datasets():
         Dataset(
             trainml,
             dataset_uuid="6",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="failed",
             status="failed",
             size=100000000,
@@ -110,13 +111,105 @@ def mock_public_datasets():
 
 
 @fixture(scope="session")
+def mock_my_checkpoints():
+    trainml = Mock()
+    yield [
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="1",
+            project_uuid="proj-id-1",
+            name="first one",
+            status="ready",
+            size=100000000,
+            createdAt="2020-12-31T23:59:59.000Z",
+        ),
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="2",
+            project_uuid="proj-id-1",
+            name="second one",
+            status="ready",
+            size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="3",
+            project_uuid="proj-id-1",
+            name="first one",
+            status="ready",
+            size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="4",
+            project_uuid="proj-id-1",
+            name="other one",
+            status="ready",
+            size=100000000,
+            createdAt="2020-12-31T23:59:59.000Z",
+        ),
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="5",
+            project_uuid="proj-id-1",
+            name="not ready",
+            status="new",
+            size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="6",
+            project_uuid="proj-id-1",
+            name="failed",
+            status="failed",
+            size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+    ]
+
+
+@fixture(scope="session")
+def mock_public_checkpoints():
+    trainml = Mock()
+    yield [
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="11",
+            name="first one",
+            status="ready",
+        ),
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="12",
+            name="second one",
+            status="ready",
+        ),
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="15",
+            name="not ready",
+            status="new",
+        ),
+        Checkpoint(
+            trainml,
+            checkpoint_uuid="16",
+            name="failed",
+            status="failed",
+        ),
+    ]
+
+
+@fixture(scope="session")
 def mock_models():
     trainml = Mock()
     yield [
         Model(
             trainml,
             model_uuid="1",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="first one",
             status="ready",
             size=10000000,
@@ -125,7 +218,7 @@ def mock_models():
         Model(
             trainml,
             model_uuid="2",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="second one",
             status="ready",
             size=10000000,
@@ -134,7 +227,7 @@ def mock_models():
         Model(
             trainml,
             model_uuid="5",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="not ready",
             status="new",
             size=10000000,
@@ -143,7 +236,7 @@ def mock_models():
         Model(
             trainml,
             model_uuid="6",
-            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
             name="failed",
             status="failed",
             size=10000000,
@@ -295,11 +388,11 @@ def mock_jobs():
         Job(
             trainml,
             **{
-                "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
                 "job_uuid": "job-id-1",
                 "name": "test notebook",
                 "start": "2021-02-11T15:46:22.455Z",
-                "type": "interactive",
+                "type": "notebook",
                 "status": "new",
                 "credits_per_hour": 0.1,
                 "credits": 0.1007,
@@ -319,7 +412,8 @@ def mock_jobs():
                 },
                 "model": {
                     "size": 7176192,
-                    "git_uri": "git@github.com:trainML/test-private.git",
+                    "source_type": "git",
+                    "source_uri": "git@github.com:trainML/test-private.git",
                     "status": "new",
                 },
                 "data": {
@@ -365,13 +459,13 @@ def mock_jobs():
         Job(
             trainml,
             **{
-                "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
                 "job_uuid": "job-id-2",
                 "name": "test training",
                 "start": "2021-02-11T15:48:39.476Z",
                 "stop": "2021-02-11T15:50:16.554Z",
-                "type": "headless",
-                "status": "stopped",
+                "type": "training",
+                "status": "finished",
                 "credits_per_hour": 0.3,
                 "credits": 0.0054,
                 "workers": [
@@ -402,7 +496,8 @@ def mock_jobs():
                 },
                 "model": {
                     "size": 7086080,
-                    "git_uri": "git@github.com:trainML/test-private.git",
+                    "source_type": "git",
+                    "source_uri": "git@github.com:trainML/test-private.git",
                     "status": "ready",
                 },
                 "data": {
@@ -447,7 +542,7 @@ def mock_projects():
         Project(
             trainml,
             **{
-                "id": "cus-id-1",
+                "id": "proj-id-1",
                 "name": "Personal",
                 "owner": True,
                 "owner_name": "Me",
@@ -534,9 +629,10 @@ def mock_trainml(
     mock_providers,
 ):
     trainml = create_autospec(TrainML)
-    trainml.active_project = "proj-id-a"
-    trainml.project = "proj-id-a"
+    trainml.active_project = "proj-id-1"
+    trainml.project = "proj-id-1"
     trainml.datasets = create_autospec(Datasets)
+    trainml.checkpoints = create_autospec(Checkpoints)
     trainml.models = create_autospec(Models)
     trainml.gpu_types = create_autospec(GpuTypes)
     trainml.environments = create_autospec(Environments)
@@ -546,6 +642,10 @@ def mock_trainml(
     trainml.providers = create_autospec(Providers)
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
+    trainml.checkpoints.list = AsyncMock(return_value=mock_my_checkpoints)
+    trainml.checkpoints.list_public = AsyncMock(
+        return_value=mock_public_checkpoints
+    )
     trainml.models.list = AsyncMock(return_value=mock_models)
     trainml.gpu_types.list = AsyncMock(return_value=mock_gpu_types)
     trainml.environments.list = AsyncMock(return_value=mock_environments)

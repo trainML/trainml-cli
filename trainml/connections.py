@@ -404,9 +404,9 @@ class Connection:
         with open(f"{self._dir}/vpn_id", "w") as f:
             f.write(vpn_container.id)
 
-        cleanup_task = asyncio.create_task(
-            self.trainml.connections.cleanup_connections()
-        )
+        # cleanup_task = asyncio.create_task(
+        #     self.trainml.connections.cleanup_connections()
+        # )
 
         count = 0
         while count <= 30:
@@ -422,7 +422,7 @@ class Connection:
             raise ConnectionError(f"Unable to connect {self.type} {self.id}")
         self._status = STATUSES.get("CONNECTED")
         logging.info(f"Connection Successful.")
-        await cleanup_task
+        # await cleanup_task
         logging.debug(f"Completed start {self.type} connection {self.id}")
 
     async def stop(self):

@@ -26,7 +26,7 @@ def checkpoint(mock_trainml):
     yield specimen.Checkpoint(
         mock_trainml,
         checkpoint_uuid="1",
-        project_uuid="proj-id-a",
+        project_uuid="proj-id-1",
         name="first one",
         status="new",
         size=100000,
@@ -78,13 +78,13 @@ class CheckpointsTests:
             source_uri="s3://trainml-examples/checkpoints/resnet50",
         )
         expected_payload = dict(
-            project_uuid="proj-id-a",
+            project_uuid="proj-id-1",
             name="new checkpoint",
             source_type="aws",
             source_uri="s3://trainml-examples/checkpoints/resnet50",
         )
         api_response = {
-            "customer_uuid": "cus-id-1",
+            "project_uuid": "cus-id-1",
             "checkpoint_uuid": "checkpoint-id-1",
             "name": "new checkpoint",
             "status": "new",
@@ -136,7 +136,7 @@ class CheckpointTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await checkpoint.get_log_url()
         mock_trainml._query.assert_called_once_with(
-            "/checkpoint/1/logs", "GET", dict(project_uuid="proj-id-a")
+            "/checkpoint/1/logs", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -153,7 +153,7 @@ class CheckpointTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await checkpoint.get_details()
         mock_trainml._query.assert_called_once_with(
-            "/checkpoint/1/details", "GET", dict(project_uuid="proj-id-a")
+            "/checkpoint/1/details", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -166,7 +166,7 @@ class CheckpointTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await checkpoint.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
-            "/checkpoint/1/download", "GET", dict(project_uuid="proj-id-a")
+            "/checkpoint/1/download", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -241,7 +241,7 @@ class CheckpointTests:
         mock_trainml._query.assert_called_once_with(
             "/checkpoint/1",
             "DELETE",
-            dict(project_uuid="proj-id-a", force=False),
+            dict(project_uuid="proj-id-1", force=False),
         )
 
     def test_checkpoint_default_ws_msg_handler(self, checkpoint, capsys):
@@ -331,7 +331,7 @@ class CheckpointTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await checkpoint.refresh()
         mock_trainml._query.assert_called_once_with(
-            f"/checkpoint/1", "GET", dict(project_uuid="proj-id-a")
+            f"/checkpoint/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert checkpoint.id == "data-id-1"
         assert response.id == "data-id-1"
@@ -352,7 +352,7 @@ class CheckpointTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await checkpoint.wait_for("ready")
         mock_trainml._query.assert_called_once_with(
-            f"/checkpoint/1", "GET", dict(project_uuid="proj-id-a")
+            f"/checkpoint/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert checkpoint.id == "data-id-1"
         assert response.id == "data-id-1"

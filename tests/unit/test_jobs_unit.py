@@ -172,63 +172,6 @@ def training_job(mock_trainml):
     )
 
 
-class CleanDatasetSelectionTests:
-    @mark.parametrize(
-        "datasets,expected",
-        [
-            (
-                [dict(id="1", type="existing")],
-                [dict(id="1", type="existing")],
-            ),
-            (
-                [dict(name="first one", type="existing")],
-                [dict(id="first one", type="existing")],
-            ),
-            (
-                [dict(dataset_uuid="3", type="existing")],
-                [dict(dataset_uuid="3", type="existing")],
-            ),
-            (
-                [dict(name="first one", type="public")],
-                [dict(id="first one", type="public")],
-            ),
-            (
-                [
-                    dict(id="1", type="existing"),
-                    dict(name="second one", type="existing"),
-                    dict(id="11", type="public"),
-                    dict(name="second one", type="public"),
-                ],
-                [
-                    dict(id="1", type="existing"),
-                    dict(id="second one", type="existing"),
-                    dict(id="11", type="public"),
-                    dict(id="second one", type="public"),
-                ],
-            ),
-        ],
-    )
-    def test_clean_datasets_selection_successful(
-        self,
-        datasets,
-        expected,
-    ):
-        result = specimen._clean_datasets_selection(datasets)
-        assert result == expected
-
-    def test_invalid_dataset_type_specified(self):
-        with raises(SpecificationError):
-            specimen._clean_datasets_selection(
-                [dict(name="Not Found", type="invalid")],
-            )
-
-    def test_invalid_dataset_identifier_specified(self):
-        with raises(SpecificationError):
-            specimen._clean_datasets_selection(
-                [dict(dataset_id="Not Found", type="existing")],
-            )
-
-
 @mark.asyncio
 class JobsTests:
     async def test_jobs_get(
@@ -276,13 +219,12 @@ class JobsTests:
             disk_size=10,
         )
         expected_payload = dict(
-            project_uuid="proj-id-a",
+            project_uuid="proj-id-1",
             name="job_name",
             type="notebook",
             resources=dict(
                 gpu_type_id="GTX 1060", gpu_count=1, disk_size=10, max_price=10
             ),
-            environment=dict(type="DEEPLEARNING_PY39"),
             model=dict(),
             worker_commands=[],
         )
@@ -313,7 +255,7 @@ class JobsTests:
         )
         expected_payload = dict(
             name="job_name",
-            project_uuid="proj-id-a",
+            project_uuid="proj-id-1",
             type="notebook",
             resources=dict(
                 gpu_type_id="1060-id", gpu_count=1, disk_size=10, max_price=2
@@ -724,6 +666,7 @@ class JobTests:
             "workers": None,
             "environment": None,
             "data": None,
+            "model": None,
             "source_job_uuid": "job-id-1",
         }
 

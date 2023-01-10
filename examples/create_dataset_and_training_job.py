@@ -30,7 +30,7 @@ job = asyncio.run(
             "python training/image-classification/resnet_cifar.py --epochs 10 --optimizer adam --batch-size 128",
         ],
         data=dict(
-            datasets=[dict(id=dataset.id, type="existing")],
+            datasets=[dataset.id],
             output_uri="s3://trainml-examples/output/resnet_cifar10",
             output_type="aws",
         ),

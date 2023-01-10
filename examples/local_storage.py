@@ -39,7 +39,7 @@ async def run_job(dataset):
             "python training/image-classification/resnet_cifar.py --epochs 10 --optimizer adam --batch-size 128",
         ],
         data=dict(
-            datasets=[dict(id=dataset.id, type="existing")],
+            datasets=[dataset.id],
             output_uri="~/tensorflow-example/output",
             output_type="local",
         ),

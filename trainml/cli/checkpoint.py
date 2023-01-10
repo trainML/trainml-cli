@@ -188,6 +188,35 @@ def list(config):
 
 
 @checkpoint.command()
+@pass_config
+def list_public(config):
+    """List public checkpoints."""
+    data = [
+        ["ID", "STATUS", "NAME", "SIZE"],
+        ["-" * 80, "-" * 80, "-" * 80, "-" * 80],
+    ]
+
+    checkpoints = config.trainml.run(
+        config.trainml.client.checkpoints.list_public()
+    )
+
+    for ckpt in checkpoints:
+        data.append(
+            [
+                ckpt.id,
+                ckpt.status,
+                ckpt.name,
+                pretty_size(ckpt.size),
+            ]
+        )
+    for row in data:
+        click.echo(
+            "{: >38.36} {: >13.11} {: >40.38} {: >14.12}" "".format(*row),
+            file=config.stdout,
+        )
+
+
+@checkpoint.command()
 @click.option(
     "--force/--no-force",
     default=False,

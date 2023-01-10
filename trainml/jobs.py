@@ -15,40 +15,6 @@ from trainml.exceptions import (
 from trainml.connections import Connection
 
 
-def _clean_datasets_selection(
-    requested_datasets=[],
-):
-    datasets = []
-    for dataset in requested_datasets:
-        if dataset.get("type") not in ["existing", "public"]:
-            raise SpecificationError(
-                "datasets",
-                "Invalid dataset specification, 'type' must be in ['existing','public']",
-            )
-        if "id" in dataset.keys():
-            datasets.append(
-                dict(
-                    id=dataset.get("id"),
-                    type=dataset.get("type"),
-                )
-            )
-        elif "dataset_uuid" in dataset.keys():
-            datasets.append(dataset)
-        elif "name" in dataset.keys():
-            datasets.append(
-                dict(
-                    id=dataset.get("name"),
-                    type=dataset.get("type"),
-                )
-            )
-        else:
-            raise SpecificationError(
-                "datasets",
-                "Invalid dataset specification, either 'id' or 'name' must be provided",
-            )
-    return datasets
-
-
 class Jobs(object):
     def __init__(self, trainml):
         self.trainml = trainml
@@ -73,16 +39,12 @@ class Jobs(object):
         disk_size=10,
         max_price=10,
         worker_commands=[],
-        environment=dict(type="DEEPLEARNING_PY39"),
+        environment=dict(),
         data=dict(),
         model=dict(),
         endpoint=dict(),
         **kwargs,
     ):
-
-        if data and data.get("datasets"):
-            datasets = _clean_datasets_selection(data.get("datasets"))
-            data["datasets"] = datasets
 
         resources = {
             k: v
@@ -221,8 +183,14 @@ class Job:
             "disk_size",
             "max_price",
             "preemptible",
+            "cpu_count",
         ]
-        model_keys = ["source_type", "source_uri", "project_uuid"]
+        model_keys = [
+            "source_type",
+            "source_uri",
+            "project_uuid",
+            "checkpoints",
+        ]
         data_keys = [
             "datasets",
             "input_type",
@@ -239,7 +207,7 @@ class Job:
             "worker_key_types",
             "packages",
         ]
-        endpoint_keys = ["routes", "start_command"]
+        endpoint_keys = ["routes", "start_command", "reservation_id"]
         create_json = dict()
         for k, v in self.dict.items():
             if k in root_keys:
@@ -296,6 +264,19 @@ class Job:
             "PATCH",
             dict(project_uuid=self._project_uuid),
             dict(command="stop"),
+        )
+
+    async def update(self, data):
+        if self.type != "notebook":
+            raise SpecificationError(
+                "type",
+                "Only notebook jobs can be modified.",
+            )
+        await self.trainml._query(
+            f"/job/{self._id}",
+            "PATCH",
+            dict(project_uuid=self._project_uuid),
+            data,
         )
 
     async def get_worker_log_url(self, job_worker_uuid):
@@ -466,6 +447,7 @@ class Job:
             workers=kwargs.get("workers"),
             environment=kwargs.get("environment"),
             data=kwargs.get("data"),
+            model=kwargs.get("model"),
             source_job_uuid=self.id,
         )
         logging.debug(f"copy result: {job}")

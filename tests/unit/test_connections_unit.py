@@ -34,7 +34,7 @@ def dataset_con(mock_trainml):
         entity=DatasetMock(
             mock_trainml,
             dataset_uuid="data-id-1",
-            project_uuid="proj-id-a",
+            project_uuid="proj-id-1",
             name="first one",
             status="new",
         ),
@@ -52,7 +52,7 @@ def job_con(mock_trainml):
             mock_trainml,
             **{
                 "customer_uuid": "cus-id-1",
-                "project_uuid": "proj-id-a",
+                "project_uuid": "proj-id-1",
                 "job_uuid": "job-id-1",
                 "name": "test notebook",
                 "type": "interactive",
@@ -95,14 +95,14 @@ class ConnectionsTests:
                 await connections.cleanup_connections()
                 assert mock_cleanup.mock_calls == [
                     call(
-                        "proj-id-a",
-                        os.path.expanduser("~/.trainml/connections/proj-id-a"),
+                        "proj-id-1",
+                        os.path.expanduser("~/.trainml/connections/proj-id-1"),
                         dir_list,
                         "vpn",
                     ),
                     call(
-                        "proj-id-a",
-                        os.path.expanduser("~/.trainml/connections/proj-id-a"),
+                        "proj-id-1",
+                        os.path.expanduser("~/.trainml/connections/proj-id-1"),
                         dir_list,
                         "storage",
                     ),
@@ -127,8 +127,8 @@ class ConnectionsTests:
                 docker.containers = AsyncMock()
                 docker.containers.list = AsyncMock(return_value=containers)
                 await specimen._cleanup_containers(
-                    "proj-id-a",
-                    os.path.expanduser("~/.trainml/connections/proj-id-a"),
+                    "proj-id-1",
+                    os.path.expanduser("~/.trainml/connections/proj-id-1"),
                     ["dir_1"],
                     "job",
                 )
@@ -139,7 +139,7 @@ class ConnectionsTests:
                             label=[
                                 "service=trainml",
                                 "type=job",
-                                "project=proj-id-a",
+                                "project=proj-id-1",
                             ]
                         )
                     ),

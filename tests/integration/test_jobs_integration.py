@@ -18,7 +18,7 @@ async def job(trainml):
         gpu_types=["gtx1060"],
         gpu_count=1,
         disk_size=11,
-        data=dict(datasets=[dict(name="CIFAR-10", type="public")]),
+        data=dict(datasets=[dict(id="CIFAR-10", public=True)]),
         model=dict(
             source_type="git",
             source_uri="git@github.com:trainML/environment-tests.git",
@@ -104,8 +104,8 @@ class JobLifeCycleTests:
             data=dict(
                 datasets=[
                     dict(
-                        name="CIFAR-10",
-                        type="public",
+                        id="CIFAR-10",
+                        public=True,
                     )
                 ],
                 output_uri="s3://trainml-examples/output/resnet_cifar10",
@@ -310,7 +310,7 @@ class JobAPIDataValidationTests:
                 type="inference",
                 gpu_types=["rtx3090"],
                 disk_size=10,
-                data=dict(datasets=[dict(id="CIFAR-10", type="public")]),
+                data=dict(datasets=[dict(id="CIFAR-10", public=True)]),
                 workers=["python predict.py"],
             )
         assert (
@@ -374,12 +374,20 @@ class JobIOTests:
             gpu_types=["gtx1060"],
             disk_size=10,
             workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
-            environment=dict(type="DEEPLEARNING_PY39"),
+            environment=dict(
+                type="DEEPLEARNING_PY39",
+                env=[
+                    dict(
+                        key="CHECKPOINT_FILE",
+                        value="model.ckpt-0050",
+                    )
+                ],
+            ),
             data=dict(
                 datasets=[
                     dict(
-                        name="CIFAR-10",
-                        type="public",
+                        id="CIFAR-10",
+                        public=True,
                     )
                 ],
                 output_uri=temp_dir.name,
@@ -388,6 +396,9 @@ class JobIOTests:
             model=dict(
                 source_type="git",
                 source_uri="git@github.com:trainML/environment-tests.git",
+                checkpoints=[
+                    "tensorflow-checkpoint",
+                ],
             ),
         )
         await job.wait_for("waiting for data/model download")
@@ -399,12 +410,11 @@ class JobIOTests:
         await job.disconnect()
         await job.remove()
         upload_contents = os.listdir(temp_dir.name)
-        result = any(
-            "CLI_Automated_Tensorflow_Test_1" in content
+        temp_dir.cleanup()
+        assert any(
+            "CLI_Automated_Tests_-_Local_Output" in content
             for content in upload_contents
         )
-        assert result is not None
-        temp_dir.cleanup()
 
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
@@ -432,12 +442,11 @@ class JobIOTests:
             cpu_count=8,
             disk_size=10,
             worker_commands=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
-            environment=dict(type="DEEPLEARNING_PY39"),
             data=dict(
                 datasets=[
                     dict(
-                        name="CIFAR-10",
-                        type="public",
+                        id="CIFAR-10",
+                        public=True,
                     )
                 ],
                 output_type="trainml",
@@ -559,8 +568,8 @@ class JobTypeTests:
             data=dict(
                 datasets=[
                     dict(
-                        name="CIFAR-10",
-                        type="public",
+                        id="CIFAR-10",
+                        public=True,
                     )
                 ],
                 output_type="wasabi",
@@ -611,8 +620,8 @@ class JobFeatureTests:
             data=dict(
                 datasets=[
                     dict(
-                        name="CIFAR-10",
-                        type="public",
+                        id="CIFAR-10",
+                        public=True,
                     )
                 ],
             ),
@@ -662,13 +671,12 @@ class JobFeatureTests:
         sys.stdout.write(captured.out)
         sys.stderr.write(captured.err)
         upload_contents = os.listdir(temp_dir.name)
+        temp_dir.cleanup()
         assert len(upload_contents) > 4
-        result = any(
+        assert any(
             "model.ckpt-0002.data-00000-of-00001" in content
             for content in upload_contents
         )
-        assert result is not None
-        temp_dir.cleanup()
 
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)

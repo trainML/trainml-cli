@@ -28,6 +28,11 @@ class Checkpoints(object):
         ]
         return checkpoints
 
+    async def list_public(self):
+        resp = await self.trainml._query(f"/checkpoint/public", "GET")
+        datasets = [Checkpoint(self.trainml, **dataset) for dataset in resp]
+        return datasets
+
     async def create(self, name, source_type, source_uri, **kwargs):
         data = dict(
             name=name,

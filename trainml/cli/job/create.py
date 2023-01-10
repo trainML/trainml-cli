@@ -92,6 +92,18 @@ def create(config):
     multiple=True,
 )
 @click.option(
+    "--checkpoint",
+    type=click.STRING,
+    help="ID or Name of a checkpoint to add to the job",
+    multiple=True,
+)
+@click.option(
+    "--public-checkpoint",
+    type=click.STRING,
+    help="ID or Name of a public checkpoint to add to the job",
+    multiple=True,
+)
+@click.option(
     "--environment",
     type=click.Choice(
         [
@@ -185,6 +197,8 @@ def notebook(
     data_dir,
     dataset,
     public_dataset,
+    checkpoint,
+    public_checkpoint,
     environment,
     custom_image,
     env,
@@ -202,13 +216,24 @@ def notebook(
     Create a notebook.
     """
 
-    datasets = [dict(id=item, type="existing") for item in dataset] + [
-        dict(id=item, type="public") for item in public_dataset
-    ]
+    datasets = [
+        dict(
+            id=item,
+        )
+        for item in dataset
+    ] + [dict(id=item, public=True) for item in public_dataset]
+
+    checkpoints = [
+        dict(
+            id=item,
+        )
+        for item in checkpoint
+    ] + [dict(id=item, public=True) for item in public_checkpoint]
 
     options = dict(
         max_price=max_price,
         data=dict(datasets=datasets),
+        model=dict(checkpoints=checkpoints),
         environment=dict(
             type="CUSTOM" if custom_image else environment,
             custom_image=custom_image,
@@ -256,11 +281,15 @@ def notebook(
         )
 
     if git_uri:
-        options["model"] = dict(source_type="git", source_uri=git_uri)
+        options["model"]["source_type"] = "git"
+        options["model"]["source_uri"] = git_uri
     if model_id:
-        options["model"] = dict(source_type="trainml", source_uri=model_id)
+        options["model"]["source_type"] = "trainml"
+        options["model"]["source_uri"] = model_id
     if model_dir:
-        options["model"] = dict(source_type="local", source_uri=model_dir)
+        options["model"]["source_type"] = "local"
+        options["model"]["source_uri"] = model_dir
+
     job = config.trainml.run(
         config.trainml.client.jobs.create(
             name=name,
@@ -367,6 +396,18 @@ def notebook(
     "--public-dataset",
     type=click.STRING,
     help="ID or Name of a public dataset to add to the job",
+    multiple=True,
+)
+@click.option(
+    "--checkpoint",
+    type=click.STRING,
+    help="ID or Name of a checkpoint to add to the job",
+    multiple=True,
+)
+@click.option(
+    "--public-checkpoint",
+    type=click.STRING,
+    help="ID or Name of a public checkpoint to add to the job",
     multiple=True,
 )
 @click.option(
@@ -485,6 +526,8 @@ def training(
     data_dir,
     dataset,
     public_dataset,
+    checkpoint,
+    public_checkpoint,
     output_dir,
     output_type,
     output_uri,
@@ -506,13 +549,24 @@ def training(
     Create a training job.
     """
 
-    datasets = [dict(id=item, type="existing") for item in dataset] + [
-        dict(id=item, type="public") for item in public_dataset
-    ]
+    datasets = [
+        dict(
+            id=item,
+        )
+        for item in dataset
+    ] + [dict(id=item, public=True) for item in public_dataset]
+
+    checkpoints = [
+        dict(
+            id=item,
+        )
+        for item in checkpoint
+    ] + [dict(id=item, public=True) for item in public_checkpoint]
 
     options = dict(
         max_price=max_price,
         data=dict(datasets=datasets),
+        model=dict(checkpoints=checkpoints),
         environment=dict(
             type="CUSTOM" if custom_image else environment,
             custom_image=custom_image,
@@ -572,11 +626,15 @@ def training(
         )
 
     if git_uri:
-        options["model"] = dict(source_type="git", source_uri=git_uri)
+        options["model"]["source_type"] = "git"
+        options["model"]["source_uri"] = git_uri
     if model_id:
-        options["model"] = dict(source_type="trainml", source_uri=model_id)
+        options["model"]["source_type"] = "trainml"
+        options["model"]["source_uri"] = model_id
     if model_dir:
-        options["model"] = dict(source_type="local", source_uri=model_dir)
+        options["model"]["source_type"] = "local"
+        options["model"]["source_uri"] = model_dir
+
     job = config.trainml.run(
         config.trainml.client.jobs.create(
             name=name,
@@ -658,6 +716,18 @@ def training(
     default=10.0,
     show_default=True,
     help="Max Price (per GPU).",
+)
+@click.option(
+    "--checkpoint",
+    type=click.STRING,
+    help="ID or Name of a checkpoint to add to the job",
+    multiple=True,
+)
+@click.option(
+    "--public-checkpoint",
+    type=click.STRING,
+    help="ID or Name of a public checkpoint to add to the job",
+    multiple=True,
 )
 @click.option(
     "--input-dir",
@@ -789,6 +859,8 @@ def inference(
     gpu_count,
     gpu_type,
     max_price,
+    checkpoint,
+    public_checkpoint,
     input_dir,
     input_type,
     input_uri,
@@ -813,9 +885,17 @@ def inference(
     Create an inference job.
     """
 
+    checkpoints = [
+        dict(
+            id=item,
+        )
+        for item in checkpoint
+    ] + [dict(id=item, public=True) for item in public_checkpoint]
+
     options = dict(
         max_price=max_price,
         data=dict(datasets=[]),
+        model=dict(checkpoints=checkpoints),
         environment=dict(
             type="CUSTOM" if custom_image else environment,
             custom_image=custom_image,
@@ -865,11 +945,15 @@ def inference(
             )
 
     if git_uri:
-        options["model"] = dict(source_type="git", source_uri=git_uri)
+        options["model"]["source_type"] = "git"
+        options["model"]["source_uri"] = git_uri
     if model_id:
-        options["model"] = dict(source_type="trainml", source_uri=model_id)
+        options["model"]["source_type"] = "trainml"
+        options["model"]["source_uri"] = model_id
     if model_dir:
-        options["model"] = dict(source_type="local", source_uri=model_dir)
+        options["model"]["source_type"] = "local"
+        options["model"]["source_uri"] = model_dir
+
     job = config.trainml.run(
         config.trainml.client.jobs.create(
             name=name,
@@ -989,6 +1073,18 @@ def from_json(config, attach, connect, file):
     help="Max Price (per GPU).",
 )
 @click.option(
+    "--checkpoint",
+    type=click.STRING,
+    help="ID or Name of a checkpoint to add to the job",
+    multiple=True,
+)
+@click.option(
+    "--public-checkpoint",
+    type=click.STRING,
+    help="ID or Name of a public checkpoint to add to the job",
+    multiple=True,
+)
+@click.option(
     "--environment",
     type=click.Choice(
         [
@@ -1085,6 +1181,8 @@ def endpoint(
     gpu_count,
     gpu_type,
     max_price,
+    checkpoint,
+    public_checkpoint,
     environment,
     custom_image,
     env,
@@ -1102,10 +1200,18 @@ def endpoint(
     """
     Create an endpoint.
     """
+    checkpoints = [
+        dict(
+            id=item,
+        )
+        for item in checkpoint
+    ] + [dict(id=item, public=True) for item in public_checkpoint]
+
     routes = [json.loads(item) for item in route]
 
     options = dict(
         max_price=max_price,
+        model=dict(checkpoints=checkpoints),
         environment=dict(
             type="CUSTOM" if custom_image else environment,
             custom_image=custom_image,
@@ -1135,11 +1241,15 @@ def endpoint(
             )
 
     if git_uri:
-        options["model"] = dict(source_type="git", source_uri=git_uri)
+        options["model"]["source_type"] = "git"
+        options["model"]["source_uri"] = git_uri
     if model_id:
-        options["model"] = dict(source_type="trainml", source_uri=model_id)
+        options["model"]["source_type"] = "trainml"
+        options["model"]["source_uri"] = model_id
     if model_dir:
-        options["model"] = dict(source_type="local", source_uri=model_dir)
+        options["model"]["source_type"] = "local"
+        options["model"]["source_uri"] = model_dir
+
     job = config.trainml.run(
         config.trainml.client.jobs.create(
             name=name,

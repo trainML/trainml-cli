@@ -26,7 +26,7 @@ def model(mock_trainml):
     yield specimen.Model(
         mock_trainml,
         model_uuid="1",
-        project_uuid="proj-id-a",
+        project_uuid="proj-id-1",
         name="first one",
         status="new",
         size=100000,
@@ -78,7 +78,7 @@ class ModelsTests:
             source_uri="s3://trainml-examples/models/resnet50",
         )
         expected_payload = dict(
-            project_uuid="proj-id-a",
+            project_uuid="proj-id-1",
             name="new model",
             source_type="aws",
             source_uri="s3://trainml-examples/models/resnet50",
@@ -136,7 +136,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_log_url()
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/1/logs", "GET", dict(project_uuid="proj-id-a")
+            "/model/pub/1/logs", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -153,7 +153,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_details()
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/1/details", "GET", dict(project_uuid="proj-id-a")
+            "/model/pub/1/details", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -164,7 +164,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/1/download", "GET", dict(project_uuid="proj-id-a")
+            "/model/pub/1/download", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -239,7 +239,7 @@ class ModelTests:
         mock_trainml._query.assert_called_once_with(
             "/model/pub/1",
             "DELETE",
-            dict(project_uuid="proj-id-a", force=False),
+            dict(project_uuid="proj-id-1", force=False),
         )
 
     def test_model_default_ws_msg_handler(self, model, capsys):
@@ -329,7 +329,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.refresh()
         mock_trainml._query.assert_called_once_with(
-            f"/model/pub/1", "GET", dict(project_uuid="proj-id-a")
+            f"/model/pub/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert model.id == "data-id-1"
         assert response.id == "data-id-1"
@@ -348,7 +348,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.wait_for("ready")
         mock_trainml._query.assert_called_once_with(
-            f"/model/pub/1", "GET", dict(project_uuid="proj-id-a")
+            f"/model/pub/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert model.id == "data-id-1"
         assert response.id == "data-id-1"

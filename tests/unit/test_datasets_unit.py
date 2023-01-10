@@ -26,7 +26,7 @@ def dataset(mock_trainml):
     yield specimen.Dataset(
         mock_trainml,
         dataset_uuid="1",
-        project_uuid="proj-id-a",
+        project_uuid="proj-id-1",
         name="first one",
         status="new",
         size=100000,
@@ -96,14 +96,14 @@ class DatasetsTests:
             source_uri="s3://trainml-examples/data/cifar10",
         )
         expected_payload = dict(
-            project_uuid="proj-id-a",
+            project_uuid="proj-id-1",
             name="new dataset",
             source_type="aws",
             source_uri="s3://trainml-examples/data/cifar10",
         )
         api_response = {
             "customer_uuid": "cus-id-1",
-            "project_uuid": "proj-id-a",
+            "project_uuid": "proj-id-1",
             "dataset_uuid": "data-id-1",
             "name": "new dataset",
             "status": "new",
@@ -155,7 +155,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_log_url()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/logs", "GET", dict(project_uuid="proj-id-a")
+            "/dataset/pub/1/logs", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -172,7 +172,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_details()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/details", "GET", dict(project_uuid="proj-id-a")
+            "/dataset/pub/1/details", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -185,7 +185,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/download", "GET", dict(project_uuid="proj-id-a")
+            "/dataset/pub/1/download", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -198,7 +198,7 @@ class DatasetTests:
         dataset = specimen.Dataset(
             mock_trainml,
             dataset_uuid="1",
-            project_uuid="proj-id-a",
+            project_uuid="proj-id-1",
             name="first one",
             status="new",
             size=100000,
@@ -218,7 +218,7 @@ class DatasetTests:
         )
         details = dataset.get_connection_details()
         expected_details = dict(
-            project_uuid="proj-id-a",
+            project_uuid="proj-id-1",
             entity_type="dataset",
             cidr="10.106.171.0/24",
             ssh_port=46600,
@@ -259,7 +259,7 @@ class DatasetTests:
         mock_trainml._query.assert_called_once_with(
             "/dataset/pub/1",
             "DELETE",
-            dict(project_uuid="proj-id-a", force=False),
+            dict(project_uuid="proj-id-1", force=False),
         )
 
     def test_dataset_default_ws_msg_handler(self, dataset, capsys):
@@ -350,7 +350,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.refresh()
         mock_trainml._query.assert_called_once_with(
-            f"/dataset/pub/1", "GET", dict(project_uuid="proj-id-a")
+            f"/dataset/pub/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert dataset.id == "data-id-1"
         assert response.id == "data-id-1"
@@ -369,7 +369,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.wait_for("ready")
         mock_trainml._query.assert_called_once_with(
-            f"/dataset/pub/1", "GET", dict(project_uuid="proj-id-a")
+            f"/dataset/pub/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert dataset.id == "data-id-1"
         assert response.id == "data-id-1"
