@@ -18,16 +18,16 @@ class Datasets(object):
         self.trainml = trainml
 
     async def get(self, id):
-        resp = await self.trainml._query(f"/dataset/pub/{id}", "GET")
+        resp = await self.trainml._query(f"/dataset/{id}", "GET")
         return Dataset(self.trainml, **resp)
 
     async def list(self):
-        resp = await self.trainml._query(f"/dataset/pub", "GET")
+        resp = await self.trainml._query(f"/dataset", "GET")
         datasets = [Dataset(self.trainml, **dataset) for dataset in resp]
         return datasets
 
     async def list_public(self):
-        resp = await self.trainml._query(f"/dataset/pub/public", "GET")
+        resp = await self.trainml._query(f"/dataset/public", "GET")
         datasets = [Dataset(self.trainml, **dataset) for dataset in resp]
         return datasets
 
@@ -42,16 +42,14 @@ class Datasets(object):
         )
         payload = {k: v for k, v in data.items() if v}
         logging.info(f"Creating Dataset {name}")
-        resp = await self.trainml._query("/dataset/pub", "POST", None, payload)
+        resp = await self.trainml._query("/dataset", "POST", None, payload)
         dataset = Dataset(self.trainml, **resp)
         logging.info(f"Created Dataset {name} with id {dataset.id}")
 
         return dataset
 
     async def remove(self, id):
-        await self.trainml._query(
-            f"/dataset/pub/{id}", "DELETE", dict(force=True)
-        )
+        await self.trainml._query(f"/dataset/{id}", "DELETE", dict(force=True))
 
 
 class Dataset:
@@ -91,7 +89,7 @@ class Dataset:
 
     async def get_log_url(self):
         resp = await self.trainml._query(
-            f"/dataset/pub/{self._id}/logs",
+            f"/dataset/{self._id}/logs",
             "GET",
             dict(project_uuid=self._project_uuid),
         )
@@ -99,7 +97,7 @@ class Dataset:
 
     async def get_details(self):
         resp = await self.trainml._query(
-            f"/dataset/pub/{self._id}/details",
+            f"/dataset/{self._id}/details",
             "GET",
             dict(project_uuid=self._project_uuid),
         )
@@ -107,7 +105,7 @@ class Dataset:
 
     async def get_connection_utility_url(self):
         resp = await self.trainml._query(
-            f"/dataset/pub/{self._id}/download",
+            f"/dataset/{self._id}/download",
             "GET",
             dict(project_uuid=self._project_uuid),
         )
@@ -150,7 +148,7 @@ class Dataset:
 
     async def remove(self, force=False):
         await self.trainml._query(
-            f"/dataset/pub/{self._id}",
+            f"/dataset/{self._id}",
             "DELETE",
             dict(project_uuid=self._project_uuid, force=force),
         )
@@ -182,7 +180,7 @@ class Dataset:
 
     async def refresh(self):
         resp = await self.trainml._query(
-            f"/dataset/pub/{self.id}",
+            f"/dataset/{self.id}",
             "GET",
             dict(project_uuid=self._project_uuid),
         )

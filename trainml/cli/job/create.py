@@ -130,7 +130,6 @@ def create(config):
     "--custom-image",
     type=click.STRING,
     help="Docker Image to use for the job.  Implies 'CUSTOM' environment type.",
-    multiple=True,
 )
 @click.option(
     "--env",
@@ -235,11 +234,14 @@ def notebook(
         data=dict(datasets=datasets),
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            type="CUSTOM" if custom_image else environment,
-            custom_image=custom_image,
             worker_key_types=[k for k in key],
         ),
     )
+    if custom_image:
+        options["environment"]["type"] = "CUSTOM"
+        options["environment"]["custom_image"] = custom_image
+    else:
+        options["environment"]["type"] = environment
 
     try:
         envs = [
@@ -461,7 +463,6 @@ def notebook(
     "--custom-image",
     type=click.STRING,
     help="Docker Image to use for the job.  Implies 'CUSTOM' environment type.",
-    multiple=True,
 )
 @click.option(
     "--env",
@@ -568,11 +569,14 @@ def training(
         data=dict(datasets=datasets),
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            type="CUSTOM" if custom_image else environment,
-            custom_image=custom_image,
             worker_key_types=[k for k in key],
         ),
     )
+    if custom_image:
+        options["environment"]["type"] = "CUSTOM"
+        options["environment"]["custom_image"] = custom_image
+    else:
+        options["environment"]["type"] = environment
 
     if output_type:
         options["data"]["output_type"] = output_type
@@ -798,7 +802,6 @@ def training(
     "--custom-image",
     type=click.STRING,
     help="Docker Image to use for the job.  Implies 'CUSTOM' environment type.",
-    multiple=True,
 )
 @click.option(
     "--env",
@@ -897,11 +900,14 @@ def inference(
         data=dict(datasets=[]),
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            type="CUSTOM" if custom_image else environment,
-            custom_image=custom_image,
             worker_key_types=[k for k in key],
         ),
     )
+    if custom_image:
+        options["environment"]["type"] = "CUSTOM"
+        options["environment"]["custom_image"] = custom_image
+    else:
+        options["environment"]["type"] = environment
 
     if input_type:
         options["data"]["input_type"] = input_type
@@ -1111,7 +1117,6 @@ def from_json(config, attach, connect, file):
     "--custom-image",
     type=click.STRING,
     help="Docker Image to use for the job.  Implies 'CUSTOM' environment type.",
-    multiple=True,
 )
 @click.option(
     "--env",
@@ -1213,11 +1218,14 @@ def endpoint(
         max_price=max_price,
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            type="CUSTOM" if custom_image else environment,
-            custom_image=custom_image,
             worker_key_types=[k for k in key],
         ),
     )
+    if custom_image:
+        options["environment"]["type"] = "CUSTOM"
+        options["environment"]["custom_image"] = custom_image
+    else:
+        options["environment"]["type"] = environment
 
     try:
         envs = [

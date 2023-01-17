@@ -18,11 +18,11 @@ class Models(object):
         self.trainml = trainml
 
     async def get(self, id):
-        resp = await self.trainml._query(f"/model/pub/{id}", "GET")
+        resp = await self.trainml._query(f"/model/{id}", "GET")
         return Model(self.trainml, **resp)
 
     async def list(self):
-        resp = await self.trainml._query(f"/model/pub", "GET")
+        resp = await self.trainml._query(f"/model", "GET")
         models = [Model(self.trainml, **model) for model in resp]
         return models
 
@@ -37,16 +37,14 @@ class Models(object):
         )
         payload = {k: v for k, v in data.items() if v}
         logging.info(f"Creating Model {name}")
-        resp = await self.trainml._query("/model/pub", "POST", None, payload)
+        resp = await self.trainml._query("/model", "POST", None, payload)
         model = Model(self.trainml, **resp)
         logging.info(f"Created Model {name} with id {model.id}")
 
         return model
 
     async def remove(self, id):
-        await self.trainml._query(
-            f"/model/pub/{id}", "DELETE", dict(force=True)
-        )
+        await self.trainml._query(f"/model/{id}", "DELETE", dict(force=True))
 
 
 class Model:
@@ -86,7 +84,7 @@ class Model:
 
     async def get_log_url(self):
         resp = await self.trainml._query(
-            f"/model/pub/{self._id}/logs",
+            f"/model/{self._id}/logs",
             "GET",
             dict(project_uuid=self._project_uuid),
         )
@@ -94,7 +92,7 @@ class Model:
 
     async def get_details(self):
         resp = await self.trainml._query(
-            f"/model/pub/{self._id}/details",
+            f"/model/{self._id}/details",
             "GET",
             dict(project_uuid=self._project_uuid),
         )
@@ -102,7 +100,7 @@ class Model:
 
     async def get_connection_utility_url(self):
         resp = await self.trainml._query(
-            f"/model/pub/{self._id}/download",
+            f"/model/{self._id}/download",
             "GET",
             dict(project_uuid=self._project_uuid),
         )
@@ -143,7 +141,7 @@ class Model:
 
     async def remove(self, force=False):
         await self.trainml._query(
-            f"/model/pub/{self._id}",
+            f"/model/{self._id}",
             "DELETE",
             dict(project_uuid=self._project_uuid, force=force),
         )
@@ -175,7 +173,7 @@ class Model:
 
     async def refresh(self):
         resp = await self.trainml._query(
-            f"/model/pub/{self.id}",
+            f"/model/{self.id}",
             "GET",
             dict(project_uuid=self._project_uuid),
         )

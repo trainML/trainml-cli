@@ -44,7 +44,7 @@ class ModelsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await models.get("1234")
-        mock_trainml._query.assert_called_once_with("/model/pub/1234", "GET")
+        mock_trainml._query.assert_called_once_with("/model/1234", "GET")
 
     @mark.asyncio
     async def test_list_models(
@@ -55,7 +55,7 @@ class ModelsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await models.list()
-        mock_trainml._query.assert_called_once_with("/model/pub", "GET")
+        mock_trainml._query.assert_called_once_with("/model", "GET")
 
     @mark.asyncio
     async def test_remove_model(
@@ -67,7 +67,7 @@ class ModelsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await models.remove("4567")
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/4567", "DELETE", dict(force=True)
+            "/model/4567", "DELETE", dict(force=True)
         )
 
     @mark.asyncio
@@ -96,7 +96,7 @@ class ModelsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await models.create(**requested_config)
         mock_trainml._query.assert_called_once_with(
-            "/model/pub", "POST", None, expected_payload
+            "/model", "POST", None, expected_payload
         )
         assert response.id == "model-id-1"
 
@@ -136,7 +136,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_log_url()
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/1/logs", "GET", dict(project_uuid="proj-id-1")
+            "/model/1/logs", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -153,7 +153,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_details()
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/1/details", "GET", dict(project_uuid="proj-id-1")
+            "/model/1/details", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -164,7 +164,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/1/download", "GET", dict(project_uuid="proj-id-1")
+            "/model/1/download", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -237,7 +237,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await model.remove()
         mock_trainml._query.assert_called_once_with(
-            "/model/pub/1",
+            "/model/1",
             "DELETE",
             dict(project_uuid="proj-id-1", force=False),
         )
@@ -329,7 +329,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.refresh()
         mock_trainml._query.assert_called_once_with(
-            f"/model/pub/1", "GET", dict(project_uuid="proj-id-1")
+            f"/model/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert model.id == "data-id-1"
         assert response.id == "data-id-1"
@@ -348,7 +348,7 @@ class ModelTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.wait_for("ready")
         mock_trainml._query.assert_called_once_with(
-            f"/model/pub/1", "GET", dict(project_uuid="proj-id-1")
+            f"/model/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert model.id == "data-id-1"
         assert response.id == "data-id-1"

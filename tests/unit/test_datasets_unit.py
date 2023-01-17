@@ -45,7 +45,7 @@ class DatasetsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.get("1234")
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1234",
+            "/dataset/1234",
             "GET",
         )
 
@@ -59,7 +59,7 @@ class DatasetsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.list()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub",
+            "/dataset",
             "GET",
         )
 
@@ -69,7 +69,7 @@ class DatasetsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.list_public()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/public",
+            "/dataset/public",
             "GET",
         )
 
@@ -83,7 +83,7 @@ class DatasetsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await datasets.remove("4567")
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/4567",
+            "/dataset/4567",
             "DELETE",
             dict(force=True),
         )
@@ -115,7 +115,7 @@ class DatasetsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await datasets.create(**requested_config)
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub", "POST", None, expected_payload
+            "/dataset", "POST", None, expected_payload
         )
         assert response.id == "data-id-1"
 
@@ -155,7 +155,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_log_url()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/logs", "GET", dict(project_uuid="proj-id-1")
+            "/dataset/1/logs", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -172,7 +172,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_details()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/details", "GET", dict(project_uuid="proj-id-1")
+            "/dataset/1/details", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -185,7 +185,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1/download", "GET", dict(project_uuid="proj-id-1")
+            "/dataset/1/download", "GET", dict(project_uuid="proj-id-1")
         )
         assert response == api_response
 
@@ -257,7 +257,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await dataset.remove()
         mock_trainml._query.assert_called_once_with(
-            "/dataset/pub/1",
+            "/dataset/1",
             "DELETE",
             dict(project_uuid="proj-id-1", force=False),
         )
@@ -350,7 +350,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.refresh()
         mock_trainml._query.assert_called_once_with(
-            f"/dataset/pub/1", "GET", dict(project_uuid="proj-id-1")
+            f"/dataset/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert dataset.id == "data-id-1"
         assert response.id == "data-id-1"
@@ -369,7 +369,7 @@ class DatasetTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.wait_for("ready")
         mock_trainml._query.assert_called_once_with(
-            f"/dataset/pub/1", "GET", dict(project_uuid="proj-id-1")
+            f"/dataset/1", "GET", dict(project_uuid="proj-id-1")
         )
         assert dataset.id == "data-id-1"
         assert response.id == "data-id-1"

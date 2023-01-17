@@ -168,3 +168,4 @@ from trainml.cli.environment import environment
 from trainml.cli.gpu import gpu
 from trainml.cli.job import job
 from trainml.cli.project import project
+from trainml.cli.provider import provider
