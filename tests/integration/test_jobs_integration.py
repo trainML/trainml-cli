@@ -450,6 +450,7 @@ class JobIOTests:
                     )
                 ],
                 output_type="trainml",
+                output_uri="model",
             ),
             model=dict(source_type="trainml", source_uri=model.id),
         )
@@ -465,9 +466,7 @@ class JobIOTests:
         assert "Epoch 1/2" in captured.out
         assert "Epoch 2/2" in captured.out
 
-        new_model = await trainml.models.get(
-            workers[0].get("output_model_uuid")
-        )
+        new_model = await trainml.models.get(workers[0].get("output_uuid"))
         assert new_model.id
         await new_model.wait_for("ready")
         await new_model.refresh()
@@ -618,12 +617,7 @@ class JobFeatureTests:
                 "python $TRAINML_MODEL_PATH/pytorch/main.py",
             ],
             data=dict(
-                datasets=[
-                    dict(
-                        id="CIFAR-10",
-                        public=True,
-                    )
-                ],
+                datasets=[dict(id="MNIST", public=True)],
             ),
         )
         assert job.id

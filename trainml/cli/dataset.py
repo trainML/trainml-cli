@@ -239,3 +239,25 @@ def remove(config, dataset, force):
             raise click.UsageError("Cannot find specified dataset.")
 
     return config.trainml.run(found.remove(force=force))
+
+
+@dataset.command()
+@click.argument("dataset", type=click.STRING)
+@click.argument("name", type=click.STRING)
+@pass_config
+def rename(config, dataset, name):
+    """
+    Renames a dataset.
+
+    DATASET may be specified by name or ID, but ID is preferred.
+    """
+    try:
+        dataset = config.trainml.run(
+            config.trainml.client.datasets.get(dataset)
+        )
+        if dataset is None:
+            raise click.UsageError("Cannot find specified dataset.")
+    except:
+        raise click.UsageError("Cannot find specified dataset.")
+
+    return config.trainml.run(dataset.rename(name=name))

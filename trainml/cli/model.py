@@ -212,3 +212,23 @@ def remove(config, model, force):
             raise click.UsageError("Cannot find specified model.")
 
     return config.trainml.run(found.remove(force=force))
+
+
+@model.command()
+@click.argument("model", type=click.STRING)
+@click.argument("name", type=click.STRING)
+@pass_config
+def rename(config, model, name):
+    """
+    Renames a model.
+
+    MODEL may be specified by name or ID, but ID is preferred.
+    """
+    try:
+        model = config.trainml.run(config.trainml.client.models.get(model))
+        if model is None:
+            raise click.UsageError("Cannot find specified model.")
+    except:
+        raise click.UsageError("Cannot find specified model.")
+
+    return config.trainml.run(model.rename(name=name))

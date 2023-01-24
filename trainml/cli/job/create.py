@@ -183,7 +183,7 @@ def create(config):
     show_default=True,
     help="Seconds to wait for job to start",
 )
-@click.argument("name", type=click.STRING)
+@click.argument("name", type=click.STRING, required=True)
 @pass_config
 def notebook(
     config,
@@ -437,6 +437,12 @@ def notebook(
     help="Zip the output contents before uploading.",
 )
 @click.option(
+    "--save-model/--no-save-model",
+    default=False,
+    show_default=True,
+    help="Include the model directory in the job output",
+)
+@click.option(
     "--environment",
     type=click.Choice(
         [
@@ -509,12 +515,8 @@ def notebook(
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     help="Local file path to copy as the model data",
 )
-@click.argument("name", type=click.STRING)
-@click.argument(
-    "commands",
-    type=click.STRING,
-    nargs=-1,
-)
+@click.argument("name", type=click.STRING, required=True)
+@click.argument("commands", type=click.STRING, nargs=-1, required=True)
 @pass_config
 def training(
     config,
@@ -533,6 +535,7 @@ def training(
     output_type,
     output_uri,
     archive,
+    save_model,
     environment,
     custom_image,
     env,
@@ -581,14 +584,16 @@ def training(
     if output_type:
         options["data"]["output_type"] = output_type
         options["data"]["output_uri"] = output_uri
-        if not archive:
-            options["data"]["output_options"] = dict(archive=False)
+        options["data"]["output_options"] = dict(
+            archive=archive, save_model=save_model
+        )
 
     if output_dir:
         options["data"]["output_type"] = "local"
         options["data"]["output_uri"] = output_dir
-        if not archive:
-            options["data"]["output_options"] = dict(archive=False)
+        options["data"]["output_options"] = dict(
+            archive=archive, save_model=save_model
+        )
 
     try:
         envs = [
@@ -776,6 +781,12 @@ def training(
     help="Zip the output contents before uploading.",
 )
 @click.option(
+    "--save-model/--no-save-model",
+    default=False,
+    show_default=True,
+    help="Include the model directory in the job output",
+)
+@click.option(
     "--environment",
     type=click.Choice(
         [
@@ -848,11 +859,8 @@ def training(
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     help="Local file path to copy as the model data",
 )
-@click.argument("name", type=click.STRING)
-@click.argument(
-    "command",
-    type=click.STRING,
-)
+@click.argument("name", type=click.STRING, required=True)
+@click.argument("command", type=click.STRING, required=True)
 @pass_config
 def inference(
     config,
@@ -871,6 +879,7 @@ def inference(
     output_type,
     output_uri,
     archive,
+    save_model,
     environment,
     custom_image,
     env,
@@ -920,14 +929,16 @@ def inference(
     if output_type:
         options["data"]["output_type"] = output_type
         options["data"]["output_uri"] = output_uri
-        if not archive:
-            options["data"]["output_options"] = dict(archive=False)
+        options["data"]["output_options"] = dict(
+            archive=archive, save_model=save_model
+        )
 
     if output_dir:
         options["data"]["output_type"] = "local"
         options["data"]["output_uri"] = output_dir
-        if not archive:
-            options["data"]["output_options"] = dict(archive=False)
+        options["data"]["output_options"] = dict(
+            archive=archive, save_model=save_model
+        )
 
     try:
         envs = [
@@ -1176,7 +1187,7 @@ def from_json(config, attach, connect, file):
     show_default=True,
     help="Seconds to wait for job to start",
 )
-@click.argument("name", type=click.STRING)
+@click.argument("name", type=click.STRING, required=True)
 @pass_config
 def endpoint(
     config,

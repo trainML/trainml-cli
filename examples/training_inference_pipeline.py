@@ -30,8 +30,7 @@ training_job = asyncio.run(
             "python training/image-classification/resnet_cifar.py --epochs 10 --optimizer adam --batch-size 128",
         ],
         data=dict(
-            datasets=[dataset.id],
-            output_type="trainml",
+            datasets=[dataset.id], output_type="trainml", output_uri="model"
         ),
         model=dict(
             source_type="git",
@@ -48,7 +47,7 @@ asyncio.run(training_job.attach())
 training_job = asyncio.run(training_job.refresh())
 
 model = asyncio.run(
-    trainml_client.models.get(training_job.workers[0].get("output_model_uuid"))
+    trainml_client.models.get(training_job.workers[0].get("output_uuid"))
 )
 
 # Ensure the model is ready to use

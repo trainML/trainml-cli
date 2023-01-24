@@ -146,6 +146,14 @@ class Model:
             dict(project_uuid=self._project_uuid, force=force),
         )
 
+    async def rename(self, name):
+        await self.trainml._query(
+            f"/model/{self._id}",
+            "PATCH",
+            None,
+            dict(name=name),
+        )
+
     def _get_msg_handler(self, msg_handler):
         def handler(data):
             if data.get("type") == "subscription":

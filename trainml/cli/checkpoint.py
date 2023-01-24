@@ -241,3 +241,25 @@ def remove(config, checkpoint, force):
             raise click.UsageError("Cannot find specified checkpoint.")
 
     return config.trainml.run(found.remove(force=force))
+
+
+@checkpoint.command()
+@click.argument("checkpoint", type=click.STRING)
+@click.argument("name", type=click.STRING)
+@pass_config
+def rename(config, checkpoint, name):
+    """
+    Renames a checkpoint.
+
+    CHECKPOINT may be specified by name or ID, but ID is preferred.
+    """
+    try:
+        checkpoint = config.trainml.run(
+            config.trainml.client.checkpoints.get(checkpoint)
+        )
+        if checkpoint is None:
+            raise click.UsageError("Cannot find specified checkpoint.")
+    except:
+        raise click.UsageError("Cannot find specified checkpoint.")
+
+    return config.trainml.run(checkpoint.rename(name=name))
