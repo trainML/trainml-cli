@@ -328,6 +328,7 @@ class Job:
             "new",
             "waiting for data/model download",
             "waiting for GPUs",
+            "waiting for resources",
         ]:
             raise SpecificationError(
                 "type",
@@ -350,6 +351,8 @@ class Job:
                 "status",
                 f"You can only connect to active jobs.",
             )
+        if self.status == "new":
+            await self.wait_for("waiting for data/model download")
         connection = Connection(
             self.trainml, entity_type="job", id=self.id, entity=self
         )
@@ -457,6 +460,7 @@ class Job:
         valid_statuses = [
             "waiting for data/model download",
             "waiting for GPUs",
+            "waiting for resources",
             "running",
             "stopped",
             "finished",
@@ -466,6 +470,11 @@ class Job:
             raise SpecificationError(
                 "status",
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
+            )
+        if status == "waiting for GPUs":
+            warnings.warn(
+                "'waiting for GPUs' status is deprecated, use 'waiting for resources' instead.",
+                DeprecationWarning,
             )
         if (self.type == "training") and status == "stopped":
             warnings.warn(
@@ -503,7 +512,10 @@ class Job:
                 )
                 or (
                     status
-                    == "waiting for GPUs"  ## this status could be very short and the polling could miss it
+                    in [
+                        "waiting for GPUs",
+                        "waiting for resources",
+                    ]  ## this status could be very short and the polling could miss it
                     and self.status in ["starting", "provisioning", "running"]
                 )
                 or (

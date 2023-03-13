@@ -133,6 +133,8 @@ class Dataset:
                 "status",
                 f"You can only connect to new or downloading datasets.",
             )
+        if self.status == "new":
+            await self.wait_for("downloading")
         connection = Connection(
             self.trainml, entity_type="dataset", id=self.id, entity=self
         )

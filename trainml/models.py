@@ -126,6 +126,8 @@ class Model:
                 "status",
                 f"You can only connect to new or downloading models.",
             )
+        if self.status == "new":
+            await self.wait_for("downloading")
         connection = Connection(
             self.trainml, entity_type="model", id=self.id, entity=self
         )

@@ -139,6 +139,8 @@ class Checkpoint:
                 "status",
                 f"You can only connect to new or downloading checkpoints.",
             )
+        if self.status == "new":
+            await self.wait_for("downloading")
         connection = Connection(
             self.trainml, entity_type="checkpoint", id=self.id, entity=self
         )
