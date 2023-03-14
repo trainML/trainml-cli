@@ -28,7 +28,7 @@ def checkpoint(mock_trainml):
         checkpoint_uuid="1",
         project_uuid="proj-id-1",
         name="first one",
-        status="new",
+        status="downloading",
         size=100000,
         createdAt="2020-12-31T23:59:59.000Z",
     )
@@ -412,7 +412,7 @@ class CheckpointTests:
         api_response = dict(
             checkpoint_uuid="1",
             name="first one",
-            status="new",
+            status="downloading",
             createdAt="2020-12-31T23:59:59.000Z",
         )
         mock_trainml._query = AsyncMock(return_value=api_response)

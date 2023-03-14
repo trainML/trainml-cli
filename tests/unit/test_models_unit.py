@@ -28,7 +28,7 @@ def model(mock_trainml):
         model_uuid="1",
         project_uuid="proj-id-1",
         name="first one",
-        status="new",
+        status="downloading",
         size=100000,
         createdAt="2020-12-31T23:59:59.000Z",
     )
