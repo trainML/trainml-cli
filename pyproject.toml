@@ -2,6 +2,7 @@
 python_files = "test_*"
 python_classes = "*Tests"
 python_functions = "test_*"
+asyncio_mode = "auto"
 testpaths = [
     "tests",
 ]

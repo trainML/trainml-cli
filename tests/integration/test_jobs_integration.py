@@ -55,13 +55,13 @@ class JobLifeCycleTests:
         assert isinstance(job.status, str)
         assert isinstance(job.type, str)
 
-    def test_job_str(self, job):
+    async def test_job_str(self, job):
         string = str(job)
         regex = r"^{.*\"job_uuid\": \"" + job.id + r"\".*}$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
-    def test_job_repr(self, job):
+    async def test_job_repr(self, job):
         string = repr(job)
         regex = r"^Job\( trainml , {.*'job_uuid': '" + job.id + r"'.*}\)$"
         assert isinstance(string, str)
@@ -425,7 +425,6 @@ class JobIOTests:
         assert "Send complete" in captured.out
 
     async def test_job_model_input_and_output(self, trainml, capsys):
-
         model = await trainml.models.create(
             name="CLI Automated Tests - Job Git Model",
             source_type="git",
@@ -552,12 +551,14 @@ class JobTypeTests:
                 custom_image="tensorflow/tensorflow:2.10.0-gpu",
                 packages=dict(
                     pip=[
-                        "tensorflow_addons",
+                        "tensorflow_addons==0.18.0",
                         "matplotlib",
                         "scipy",
-                        "tensorflow_hub",
+                        "tensorflow_hub==0.12.0",
                         "keras_applications",
                         "keras_preprocessing",
+                        "protobuf==3.20.1",
+                        "typing-extensions==4.4.0",
                     ]
                 ),
             ),

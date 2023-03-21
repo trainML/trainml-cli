@@ -35,13 +35,13 @@ class GetModelTests:
         assert isinstance(model.name, str)
         assert isinstance(model.size, int)
 
-    def test_model_str(self, model):
+    async def test_model_str(self, model):
         string = str(model)
         regex = r"^{.*\"model_uuid\": \"" + model.id + r"\".*}$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
-    def test_model_repr(self, model):
+    async def test_model_repr(self, model):
         string = repr(model)
         regex = (
             r"^Model\( trainml , \*\*{.*'model_uuid': '"

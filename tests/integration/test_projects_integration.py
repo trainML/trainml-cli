@@ -33,13 +33,13 @@ class GetProjectsTests:
         assert project.name == "New Project"
         assert project.is_owner
 
-    def test_project_str(self, project):
+    async def test_project_str(self, project):
         string = str(project)
         regex = r"^{.*\"id\": \"" + project.id + r"\".*}$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
-    def test_project_repr(self, project):
+    async def test_project_repr(self, project):
         string = repr(project)
         regex = (
             r"^Project\( trainml , \*\*{.*'id': '" + project.id + r"'.*}\)$"

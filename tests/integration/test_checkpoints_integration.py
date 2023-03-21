@@ -35,13 +35,13 @@ class GetCheckpointTests:
         assert isinstance(checkpoint.name, str)
         assert isinstance(checkpoint.size, int)
 
-    def test_checkpoint_str(self, checkpoint):
+    async def test_checkpoint_str(self, checkpoint):
         string = str(checkpoint)
         regex = r"^{.*\"checkpoint_uuid\": \"" + checkpoint.id + r"\".*}$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
-    def test_checkpoint_repr(self, checkpoint):
+    async def test_checkpoint_repr(self, checkpoint):
         string = repr(checkpoint)
         regex = (
             r"^Checkpoint\( trainml , \*\*{.*'checkpoint_uuid': '"

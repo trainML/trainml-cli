@@ -39,13 +39,13 @@ class GetDatasetTests:
         assert isinstance(dataset.name, str)
         assert isinstance(dataset.size, int)
 
-    def test_dataset_str(self, dataset):
+    async def test_dataset_str(self, dataset):
         string = str(dataset)
         regex = r"^{.*\"dataset_uuid\": \"" + dataset.id + r"\".*}$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
-    def test_dataset_repr(self, dataset):
+    async def test_dataset_repr(self, dataset):
         string = repr(dataset)
         regex = (
             r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '"

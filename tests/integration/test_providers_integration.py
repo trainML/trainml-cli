@@ -29,13 +29,13 @@ class GetProvidersTests:
         assert provider.type == "test"
         assert provider.credits == 0
 
-    def test_provider_str(self, provider):
+    async def test_provider_str(self, provider):
         string = str(provider)
         regex = r"^{.*\"provider_uuid\": \"" + provider.id + r"\".*}$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
-    def test_provider_repr(self, provider):
+    async def test_provider_repr(self, provider):
         string = repr(provider)
         regex = (
             r"^Provider\( trainml , \*\*{.*'provider_uuid': '"

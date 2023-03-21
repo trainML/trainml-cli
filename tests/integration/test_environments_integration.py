@@ -35,7 +35,7 @@ async def test_environment_properties(environment):
 
 
 @mark.asyncio
-def test_environment_str(environment):
+async def test_environment_str(environment):
     string = str(environment)
     regex = r"^{.*\"id\": \"" + environment.id + r"\".*}$"
     assert isinstance(string, str)
@@ -43,7 +43,7 @@ def test_environment_str(environment):
 
 
 @mark.asyncio
-def test_environment_repr(environment):
+async def test_environment_repr(environment):
     string = repr(environment)
     regex = (
         r"^Environment\( trainml , \*\*{.*'id': '"
