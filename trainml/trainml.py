@@ -249,7 +249,6 @@ class TrainML(object):
                                 aiohttp.WSMsgType.ERROR,
                                 aiohttp.WSMsgType.CLOSE,
                             ):
-
                                 logging.debug(
                                     f"Websocket Received Closed Message.  Done? {done}"
                                 )

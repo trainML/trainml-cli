@@ -17,19 +17,19 @@ class Checkpoints(object):
     def __init__(self, trainml):
         self.trainml = trainml
 
-    async def get(self, id):
-        resp = await self.trainml._query(f"/checkpoint/{id}", "GET")
+    async def get(self, id, **kwargs):
+        resp = await self.trainml._query(f"/checkpoint/{id}", "GET", kwargs)
         return Checkpoint(self.trainml, **resp)
 
-    async def list(self):
-        resp = await self.trainml._query(f"/checkpoint", "GET")
+    async def list(self, **kwargs):
+        resp = await self.trainml._query(f"/checkpoint", "GET", kwargs)
         checkpoints = [
             Checkpoint(self.trainml, **checkpoint) for checkpoint in resp
         ]
         return checkpoints
 
-    async def list_public(self):
-        resp = await self.trainml._query(f"/checkpoint/public", "GET")
+    async def list_public(self, **kwargs):
+        resp = await self.trainml._query(f"/checkpoint/public", "GET", kwargs)
         datasets = [Checkpoint(self.trainml, **dataset) for dataset in resp]
         return datasets
 
@@ -50,9 +50,9 @@ class Checkpoints(object):
 
         return checkpoint
 
-    async def remove(self, id):
+    async def remove(self, id, **kwargs):
         await self.trainml._query(
-            f"/checkpoint/{id}", "DELETE", dict(force=True)
+            f"/checkpoint/{id}", "DELETE", dict(**kwargs, force=True)
         )
 
 

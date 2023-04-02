@@ -17,12 +17,12 @@ class Models(object):
     def __init__(self, trainml):
         self.trainml = trainml
 
-    async def get(self, id):
-        resp = await self.trainml._query(f"/model/{id}", "GET")
+    async def get(self, id, **kwargs):
+        resp = await self.trainml._query(f"/model/{id}", "GET", kwargs)
         return Model(self.trainml, **resp)
 
-    async def list(self):
-        resp = await self.trainml._query(f"/model", "GET")
+    async def list(self, **kwargs):
+        resp = await self.trainml._query(f"/model", "GET", kwargs)
         models = [Model(self.trainml, **model) for model in resp]
         return models
 
@@ -43,8 +43,10 @@ class Models(object):
 
         return model
 
-    async def remove(self, id):
-        await self.trainml._query(f"/model/{id}", "DELETE", dict(force=True))
+    async def remove(self, id, **kwargs):
+        await self.trainml._query(
+            f"/model/{id}", "DELETE", dict(**kwargs, force=True)
+        )
 
 
 class Model:

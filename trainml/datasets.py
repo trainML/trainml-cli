@@ -17,17 +17,17 @@ class Datasets(object):
     def __init__(self, trainml):
         self.trainml = trainml
 
-    async def get(self, id):
-        resp = await self.trainml._query(f"/dataset/{id}", "GET")
+    async def get(self, id, **kwargs):
+        resp = await self.trainml._query(f"/dataset/{id}", "GET", kwargs)
         return Dataset(self.trainml, **resp)
 
-    async def list(self):
-        resp = await self.trainml._query(f"/dataset", "GET")
+    async def list(self, **kwargs):
+        resp = await self.trainml._query(f"/dataset", "GET", kwargs)
         datasets = [Dataset(self.trainml, **dataset) for dataset in resp]
         return datasets
 
-    async def list_public(self):
-        resp = await self.trainml._query(f"/dataset/public", "GET")
+    async def list_public(self, **kwargs):
+        resp = await self.trainml._query(f"/dataset/public", "GET", kwargs)
         datasets = [Dataset(self.trainml, **dataset) for dataset in resp]
         return datasets
 
@@ -48,8 +48,10 @@ class Datasets(object):
 
         return dataset
 
-    async def remove(self, id):
-        await self.trainml._query(f"/dataset/{id}", "DELETE", dict(force=True))
+    async def remove(self, id, **kwargs):
+        await self.trainml._query(
+            f"/dataset/{id}", "DELETE", dict(**kwargs, force=True)
+        )
 
 
 class Dataset:

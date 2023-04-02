@@ -5,6 +5,17 @@ from trainml.cli import pass_config
 from trainml.cli.job import job
 
 
+def validate_cpu_count(ctx, param, value):
+    try:
+        count = int(value)
+    except:
+        raise click.BadParameter("must be integer")
+    if count % 4 != 0:
+        raise click.BadParameter("must be multiple of 4")
+
+    return count
+
+
 @job.group()
 @pass_config
 def create(config):
@@ -47,6 +58,7 @@ def create(config):
     type=click.Choice(
         [
             "gtx1060",
+            "gtx1080ti",
             "rtx2060s",
             "rtx2070s",
             "rtx2080ti",
@@ -55,6 +67,7 @@ def create(config):
             "t4",
             "v100",
             "a100",
+            "a100xl",
             "a6000",
             "a4000",
             "cpu",
@@ -65,6 +78,13 @@ def create(config):
     show_default=True,
     multiple=True,
     help="GPU type.",
+)
+@click.option(
+    "--cpu-count",
+    "-cc",
+    type=click.UNPROCESSED,
+    callback=validate_cpu_count,
+    help="CPU Count (per Worker).",
 )
 @click.option(
     "--max-price",
@@ -109,11 +129,13 @@ def create(config):
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY39",
+            "PYTORCH_PY39_20",
             "PYTORCH_PY39_113",
             "PYTORCH_PY39_112",
             "PYTORCH_PY38_110",
             "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
+            "TENSORFLOW_PY39_212",
             "TENSORFLOW_PY39_211",
             "TENSORFLOW_PY39_210",
             "TENSORFLOW_PY38_26",
@@ -192,6 +214,7 @@ def notebook(
     disk_size,
     gpu_count,
     gpu_type,
+    cpu_count,
     max_price,
     data_dir,
     dataset,
@@ -237,6 +260,10 @@ def notebook(
             worker_key_types=[k for k in key],
         ),
     )
+
+    if not (len(gpu_type) == 1 and gpu_type[0] == "cpu"):
+        options["gpu_count"] = gpu_count
+
     if custom_image:
         options["environment"]["type"] = "CUSTOM"
         options["environment"]["custom_image"] = custom_image
@@ -297,7 +324,7 @@ def notebook(
             name=name,
             type="notebook",
             gpu_types=gpu_type,
-            gpu_count=gpu_count,
+            cpu_count=cpu_count,
             disk_size=disk_size,
             **options,
         )
@@ -357,6 +384,7 @@ def notebook(
     type=click.Choice(
         [
             "gtx1060",
+            "gtx1080ti",
             "rtx2060s",
             "rtx2070s",
             "rtx2080ti",
@@ -365,6 +393,7 @@ def notebook(
             "t4",
             "v100",
             "a100",
+            "a100xl",
             "a6000",
             "a4000",
             "cpu",
@@ -374,6 +403,13 @@ def notebook(
     default="rtx3090",
     show_default=True,
     help="GPU type.",
+)
+@click.option(
+    "--cpu-count",
+    "-cc",
+    type=click.UNPROCESSED,
+    callback=validate_cpu_count,
+    help="CPU Count (per Worker).",
 )
 @click.option(
     "--max-price",
@@ -448,11 +484,13 @@ def notebook(
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY39",
+            "PYTORCH_PY39_20",
             "PYTORCH_PY39_113",
             "PYTORCH_PY39_112",
             "PYTORCH_PY38_110",
             "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
+            "TENSORFLOW_PY39_212",
             "TENSORFLOW_PY39_211",
             "TENSORFLOW_PY39_210",
             "TENSORFLOW_PY38_26",
@@ -525,6 +563,7 @@ def training(
     disk_size,
     gpu_count,
     gpu_type,
+    cpu_count,
     max_price,
     data_dir,
     dataset,
@@ -575,6 +614,10 @@ def training(
             worker_key_types=[k for k in key],
         ),
     )
+
+    if not (len(gpu_type) == 1 and gpu_type[0] == "cpu"):
+        options["gpu_count"] = gpu_count
+
     if custom_image:
         options["environment"]["type"] = "CUSTOM"
         options["environment"]["custom_image"] = custom_image
@@ -649,7 +692,7 @@ def training(
             name=name,
             type="training",
             gpu_type=gpu_type,
-            gpu_count=gpu_count,
+            cpu_count=cpu_count,
             disk_size=disk_size,
             workers=[command for command in commands],
             **options,
@@ -700,6 +743,7 @@ def training(
     type=click.Choice(
         [
             "gtx1060",
+            "gtx1080ti",
             "rtx2060s",
             "rtx2070s",
             "rtx2080ti",
@@ -708,6 +752,7 @@ def training(
             "t4",
             "v100",
             "a100",
+            "a100xl",
             "a6000",
             "a4000",
             "cpu",
@@ -717,6 +762,13 @@ def training(
     default="rtx3090",
     show_default=True,
     help="GPU type.",
+)
+@click.option(
+    "--cpu-count",
+    "-cc",
+    type=click.UNPROCESSED,
+    callback=validate_cpu_count,
+    help="CPU Count (per Worker).",
 )
 @click.option(
     "--max-price",
@@ -792,11 +844,13 @@ def training(
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY39",
+            "PYTORCH_PY39_20",
             "PYTORCH_PY39_113",
             "PYTORCH_PY39_112",
             "PYTORCH_PY38_110",
             "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
+            "TENSORFLOW_PY39_212",
             "TENSORFLOW_PY39_211",
             "TENSORFLOW_PY39_210",
             "TENSORFLOW_PY38_26",
@@ -869,6 +923,7 @@ def inference(
     disk_size,
     gpu_count,
     gpu_type,
+    cpu_count,
     max_price,
     checkpoint,
     public_checkpoint,
@@ -912,6 +967,10 @@ def inference(
             worker_key_types=[k for k in key],
         ),
     )
+
+    if not (len(gpu_type) == 1 and gpu_type[0] == "cpu"):
+        options["gpu_count"] = gpu_count
+
     if custom_image:
         options["environment"]["type"] = "CUSTOM"
         options["environment"]["custom_image"] = custom_image
@@ -976,7 +1035,7 @@ def inference(
             name=name,
             type="inference",
             gpu_type=gpu_type,
-            gpu_count=gpu_count,
+            cpu_count=cpu_count,
             disk_size=disk_size,
             workers=[command],
             **options,
@@ -1063,6 +1122,7 @@ def from_json(config, attach, connect, file):
     type=click.Choice(
         [
             "gtx1060",
+            "gtx1080ti",
             "rtx2060s",
             "rtx2070s",
             "rtx2080ti",
@@ -1071,6 +1131,7 @@ def from_json(config, attach, connect, file):
             "t4",
             "v100",
             "a100",
+            "a100xl",
             "a6000",
             "a4000",
             "cpu",
@@ -1080,6 +1141,13 @@ def from_json(config, attach, connect, file):
     default="rtx3090",
     show_default=True,
     help="GPU type.",
+)
+@click.option(
+    "--cpu-count",
+    "-cc",
+    type=click.UNPROCESSED,
+    callback=validate_cpu_count,
+    help="CPU Count (per Worker).",
 )
 @click.option(
     "--max-price",
@@ -1107,11 +1175,13 @@ def from_json(config, attach, connect, file):
         [
             "DEEPLEARNING_PY38",
             "DEEPLEARNING_PY39",
+            "PYTORCH_PY39_20",
             "PYTORCH_PY39_113",
             "PYTORCH_PY39_112",
             "PYTORCH_PY38_110",
             "PYTORCH_PY38_19",
             "PYTORCH_PY38_18",
+            "TENSORFLOW_PY39_212",
             "TENSORFLOW_PY39_211",
             "TENSORFLOW_PY39_210",
             "TENSORFLOW_PY38_26",
@@ -1196,6 +1266,7 @@ def endpoint(
     disk_size,
     gpu_count,
     gpu_type,
+    cpu_count,
     max_price,
     checkpoint,
     public_checkpoint,
@@ -1232,6 +1303,10 @@ def endpoint(
             worker_key_types=[k for k in key],
         ),
     )
+
+    if not (len(gpu_type) == 1 and gpu_type[0] == "cpu"):
+        options["gpu_count"] = gpu_count
+
     if custom_image:
         options["environment"]["type"] = "CUSTOM"
         options["environment"]["custom_image"] = custom_image
@@ -1274,7 +1349,7 @@ def endpoint(
             name=name,
             type="endpoint",
             gpu_type=gpu_type,
-            gpu_count=gpu_count,
+            cpu_count=cpu_count,
             disk_size=disk_size,
             endpoint=dict(routes=routes),
             **options,

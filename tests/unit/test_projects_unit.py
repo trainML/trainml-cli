@@ -46,7 +46,9 @@ class ProjectsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await projects.get("1234")
-        mock_trainml._query.assert_called_once_with("/project/1234", "GET")
+        mock_trainml._query.assert_called_once_with(
+            "/project/1234", "GET", dict()
+        )
 
     @mark.asyncio
     async def test_list_projects(
@@ -57,7 +59,7 @@ class ProjectsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await projects.list()
-        mock_trainml._query.assert_called_once_with("/project", "GET")
+        mock_trainml._query.assert_called_once_with("/project", "GET", dict())
 
     @mark.asyncio
     async def test_remove_project(
@@ -68,7 +70,9 @@ class ProjectsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await projects.remove("4567")
-        mock_trainml._query.assert_called_once_with("/project/4567", "DELETE")
+        mock_trainml._query.assert_called_once_with(
+            "/project/4567", "DELETE", dict()
+        )
 
     @mark.asyncio
     async def test_create_project_simple(self, projects, mock_trainml):

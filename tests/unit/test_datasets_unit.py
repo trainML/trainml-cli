@@ -47,6 +47,7 @@ class DatasetsTests:
         mock_trainml._query.assert_called_once_with(
             "/dataset/1234",
             "GET",
+            dict(),
         )
 
     @mark.asyncio
@@ -61,6 +62,7 @@ class DatasetsTests:
         mock_trainml._query.assert_called_once_with(
             "/dataset",
             "GET",
+            dict(),
         )
 
     @mark.asyncio
@@ -71,6 +73,7 @@ class DatasetsTests:
         mock_trainml._query.assert_called_once_with(
             "/dataset/public",
             "GET",
+            dict(),
         )
 
     @mark.asyncio
@@ -150,7 +153,6 @@ class DatasetTests:
 
     @mark.asyncio
     async def test_dataset_get_log_url(self, dataset, mock_trainml):
-
         api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_log_url()
@@ -161,7 +163,6 @@ class DatasetTests:
 
     @mark.asyncio
     async def test_dataset_get_details(self, dataset, mock_trainml):
-
         api_response = {
             "type": "directory",
             "name": "/",
@@ -180,7 +181,6 @@ class DatasetTests:
     async def test_dataset_get_connection_utility_url(
         self, dataset, mock_trainml
     ):
-
         api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_connection_utility_url()
@@ -263,7 +263,6 @@ class DatasetTests:
         )
 
     def test_dataset_default_ws_msg_handler(self, dataset, capsys):
-
         data = {
             "msg": "download: s3://trainml-examples/data/cifar10/data_batch_2.bin to ./data_batch_2.bin\n",
             "time": 1613079345318,

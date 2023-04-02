@@ -182,7 +182,7 @@ class JobsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await jobs.get("1234")
-        mock_trainml._query.assert_called_once_with("/job/1234", "GET")
+        mock_trainml._query.assert_called_once_with("/job/1234", "GET", dict())
 
     async def test_jobs_list(
         self,
@@ -192,7 +192,7 @@ class JobsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await jobs.list()
-        mock_trainml._query.assert_called_once_with("/job", "GET")
+        mock_trainml._query.assert_called_once_with("/job", "GET", dict())
 
     async def test_jobs_remove(
         self,
@@ -338,7 +338,6 @@ class JobTests:
 
     @mark.asyncio
     async def test_job_get_worker_log_url(self, job, mock_trainml):
-
         api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/job-id-1/logs/worker-id-1/test_notebook.zip"
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await job.get_worker_log_url("worker-id-1")
@@ -351,7 +350,6 @@ class JobTests:
 
     @mark.asyncio
     async def test_job_get_connection_utility_url(self, job, mock_trainml):
-
         api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/job-id-1/vpn/trainml-test_notebook.zip"
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await job.get_connection_utility_url()
@@ -510,7 +508,6 @@ class JobTests:
         assert response.status == "running"
 
     def test_job_default_ws_msg_handler(self, job, capsys):
-
         data = {
             "msg": "Epoch (1/1000)\n",
             "time": 1613079345318,

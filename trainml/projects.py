@@ -7,12 +7,12 @@ class Projects(object):
     def __init__(self, trainml):
         self.trainml = trainml
 
-    async def get(self, id):
-        resp = await self.trainml._query(f"/project/{id}", "GET")
+    async def get(self, id, **kwargs):
+        resp = await self.trainml._query(f"/project/{id}", "GET", kwargs)
         return Project(self.trainml, **resp)
 
-    async def list(self):
-        resp = await self.trainml._query(f"/project", "GET")
+    async def list(self, **kwargs):
+        resp = await self.trainml._query(f"/project", "GET", kwargs)
         projects = [Project(self.trainml, **project) for project in resp]
         return projects
 
@@ -29,8 +29,8 @@ class Projects(object):
 
         return project
 
-    async def remove(self, id):
-        await self.trainml._query(f"/project/{id}", "DELETE")
+    async def remove(self, id, **kwargs):
+        await self.trainml._query(f"/project/{id}", "DELETE", kwargs)
 
 
 class Project:

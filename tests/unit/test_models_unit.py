@@ -44,7 +44,9 @@ class ModelsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await models.get("1234")
-        mock_trainml._query.assert_called_once_with("/model/1234", "GET")
+        mock_trainml._query.assert_called_once_with(
+            "/model/1234", "GET", dict()
+        )
 
     @mark.asyncio
     async def test_list_models(
@@ -55,7 +57,7 @@ class ModelsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await models.list()
-        mock_trainml._query.assert_called_once_with("/model", "GET")
+        mock_trainml._query.assert_called_once_with("/model", "GET", dict())
 
     @mark.asyncio
     async def test_remove_model(
@@ -131,7 +133,6 @@ class ModelTests:
 
     @mark.asyncio
     async def test_model_get_log_url(self, model, mock_trainml):
-
         api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_log_url()
@@ -142,7 +143,6 @@ class ModelTests:
 
     @mark.asyncio
     async def test_model_get_details(self, model, mock_trainml):
-
         api_response = {
             "type": "directory",
             "name": "/",
@@ -159,7 +159,6 @@ class ModelTests:
 
     @mark.asyncio
     async def test_model_get_connection_utility_url(self, model, mock_trainml):
-
         api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_connection_utility_url()
