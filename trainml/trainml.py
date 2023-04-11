@@ -50,6 +50,7 @@ class TrainML(object):
             or "trainml.ai"
         )
         self.auth = Auth(
+            domain_suffix=self.domain_suffix,
             user=kwargs.get("user"),
             key=kwargs.get("key"),
             region=kwargs.get("region"),
@@ -96,6 +97,9 @@ class TrainML(object):
             raise TrainMLException(
                 f"Error getting authorization tokens.  Verify configured credentials. Error: {traceback.format_exc()}"
             )
+        logging.debug(
+            f"Call parameters - Path: {path}, Method: {method}, Params: {params}, Body: {data}, Headers: {headers}"
+        )
         headers = (
             {
                 **headers,
@@ -133,6 +137,10 @@ class TrainML(object):
         if "Content-Type" not in headers:
             headers["Content-Type"] = "application/json"
         url = f"https://{self.api_url}{path}"
+
+        logging.debug(
+            f"Request - Url: {url}, Method: {method}, Params: {params}, Body: {data}, Headers: {headers}"
+        )
         async with aiohttp.ClientSession() as session:
             async with session.request(
                 method,

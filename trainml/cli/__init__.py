@@ -123,8 +123,8 @@ def cli(config, debug, output_file, silent, verbosity):
         )
 
     logging.basicConfig(
-        format="%(asctime)s  %(levelname)s  %(message)s",
-        datefmt="%m/%d/%Y %I:%M:%S %p",
+        format="%(asctime)s.%(msecs)03dZ  %(levelname)s  %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
         level=verbosity,
         stream=config.stderr,
         force=True,

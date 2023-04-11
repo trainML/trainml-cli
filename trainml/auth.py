@@ -293,7 +293,6 @@ def calculate_u(big_a, big_b):
 
 
 class AWSSRP(object):
-
     NEW_PASSWORD_REQUIRED_CHALLENGE = "NEW_PASSWORD_REQUIRED"
     PASSWORD_VERIFIER_CHALLENGE = "PASSWORD_VERIFIER"
 
@@ -513,8 +512,7 @@ class AWSSRP(object):
 
 
 class Auth(object):
-    def __init__(self, **kwargs):
-
+    def __init__(self, domain_suffix="trainml.ai", **kwargs):
         try:
             with open(f"{CONFIG_DIR}/environment.json", "r") as file:
                 env_str = file.read().replace("\n", "")
@@ -522,23 +520,27 @@ class Auth(object):
         except:
             env = dict()
 
+        auth_defaults = requests.get(
+            "https://app.{}/.well-known/auth-config.json".format(domain_suffix)
+        ).json()
+
         self.region = (
             kwargs.get("region")
             or os.environ.get("TRAINML_REGION")
             or env.get("region")
-            or "us-east-2"
+            or auth_defaults.get("region")
         )
         self.client_id = (
             kwargs.get("client_id")
             or os.environ.get("TRAINML_CLIENT_ID")
             or env.get("client_id")
-            or "32mc1obk9nq97iv015fnmc5eq5"
+            or auth_defaults.get("userPoolSDKClientId")
         )
         self.pool_id = (
             kwargs.get("pool_id")
             or os.environ.get("TRAINML_POOL_ID")
             or env.get("pool_id")
-            or "us-east-2_68kbvTL5p"
+            or auth_defaults.get("userPoolId")
         )
 
         try:
