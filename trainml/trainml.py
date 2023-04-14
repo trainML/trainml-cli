@@ -75,13 +75,13 @@ class TrainML(object):
             kwargs.get("api_url")
             or os.environ.get("TRAINML_API_URL")
             or env.get("api_url")
-            or "api.trainml.ai"
+            or f"api.{self.domain_suffix}"
         )
         self.ws_url = (
             kwargs.get("ws_url")
             or os.environ.get("TRAINML_WS_URL")
             or env.get("ws_url")
-            or "api-ws.trainml.ai"
+            or f"api-ws.{self.domain_suffix}"
         )
 
     @property
