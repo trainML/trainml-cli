@@ -353,6 +353,9 @@ class Job:
                 "status",
                 f"You can only connect to active jobs.",
             )
+        if self._job.get("vpn").get("status") == "n/a":
+            logging.info("Local connection not enabled for this job.")
+            return
         if self.status == "new":
             await self.wait_for("waiting for data/model download")
         connection = Connection(
@@ -362,6 +365,9 @@ class Job:
         return connection.status
 
     async def disconnect(self):
+        if self._job.get("vpn").get("status") == "n/a":
+            logging.info("Local connection not enabled for this job.")
+            return
         connection = Connection(
             self.trainml, entity_type="job", id=self.id, entity=self
         )

@@ -6,6 +6,8 @@ from trainml.cli.job import job
 
 
 def validate_cpu_count(ctx, param, value):
+    if value is None:
+        return
     try:
         count = int(value)
     except:
