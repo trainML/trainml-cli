@@ -151,12 +151,14 @@ class Model:
         )
 
     async def rename(self, name):
-        await self.trainml._query(
+        resp = await self.trainml._query(
             f"/model/{self._id}",
             "PATCH",
             None,
             dict(name=name),
         )
+        self.__init__(self.trainml, **resp)
+        return self
 
     def _get_msg_handler(self, msg_handler):
         def handler(data):

@@ -162,12 +162,28 @@ class Checkpoint:
         )
 
     async def rename(self, name):
-        await self.trainml._query(
+        resp = await self.trainml._query(
             f"/checkpoint/{self._id}",
             "PATCH",
             None,
-            dict(name=name),
+            dict(project_uuid=self._project_uuid, name=name),
         )
+        self.__init__(self.trainml, **resp)
+        return self
+
+    async def export(self, output_type, output_uri, output_options=dict()):
+        resp = await self.trainml._query(
+            f"/checkpoint/{self._id}/export",
+            "POST",
+            dict(project_uuid=self._project_uuid),
+            dict(
+                output_type=output_type,
+                output_uri=output_uri,
+                output_options=output_options,
+            ),
+        )
+        self.__init__(self.trainml, **resp)
+        return self
 
     def _get_msg_handler(self, msg_handler):
         def handler(data):

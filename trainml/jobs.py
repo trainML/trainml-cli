@@ -253,20 +253,24 @@ class Job:
         return create_json
 
     async def start(self):
-        await self.trainml._query(
+        resp = await self.trainml._query(
             f"/job/{self._id}",
             "PATCH",
             dict(project_uuid=self._project_uuid),
             dict(command="start"),
         )
+        self.__init__(self.trainml, **resp)
+        return self
 
     async def stop(self):
-        await self.trainml._query(
+        resp = await self.trainml._query(
             f"/job/{self._id}",
             "PATCH",
             dict(project_uuid=self._project_uuid),
             dict(command="stop"),
         )
+        self.__init__(self.trainml, **resp)
+        return self
 
     async def update(self, data):
         if self.type != "notebook":
@@ -274,12 +278,14 @@ class Job:
                 "type",
                 "Only notebook jobs can be modified.",
             )
-        await self.trainml._query(
+        resp = await self.trainml._query(
             f"/job/{self._id}",
             "PATCH",
             dict(project_uuid=self._project_uuid),
             data,
         )
+        self.__init__(self.trainml, **resp)
+        return self
 
     async def get_worker_log_url(self, job_worker_uuid):
         resp = await self.trainml._query(

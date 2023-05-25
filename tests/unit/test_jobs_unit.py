@@ -314,7 +314,13 @@ class JobTests:
 
     @mark.asyncio
     async def test_job_start(self, job, mock_trainml):
-        api_response = None
+        api_response = {
+            "customer_uuid": "cus-id-1",
+            "job_uuid": "job-id-1",
+            "name": "test notebook",
+            "type": "notebook",
+            "status": "starting",
+        }
         mock_trainml._query = AsyncMock(return_value=api_response)
         await job.start()
         mock_trainml._query.assert_called_once_with(
@@ -326,7 +332,13 @@ class JobTests:
 
     @mark.asyncio
     async def test_job_stop(self, job, mock_trainml):
-        api_response = None
+        api_response = {
+            "customer_uuid": "cus-id-1",
+            "job_uuid": "job-id-1",
+            "name": "test notebook",
+            "type": "notebook",
+            "status": "stopping",
+        }
         mock_trainml._query = AsyncMock(return_value=api_response)
         await job.stop()
         mock_trainml._query.assert_called_once_with(
