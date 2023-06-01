@@ -169,8 +169,8 @@ class Checkpoint:
         resp = await self.trainml._query(
             f"/checkpoint/{self._id}",
             "PATCH",
-            None,
-            dict(project_uuid=self._project_uuid, name=name),
+            dict(project_uuid=self._project_uuid),
+            dict(name=name),
         )
         self.__init__(self.trainml, **resp)
         return self
