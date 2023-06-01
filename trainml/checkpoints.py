@@ -126,8 +126,12 @@ class Checkpoint:
                 ssh_port=self._checkpoint.get("vpn")
                 .get("client")
                 .get("ssh_port"),
-                input_path=self._checkpoint.get("source_uri"),
-                output_path=None,
+                input_path=self._checkpoint.get("source_uri")
+                if self.status in ["new", "downloading"]
+                else None,
+                output_path=self._checkpoint.get("output_uri")
+                if self.status == "exporting"
+                else None,
             )
         else:
             details = dict()
@@ -137,7 +141,7 @@ class Checkpoint:
         if self.status in ["ready", "failed"]:
             raise SpecificationError(
                 "status",
-                f"You can only connect to new or downloading checkpoints.",
+                f"You can only connect to downloading or exporting checkpoints.",
             )
         if self.status == "new":
             await self.wait_for("downloading")
