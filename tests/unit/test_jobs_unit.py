@@ -74,7 +74,7 @@ def job(mock_trainml):
                 "status": "ready",
             },
             "environment": {
-                "type": "DEEPLEARNING_PY38",
+                "type": "DEEPLEARNING_PY310",
                 "image_size": 44966989795,
                 "env": [
                     {"value": "env1val", "key": "env1"},
@@ -150,7 +150,7 @@ def training_job(mock_trainml):
                 "status": "ready",
             },
             "environment": {
-                "type": "DEEPLEARNING_PY38",
+                "type": "DEEPLEARNING_PY310",
                 "image_size": 44966989795,
                 "env": [
                     {"value": "env1val", "key": "env1"},

@@ -295,21 +295,21 @@ def mock_environments():
         Environment(
             trainml,
             **{
-                "id": "DEEPLEARNING_PY37",
+                "id": "DEEPLEARNING_PY39",
                 "framework": "Deep Learning",
-                "py_version": "3.7",
-                "cuda_version": "10.2",
-                "name": "Deep Learning - Python 3.7",
+                "py_version": "3.9",
+                "cuda_version": "11.7",
+                "name": "Deep Learning - Python 3.9",
             },
         ),
         Environment(
             trainml,
             **{
-                "id": "DEEPLEARNING_PY38",
+                "id": "DEEPLEARNING_PY310",
                 "framework": "Deep Learning",
-                "py_version": "3.8",
-                "cuda_version": "11.1",
-                "name": "Deep Learning - Python 3.8",
+                "py_version": "3.10",
+                "cuda_version": "12.1",
+                "name": "Deep Learning - Python 3.10",
             },
         ),
         Environment(
@@ -434,7 +434,7 @@ def mock_jobs():
                     "status": "ready",
                 },
                 "environment": {
-                    "type": "DEEPLEARNING_PY38",
+                    "type": "DEEPLEARNING_PY310",
                     "image_size": 44966989795,
                     "env": [
                         {"value": "env1val", "key": "env1"},

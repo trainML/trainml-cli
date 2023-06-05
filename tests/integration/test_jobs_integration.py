@@ -375,7 +375,7 @@ class JobIOTests:
             disk_size=10,
             workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
             environment=dict(
-                type="DEEPLEARNING_PY39",
+                type="DEEPLEARNING_PY310",
                 env=[
                     dict(
                         key="CHECKPOINT_FILE",
