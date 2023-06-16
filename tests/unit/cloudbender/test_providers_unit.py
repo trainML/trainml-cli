@@ -5,14 +5,14 @@ from unittest.mock import AsyncMock, patch
 from pytest import mark, fixture, raises
 from aiohttp import WSMessage, WSMsgType
 
-import trainml.providers as specimen
+import trainml.cloudbender.providers as specimen
 from trainml.exceptions import (
     ApiError,
     SpecificationError,
     TrainMLException,
 )
 
-pytestmark = [mark.sdk, mark.unit, mark.providers]
+pytestmark = [mark.sdk, mark.unit, mark.cloudbender, mark.providers]
 
 
 @fixture

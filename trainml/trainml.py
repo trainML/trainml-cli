@@ -16,7 +16,7 @@ from trainml.environments import Environments
 from trainml.exceptions import ApiError, TrainMLException
 from trainml.connections import Connections
 from trainml.projects import Projects
-from trainml.providers import Providers
+from trainml.cloudbender import Cloudbender
 
 
 async def delayed_close(ws):
@@ -70,7 +70,7 @@ class TrainML(object):
         self.environments = Environments(self)
         self.connections = Connections(self)
         self.projects = Projects(self)
-        self.providers = Providers(self)
+        self.cloudbender = Cloudbender(self)
         self.api_url = (
             kwargs.get("api_url")
             or os.environ.get("TRAINML_API_URL")

@@ -16,3 +16,4 @@ config-*
 .coverage.*
 .pytest*
 **/__pycache__/
+sync.sh
