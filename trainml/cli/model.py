@@ -16,7 +16,7 @@ def pretty_size(num):
 @cli.group()
 @pass_config
 def model(config):
-    """TrainML model commands."""
+    """trainML model commands."""
     pass
 
 

@@ -13,7 +13,6 @@ from trainml.environments import Environment, Environments
 from trainml.jobs import Job, Jobs
 from trainml.connections import Connections
 from trainml.projects import Projects, Project
-from trainml.providers import Providers, Provider
 
 pytestmark = mark.unit
 
@@ -584,39 +583,6 @@ def mock_projects():
     ]
 
 
-@fixture(scope="session")
-def mock_providers():
-    trainml = Mock()
-    yield [
-        Provider(
-            trainml,
-            **{
-                "customer_uuid": "cust-id-1",
-                "project_uuid": "prov-id-1",
-                "type": "physical",
-                "credits": 10.0,
-                "payment_mode": "stripe",
-                "regions": [],
-            },
-        ),
-        Provider(
-            trainml,
-            **{
-                "customer_uuid": "cust-id-1",
-                "project_uuid": "prov-id-2",
-                "type": "gcp",
-                "credits": 0.0,
-                "payment_mode": "credits",
-                "credentials": {
-                    "project": "proj-1",
-                    "id": "gcp@serviceaccount.com",
-                },
-                "regions": [],
-            },
-        ),
-    ]
-
-
 @fixture(scope="function")
 def mock_trainml(
     mock_my_datasets,
@@ -626,7 +592,6 @@ def mock_trainml(
     mock_environments,
     mock_jobs,
     mock_projects,
-    mock_providers,
 ):
     trainml = create_autospec(TrainML)
     trainml.active_project = "proj-id-1"
@@ -639,7 +604,6 @@ def mock_trainml(
     trainml.jobs = create_autospec(Jobs)
     trainml.connections = create_autospec(Connections)
     trainml.projects = create_autospec(Projects)
-    trainml.providers = create_autospec(Providers)
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
     trainml.checkpoints.list = AsyncMock(return_value=mock_my_checkpoints)
@@ -651,5 +615,4 @@ def mock_trainml(
     trainml.environments.list = AsyncMock(return_value=mock_environments)
     trainml.jobs.list = AsyncMock(return_value=mock_jobs)
     trainml.projects.list = AsyncMock(return_value=mock_projects)
-    trainml.providers.list = AsyncMock(return_value=mock_providers)
     yield trainml

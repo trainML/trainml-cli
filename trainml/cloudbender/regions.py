@@ -21,7 +21,8 @@ class Regions(object):
 
     async def create(self, provider_uuid, name, public, storage, **kwargs):
         logging.info(f"Creating Region {name}")
-        payload = dict(name=name, public=public, storage=storage, **kwargs)
+        data = dict(name=name, public=public, storage=storage, **kwargs)
+        payload = payload = {k: v for k, v in data.items() if v is not None}
         resp = await self.trainml._query(
             f"/provider/{provider_uuid}/region", "POST", None, payload
         )

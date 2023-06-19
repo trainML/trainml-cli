@@ -36,13 +36,14 @@ class Reservations(object):
         **kwargs,
     ):
         logging.info(f"Creating Reservation {name}")
-        payload = dict(
+        data = dict(
             name=name,
             type=type,
             resource=resource,
             hostname=hostname,
             **kwargs,
         )
+        payload = {k: v for k, v in data.items() if v is not None}
         resp = await self.trainml._query(
             f"/provider/{provider_uuid}/region/{region_uuid}/reservation",
             "POST",
@@ -66,8 +67,8 @@ class Reservation:
         self.trainml = trainml
         self._reservation = kwargs
         self._id = self._reservation.get("reservation_id")
-        self._provider_uuid = self._reservation.get("region_uuid")
-        self._region_uuid = self._reservation.get("provider_uuid")
+        self._provider_uuid = self._reservation.get("provider_uuid")
+        self._region_uuid = self._reservation.get("region_uuid")
         self._type = self._reservation.get("type")
         self._name = self._reservation.get("name")
         self._resource = self._reservation.get("resource")

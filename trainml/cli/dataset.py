@@ -16,7 +16,7 @@ def pretty_size(num):
 @cli.group()
 @pass_config
 def dataset(config):
-    """TrainML dataset commands."""
+    """trainML dataset commands."""
     pass
 
 

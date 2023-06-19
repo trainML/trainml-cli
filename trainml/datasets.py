@@ -40,7 +40,7 @@ class Datasets(object):
             project_uuid=kwargs.get("project_uuid")
             or self.trainml.active_project,
         )
-        payload = {k: v for k, v in data.items() if v}
+        payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Dataset {name}")
         resp = await self.trainml._query("/dataset", "POST", None, payload)
         dataset = Dataset(self.trainml, **resp)

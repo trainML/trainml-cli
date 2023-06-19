@@ -6,7 +6,7 @@ from trainml.cli import cli, pass_config, search_by_id_name
 @cli.group()
 @pass_config
 def job(config):
-    """TrainML job commands."""
+    """trainML job commands."""
     pass
 
 
@@ -219,7 +219,7 @@ def remove(config, job, force):
 )
 @pass_config
 def list(config, format):
-    """List TrainML jobs."""
+    """List trainML jobs."""
     jobs = config.trainml.run(config.trainml.client.jobs.list())
 
     if format == "text":

@@ -5,7 +5,7 @@ from trainml.cli import cli, pass_config
 @cli.group()
 @pass_config
 def environment(config):
-    """TrainML environment commands."""
+    """trainML environment commands."""
     pass
 
 

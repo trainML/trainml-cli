@@ -37,16 +37,17 @@ class DeviceConfigs(object):
         **kwargs,
     ):
         logging.info(f"Creating Device Config {name}")
-        payload = dict(
+        data = dict(
             name=name,
             model_uuid=model_uuid,
             image=image,
             command=command,
             **kwargs,
         )
-        if not payload.get("model_project_uuid"):
-            payload["model_project_uuid"] = self.trainml.active_project
+        if not data.get("model_project_uuid"):
+            data["model_project_uuid"] = self.trainml.active_project
 
+        payload = {k: v for k, v in data.items() if v is not None}
         resp = await self.trainml._query(
             f"/provider/{provider_uuid}/region/{region_uuid}/device/config",
             "POST",
@@ -72,8 +73,8 @@ class DeviceConfig:
         self.trainml = trainml
         self._device_config = kwargs
         self._id = self._device_config.get("config_id")
-        self._provider_uuid = self._device_config.get("region_uuid")
-        self._region_uuid = self._device_config.get("provider_uuid")
+        self._provider_uuid = self._device_config.get("provider_uuid")
+        self._region_uuid = self._device_config.get("region_uuid")
         self._name = self._device_config.get("name")
 
     @property

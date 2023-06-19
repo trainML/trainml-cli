@@ -98,7 +98,7 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 )
 @pass_config
 def cli(config, debug, output_file, silent, verbosity):
-    """TrainML command-line interface."""
+    """trainML command-line interface."""
     config.stdout = output_file
 
     if debug or verbosity > 0:
@@ -168,4 +168,4 @@ from trainml.cli.environment import environment
 from trainml.cli.gpu import gpu
 from trainml.cli.job import job
 from trainml.cli.project import project
-from trainml.cli.provider import provider
+from trainml.cli.cloudbender import cloudbender

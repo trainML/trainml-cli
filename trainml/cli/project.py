@@ -5,7 +5,7 @@ from trainml.cli import cli, pass_config, search_by_id_name
 @cli.group()
 @pass_config
 def project(config):
-    """TrainML project commands."""
+    """trainML project commands."""
     pass
 
 

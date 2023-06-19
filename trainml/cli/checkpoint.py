@@ -16,7 +16,7 @@ def pretty_size(num):
 @cli.group()
 @pass_config
 def checkpoint(config):
-    """TrainML checkpoint commands."""
+    """trainML checkpoint commands."""
     pass
 
 

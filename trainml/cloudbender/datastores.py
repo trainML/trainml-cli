@@ -33,11 +33,11 @@ class Datastores(object):
         type,
         uri,
         root,
-        options,
+        options=None,
         **kwargs,
     ):
         logging.info(f"Creating Datastore {name}")
-        payload = dict(
+        data = dict(
             name=name,
             type=type,
             uri=uri,
@@ -45,6 +45,7 @@ class Datastores(object):
             options=options,
             **kwargs,
         )
+        payload = {k: v for k, v in data.items() if v is not None}
         resp = await self.trainml._query(
             f"/provider/{provider_uuid}/region/{region_uuid}/datastore",
             "POST",
@@ -68,12 +69,12 @@ class Datastore:
         self.trainml = trainml
         self._datastore = kwargs
         self._id = self._datastore.get("store_id")
-        self._provider_uuid = self._datastore.get("region_uuid")
-        self._region_uuid = self._datastore.get("provider_uuid")
+        self._provider_uuid = self._datastore.get("provider_uuid")
+        self._region_uuid = self._datastore.get("region_uuid")
         self._type = self._datastore.get("type")
         self._name = self._datastore.get("name")
         self._uri = self._datastore.get("uri")
-        self._root = self._datastore.get("root")
+        self._root = self._datastore.get("uri")
 
     @property
     def id(self) -> str:

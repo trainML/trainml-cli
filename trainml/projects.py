@@ -21,7 +21,7 @@ class Projects(object):
             name=name,
             copy_keys=copy_keys,
         )
-        payload = {k: v for k, v in data.items() if v or k in ["copy_keys"]}
+        payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Project {name}")
         resp = await self.trainml._query("/project", "POST", None, payload)
         project = Project(self.trainml, **resp)

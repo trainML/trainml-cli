@@ -1,11 +1,12 @@
 import click
 from trainml.cli import cli, pass_config, search_by_id_name
+from trainml.cli.cloudbender import cloudbender
 
 
-@cli.group()
+@cloudbender.group()
 @pass_config
 def provider(config):
-    """TrainML provider commands."""
+    """trainML provider commands."""
     pass
 
 
@@ -22,7 +23,9 @@ def list(config):
         ],
     ]
 
-    providers = config.trainml.run(config.trainml.client.providers.list())
+    providers = config.trainml.run(
+        config.trainml.client.cloudbender.providers.list()
+    )
 
     for provider in providers:
         data.append(
@@ -51,7 +54,7 @@ def enable(config, type):
     """
 
     return config.trainml.run(
-        config.trainml.client.providers.enable(
+        config.trainml.client.cloudbender.providers.enable(
             type=type,
         )
     )
@@ -66,7 +69,9 @@ def remove(config, provider):
 
     PROVIDER may be specified by name or ID, but ID is preferred.
     """
-    providers = config.trainml.run(config.trainml.client.providers.list())
+    providers = config.trainml.run(
+        config.trainml.client.cloudbender.providers.list()
+    )
 
     found = search_by_id_name(provider, providers)
     if None is found:

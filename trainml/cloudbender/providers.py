@@ -18,7 +18,7 @@ class Providers(object):
 
     async def enable(self, type, **kwargs):
         data = dict(type=type, **kwargs)
-        payload = {k: v for k, v in data.items() if v or k in ["copy_keys"]}
+        payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Enabling Provider {type}")
         resp = await self.trainml._query("/provider", "POST", None, payload)
         provider = Provider(self.trainml, **resp)

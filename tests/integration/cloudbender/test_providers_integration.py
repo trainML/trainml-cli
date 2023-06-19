@@ -3,7 +3,7 @@ import sys
 import asyncio
 from pytest import mark, fixture
 
-pytestmark = [mark.sdk, mark.integration, mark.providers]
+pytestmark = [mark.sdk, mark.integration, mark.cloudbender, mark.providers]
 
 
 @mark.create
@@ -11,16 +11,16 @@ pytestmark = [mark.sdk, mark.integration, mark.providers]
 class GetProvidersTests:
     @fixture(scope="class")
     async def provider(self, trainml):
-        provider = await trainml.providers.enable(type="test")
+        provider = await trainml.cloudbender.providers.enable(type="test")
         yield provider
         await provider.remove()
 
     async def test_get_providers(self, trainml):
-        providers = await trainml.providers.list()
+        providers = await trainml.cloudbender.providers.list()
         assert len(providers) > 0
 
     async def test_get_provider(self, trainml, provider):
-        response = await trainml.providers.get(provider.id)
+        response = await trainml.cloudbender.providers.get(provider.id)
         assert response.id == provider.id
 
     async def test_provider_properties(self, provider):

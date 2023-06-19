@@ -1,13 +1,12 @@
 import asyncio
 import click
 from trainml.cli import cli, pass_config
-from trainml.trainml import TrainML
 
 
 @cli.group()
 @pass_config
 def gpu(config):
-    """TrainML GPU commands."""
+    """trainML GPU commands."""
     pass
 
 

@@ -35,7 +35,7 @@ class Nodes(object):
         **kwargs,
     ):
         logging.info(f"Creating Node {friendly_name}")
-        payload = dict(
+        data = dict(
             friendly_name=friendly_name,
             hostname=hostname,
             minion_id=minion_id,
@@ -43,6 +43,7 @@ class Nodes(object):
             service=service,
             **kwargs,
         )
+        payload = {k: v for k, v in data.items() if v is not None}
         resp = await self.trainml._query(
             f"/provider/{provider_uuid}/region/{region_uuid}/node",
             "POST",
@@ -66,8 +67,8 @@ class Node:
         self.trainml = trainml
         self._node = kwargs
         self._id = self._node.get("rig_uuid")
-        self._provider_uuid = self._node.get("region_uuid")
-        self._region_uuid = self._node.get("provider_uuid")
+        self._provider_uuid = self._node.get("provider_uuid")
+        self._region_uuid = self._node.get("region_uuid")
         self._type = self._node.get("type")
         self._service = self._node.get("service")
         self._name = self._node.get("friendly_name")

@@ -21,7 +21,7 @@ def validate_cpu_count(ctx, param, value):
 @job.group()
 @pass_config
 def create(config):
-    """TrainML job create."""
+    """trainML job create."""
     pass
 
 

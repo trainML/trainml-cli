@@ -5,7 +5,7 @@ from trainml.cli import cli, pass_config, search_by_id_name
 @cli.group()
 @pass_config
 def connection(config):
-    """TrainML connection commands."""
+    """trainML connection commands."""
     pass
 
 
@@ -55,7 +55,7 @@ def remove(config, id):
 )
 @pass_config
 def remove_all(config, all_projects):
-    """Clear and clean-up all TrainML connections."""
+    """Clear and clean-up all trainML connections."""
     return config.trainml.run(
         config.trainml.client.connections.remove_all(all_projects=all_projects)
     )
