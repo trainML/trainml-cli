@@ -7,7 +7,6 @@ import aiodocker
 import zipfile
 import re
 import logging
-from datetime import datetime
 
 from .exceptions import (
     ConnectionError,

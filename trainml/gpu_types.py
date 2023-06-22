@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 
 
 class GpuTypes(object):
@@ -7,19 +6,16 @@ class GpuTypes(object):
         self.trainml = trainml
 
     async def list(self):
-        if self.trainml.active_project:
-            project_id = self.trainml.active_project
-        else:
-            projects = await self.trainml.projects.list()
-            project_id = next(
-                (p.id for p in projects if p.name == "Personal"),
-                None,
-            )
         resp = await self.trainml._query(
-            f"/project/{project_id}/gputypes", "GET"
+            f"/project/{self.trainml.project}/gputypes", "GET"
         )
         gpu_types = [GpuType(self.trainml, **gpu_type) for gpu_type in resp]
         return gpu_types
+
+    async def refresh_gpu_types(self):
+        await self.trainml._query(
+            f"/project/{self.trainml.project}/gputypes", "PATCH"
+        )
 
 
 class GpuType:

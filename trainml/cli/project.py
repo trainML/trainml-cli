@@ -75,3 +75,80 @@ def remove(config, project):
         raise click.UsageError("Cannot find specified project.")
 
     return config.trainml.run(found.remove())
+
+
+@project.command()
+@pass_config
+def list_datastores(config):
+    """List project datastores."""
+    data = [
+        ["ID", "NAME", "TYPE", "REGION_UUID"],
+        [
+            "-" * 80,
+            "-" * 80,
+            "-" * 80,
+            "-" * 80,
+        ],
+    ]
+    project = config.trainml.run(
+        config.trainml.client.projects.get(config.trainml.client.project)
+    )
+
+    datastores = config.trainml.run(project.list_datastores())
+
+    for datastore in datastores:
+        data.append(
+            [
+                datastore.id,
+                datastore.name,
+                datastore.type,
+                datastore.region_uuid,
+            ]
+        )
+
+    for row in data:
+        click.echo(
+            "{: >38.36} {: >30.28} {: >15.13} {: >38.36}" "".format(*row),
+            file=config.stdout,
+        )
+
+
+@project.command()
+@pass_config
+def list_reservations(config):
+    """List project reservations."""
+    data = [
+        ["ID", "NAME", "TYPE", "RESOURCE", "HOSTNAME", "REGION_UUID"],
+        [
+            "-" * 80,
+            "-" * 80,
+            "-" * 80,
+            "-" * 80,
+            "-" * 80,
+            "-" * 80,
+        ],
+    ]
+    project = config.trainml.run(
+        config.trainml.client.projects.get(config.trainml.client.project)
+    )
+
+    reservations = config.trainml.run(project.list_reservations())
+
+    for reservation in reservations:
+        data.append(
+            [
+                reservation.id,
+                reservation.name,
+                reservation.type,
+                reservation.resource,
+                reservation.hostname,
+                reservation.region_uuid,
+            ]
+        )
+
+    for row in data:
+        click.echo(
+            "{: >38.36} {: >30.28} {: >8.6} {: >15.13} {: >30.28} {: >38.36}"
+            "".format(*row),
+            file=config.stdout,
+        )

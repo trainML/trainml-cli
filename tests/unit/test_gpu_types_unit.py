@@ -39,6 +39,15 @@ class GpuTypesTests:
             f"/project/proj-id-1/gputypes", "GET"
         )
 
+    @mark.asyncio
+    async def test_project_refresh_gpu_types(self, gpu_types, mock_trainml):
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await gpu_types.refresh_gpu_types()
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/gputypes", "PATCH"
+        )
+
 
 class GpuTypeTests:
     def test_gpu_type_properties(self, gpu_type):

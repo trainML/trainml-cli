@@ -74,7 +74,7 @@ class Datastore:
         self._type = self._datastore.get("type")
         self._name = self._datastore.get("name")
         self._uri = self._datastore.get("uri")
-        self._root = self._datastore.get("uri")
+        self._root = self._datastore.get("root")
 
     @property
     def id(self) -> str:

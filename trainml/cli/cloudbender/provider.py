@@ -6,7 +6,7 @@ from trainml.cli.cloudbender import cloudbender
 @cloudbender.group()
 @pass_config
 def provider(config):
-    """trainML provider commands."""
+    """trainML CloudBender provider commands."""
     pass
 
 
