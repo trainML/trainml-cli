@@ -100,7 +100,7 @@ class JobLifeCycleTests:
         training_job = await job.copy(
             name="CLI Automated Tests - Job Convert",
             type="training",
-            workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
+            workers=["python $ML_MODEL_PATH/tensorflow/main.py"],
             data=dict(
                 datasets=[
                     dict(
@@ -373,7 +373,7 @@ class JobIOTests:
             type="training",
             gpu_types=["gtx1060"],
             disk_size=10,
-            workers=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
+            workers=["python $ML_MODEL_PATH/tensorflow/main.py"],
             environment=dict(
                 type="DEEPLEARNING_PY310",
                 env=[
@@ -440,7 +440,7 @@ class JobIOTests:
             gpu_count=1,
             cpu_count=8,
             disk_size=10,
-            worker_commands=["python $TRAINML_MODEL_PATH/tensorflow/main.py"],
+            worker_commands=["python $ML_MODEL_PATH/tensorflow/main.py"],
             data=dict(
                 datasets=[
                     dict(
@@ -563,7 +563,7 @@ class JobTypeTests:
                 ),
             ),
             worker_commands=[
-                "python $TRAINML_MODEL_PATH/tensorflow/main.py",
+                "python $ML_MODEL_PATH/tensorflow/main.py",
             ],
             data=dict(
                 datasets=[
@@ -615,7 +615,7 @@ class JobFeatureTests:
                 source_uri="git@github.com:trainML/environment-tests.git",
             ),
             worker_commands=[
-                "python $TRAINML_MODEL_PATH/pytorch/main.py",
+                "python $ML_MODEL_PATH/pytorch/main.py",
             ],
             data=dict(
                 datasets=[dict(id="MNIST", public=True)],
@@ -641,7 +641,7 @@ class JobFeatureTests:
             gpu_count=1,
             disk_size=10,
             workers=[
-                "python $TRAINML_MODEL_PATH/tensorflow/main.py",
+                "python $ML_MODEL_PATH/tensorflow/main.py",
             ],
             data=dict(
                 input_type="wasabi",

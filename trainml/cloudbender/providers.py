@@ -61,3 +61,11 @@ class Provider:
 
     async def remove(self):
         await self.trainml._query(f"/provider/{self._id}", "DELETE")
+
+    async def refresh(self):
+        resp = await self.trainml._query(
+            f"/provider/{self._id}",
+            "GET",
+        )
+        self.__init__(self.trainml, **resp)
+        return self

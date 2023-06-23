@@ -151,3 +151,23 @@ class reservationTests:
         mock_trainml._query.assert_called_once_with(
             "/provider/1/region/a/reservation/x", "DELETE"
         )
+
+    @mark.asyncio
+    async def test_reservation_refresh(self, reservation, mock_trainml):
+        api_response = {
+            "provider_uuid": "provider-id-1",
+            "region_uuid": "region-id-1",
+            "reservation_id": "reservation-id-1",
+            "name": "On-Prem Reservation",
+            "type": "port",
+            "resource": "8001",
+            "hostname": "service.local",
+            "createdAt": "2020-12-31T23:59:59.000Z",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await reservation.refresh()
+        mock_trainml._query.assert_called_once_with(
+            f"/provider/1/region/a/reservation/x", "GET"
+        )
+        assert reservation.id == "reservation-id-1"
+        assert response.id == "reservation-id-1"

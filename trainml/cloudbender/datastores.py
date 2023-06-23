@@ -118,3 +118,11 @@ class Datastore:
             f"/provider/{self._provider_uuid}/region/{self._region_uuid}/datastore/{self._id}",
             "DELETE",
         )
+
+    async def refresh(self):
+        resp = await self.trainml._query(
+            f"/provider/{self._provider_uuid}/region/{self._region_uuid}/datastore/{self._id}",
+            "GET",
+        )
+        self.__init__(self.trainml, **resp)
+        return self

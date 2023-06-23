@@ -484,19 +484,19 @@ def mock_jobs():
                     {
                         "rig_uuid": "rig-id-1",
                         "job_worker_uuid": "worker-id-11",
-                        "command": "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024",
+                        "command": "PYTHONPATH=$PYTHONPATH:$ML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$ML_DATA_PATH --model_dir=$ML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024",
                         "status": "stopped",
                     },
                     {
                         "rig_uuid": "rig-id-2",
                         "job_worker_uuid": "worker-id-12",
-                        "command": "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024",
+                        "command": "PYTHONPATH=$PYTHONPATH:$ML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$ML_DATA_PATH --model_dir=$ML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024",
                         "status": "stopped",
                     },
                     {
                         "rig_uuid": "rig-id-2",
                         "job_worker_uuid": "worker-id-13",
-                        "command": "PYTHONPATH=$PYTHONPATH:$TRAINML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$TRAINML_DATA_PATH --model_dir=$TRAINML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024",
+                        "command": "PYTHONPATH=$PYTHONPATH:$ML_MODEL_PATH python -m official.vision.image_classification.resnet_cifar_main --num_gpus=1 --data_dir=$ML_DATA_PATH --model_dir=$ML_OUTPUT_PATH --enable_checkpoint_and_export=True --train_epochs=1 --batch_size=1024",
                         "status": "stopped",
                     },
                 ],

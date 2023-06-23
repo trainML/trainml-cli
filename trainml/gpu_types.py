@@ -1,4 +1,5 @@
 import json
+from trainml.exceptions import TrainMLException
 
 
 class GpuTypes(object):
@@ -6,6 +7,10 @@ class GpuTypes(object):
         self.trainml = trainml
 
     async def list(self):
+        if not self.trainml.project:
+            raise TrainMLException(
+                "Active project not configured.  Run 'trainml configure' to select an active project."
+            )
         resp = await self.trainml._query(
             f"/project/{self.trainml.project}/gputypes", "GET"
         )

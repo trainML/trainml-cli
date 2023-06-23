@@ -131,3 +131,25 @@ class Node:
             f"/provider/{self._provider_uuid}/region/{self._region_uuid}/node/{self._id}",
             "DELETE",
         )
+
+    async def refresh(self):
+        resp = await self.trainml._query(
+            f"/provider/{self._provider_uuid}/region/{self._region_uuid}/node/{self._id}",
+            "GET",
+        )
+        self.__init__(self.trainml, **resp)
+        return self
+
+    async def toggle_maintenance(self):
+        await self.trainml._query(
+            f"/provider/{self._provider_uuid}/region/{self._region_uuid}/node/{self._id}/maintenance",
+            "PATCH",
+        )
+
+    async def run_action(self, command):
+        await self.trainml._query(
+            f"/provider/{self._provider_uuid}/region/{self._region_uuid}/node/{self._id}/action",
+            "POST",
+            None,
+            dict(command=command),
+        )

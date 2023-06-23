@@ -20,6 +20,7 @@ markers = [
     "providers: Providers tests",
     "regions: Regions tests",
     "nodes: Nodes tests",
+    "devices: Devices tests",
     "datastores: Datastores tests",
     "reservations: Reservations tests",
     "device_configs: DeviceConfigs tests",

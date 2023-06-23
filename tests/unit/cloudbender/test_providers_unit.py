@@ -123,3 +123,19 @@ class providerTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await provider.remove()
         mock_trainml._query.assert_called_once_with("/provider/1", "DELETE")
+
+    @mark.asyncio
+    async def test_provider_refresh(self, provider, mock_trainml):
+        api_response = {
+            "customer_uuid": "cust-id-1",
+            "provider_uuid": "provider-id-1",
+            "type": "new provider",
+            "credits": 0.0,
+            "payment_mode": "credits",
+            "createdAt": "2020-12-31T23:59:59.000Z",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await provider.refresh()
+        mock_trainml._query.assert_called_once_with(f"/provider/1", "GET")
+        assert provider.id == "provider-id-1"
+        assert response.id == "provider-id-1"

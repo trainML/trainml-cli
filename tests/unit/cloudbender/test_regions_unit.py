@@ -140,6 +140,24 @@ class regionTests:
         )
 
     @mark.asyncio
+    async def test_region_refresh(self, region, mock_trainml):
+        api_response = {
+            "provider_uuid": "provider-id-1",
+            "region_uuid": "region-id-1",
+            "provider_type": "physical",
+            "name": "phys-region",
+            "status": "new",
+            "createdAt": "2020-12-31T23:59:59.000Z",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await region.refresh()
+        mock_trainml._query.assert_called_once_with(
+            f"/provider/1/region/a", "GET"
+        )
+        assert region.id == "region-id-1"
+        assert response.id == "region-id-1"
+
+    @mark.asyncio
     async def test_region_stage_dataset(self, region, mock_trainml):
         api_response = dict()
         expected_payload = dict(

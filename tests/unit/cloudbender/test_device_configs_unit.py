@@ -150,3 +150,24 @@ class device_configTests:
         mock_trainml._query.assert_called_once_with(
             "/provider/1/region/a/device/config/x", "DELETE"
         )
+
+    @mark.asyncio
+    async def test_device_config_refresh(self, device_config, mock_trainml):
+        api_response = {
+            "provider_uuid": "provider-id-1",
+            "region_uuid": "region-id-1",
+            "config_id": "device_config-id-1",
+            "name": "IoT 1",
+            "model_uuid": "model-id-1",
+            "model_project_uuid": "proj-id-1",
+            "image": "nvidia/cuda",
+            "command": "python run.py",
+            "createdAt": "2020-12-31T23:59:59.000Z",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await device_config.refresh()
+        mock_trainml._query.assert_called_once_with(
+            f"/provider/1/region/a/device/config/x", "GET"
+        )
+        assert device_config.id == "device_config-id-1"
+        assert response.id == "device_config-id-1"

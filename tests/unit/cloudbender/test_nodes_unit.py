@@ -157,3 +157,46 @@ class nodeTests:
         mock_trainml._query.assert_called_once_with(
             "/provider/1/region/a/node/x", "DELETE"
         )
+
+    @mark.asyncio
+    async def test_node_refresh(self, node, mock_trainml):
+        api_response = {
+            "provider_uuid": "provider-id-1",
+            "region_uuid": "region-id-1",
+            "rig_uuid": "rig-id-1",
+            "name": "phys-node",
+            "type": "permanent",
+            "service": "compute",
+            "status": "new",
+            "online": False,
+            "maintenance_mode": True,
+            "createdAt": "2020-12-31T23:59:59.000Z",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        response = await node.refresh()
+        mock_trainml._query.assert_called_once_with(
+            f"/provider/1/region/a/node/x", "GET"
+        )
+        assert node.id == "rig-id-1"
+        assert response.id == "rig-id-1"
+
+    @mark.asyncio
+    async def test_node_toggle_maintenance(self, node, mock_trainml):
+        api_response = None
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await node.toggle_maintenance()
+        mock_trainml._query.assert_called_once_with(
+            "/provider/1/region/a/node/x/maintenance", "PATCH"
+        )
+
+    @mark.asyncio
+    async def test_node_run_action(self, node, mock_trainml):
+        api_response = None
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await node.run_action(command="report")
+        mock_trainml._query.assert_called_once_with(
+            "/provider/1/region/a/node/x/action",
+            "POST",
+            None,
+            dict(command="report"),
+        )
