@@ -36,9 +36,9 @@ def device(mock_trainml):
         maintenance_mode=False,
         job_status="stopped",
         job_last_deployed="2023-06-02T21:22:40.084Z",
-        job_config_id="29518688-a94b-45a8-bb7d-329cfb809c93",
+        job_config_id="job-id-1",
         job_config_revision="1685740490096",
-        device_config_id="c616face-28c3-403c-b1a6-b42c53692fbb",
+        device_config_id="conf-id-2",
     )
 
 
@@ -110,9 +110,9 @@ class RegionsTests:
             "maintenance_mode": True,
             "job_status": "stopped",
             "job_last_deployed": "2023-06-02T21:22:40.084Z",
-            "job_config_id": "29518688-a94b-45a8-bb7d-329cfb809c93",
+            "job_config_id": "job-id-1",
             "job_config_revision": "1685740490096",
-            "device_config_id": "c616face-28c3-403c-b1a6-b42c53692fbb",
+            "device_config_id": "conf-id-1",
             "createdAt": "2020-12-31T23:59:59.000Z",
         }
 
@@ -187,9 +187,9 @@ class deviceTests:
             "maintenance_mode": True,
             "job_status": "stopped",
             "job_last_deployed": "2023-06-02T21:22:40.084Z",
-            "job_config_id": "29518688-a94b-45a8-bb7d-329cfb809c93",
+            "job_config_id": "job-id-1",
             "job_config_revision": "1685740490096",
-            "device_config_id": "c616face-28c3-403c-b1a6-b42c53692fbb",
+            "device_config_id": "conf-id-1",
             "createdAt": "2020-12-31T23:59:59.000Z",
         }
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -235,7 +235,7 @@ class deviceTests:
             "maintenance_mode": True,
             "job_status": "stopped",
             "job_last_deployed": "2023-06-02T21:22:40.084Z",
-            "job_config_id": "29518688-a94b-45a8-bb7d-329cfb809c93",
+            "job_config_id": "job-id-1",
             "job_config_revision": "1685740490096",
             "device_config_id": "config-id-1",
             "createdAt": "2020-12-31T23:59:59.000Z",

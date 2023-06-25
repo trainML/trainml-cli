@@ -22,6 +22,7 @@ from trainml.cloudbender import Cloudbender
 from trainml.cloudbender.providers import Provider, Providers
 from trainml.cloudbender.regions import Region, Regions
 from trainml.cloudbender.nodes import Node, Nodes
+from trainml.cloudbender.devices import Device, Devices
 from trainml.cloudbender.datastores import Datastore, Datastores
 from trainml.cloudbender.reservations import Reservation, Reservations
 from trainml.cloudbender.device_configs import DeviceConfig, DeviceConfigs
@@ -707,6 +708,53 @@ def mock_nodes():
 
 
 @fixture(scope="session")
+def mock_devices():
+    trainml = Mock()
+    yield [
+        Device(
+            trainml,
+            **{
+                "provider_uuid": "prov-id-1",
+                "region_uuid": "reg-id-1",
+                "device_id": "dev-id-1",
+                "type": "device",
+                "service": "compute",
+                "friendly_name": "hq-orin-01",
+                "hostname": "hq-orin-01",
+                "status": "active",
+                "online": True,
+                "maintenance_mode": False,
+                "job_status": "running",
+                "job_last_deployed": "2023-06-02T21:22:40.084Z",
+                "job_config_id": "job-id-1",
+                "job_config_revision": "1685740490096",
+                "device_config_id": "conf-id-1",
+            },
+        ),
+        Device(
+            trainml,
+            **{
+                "provider_uuid": "prov-id-1",
+                "region_uuid": "reg-id-1",
+                "device_id": "dev-id-2",
+                "type": "device",
+                "service": "compute",
+                "friendly_name": "hq-orin-02",
+                "hostname": "hq-orin-02",
+                "status": "active",
+                "online": True,
+                "maintenance_mode": False,
+                "job_status": "running",
+                "job_last_deployed": "2023-06-02T21:22:40.084Z",
+                "job_config_id": "job-id-2",
+                "job_config_revision": "1685740490096",
+                "device_config_id": "conf-id-1",
+            },
+        ),
+    ]
+
+
+@fixture(scope="session")
 def mock_datastores():
     trainml = Mock()
     yield [
@@ -863,6 +911,7 @@ def mock_trainml(
     mock_providers,
     mock_regions,
     mock_nodes,
+    mock_devices,
     mock_datastores,
     mock_reservations,
     mock_device_configs,
@@ -898,6 +947,8 @@ def mock_trainml(
     trainml.cloudbender.regions.list = AsyncMock(return_value=mock_regions)
     trainml.cloudbender.nodes = create_autospec(Nodes)
     trainml.cloudbender.nodes.list = AsyncMock(return_value=mock_nodes)
+    trainml.cloudbender.devices = create_autospec(Nodes)
+    trainml.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     trainml.cloudbender.datastores = create_autospec(Datastores)
     trainml.cloudbender.datastores.list = AsyncMock(
         return_value=mock_datastores
