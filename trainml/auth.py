@@ -222,10 +222,6 @@ n_hex = (
 g_hex = "2"
 info_bits = bytearray("Caldera Derived Key", "utf-8")
 
-CONFIG_DIR = os.path.expanduser(
-    os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
-)
-
 
 def hash_sha256(buf):
     """AuthenticationHelper.hash"""
@@ -512,9 +508,9 @@ class AWSSRP(object):
 
 
 class Auth(object):
-    def __init__(self, domain_suffix="trainml.ai", **kwargs):
+    def __init__(self, config_dir, domain_suffix="trainml.ai", **kwargs):
         try:
-            with open(f"{CONFIG_DIR}/environment.json", "r") as file:
+            with open(f"{config_dir}/environment.json", "r") as file:
                 env_str = file.read().replace("\n", "")
             env = json.loads(env_str)
         except:
@@ -544,7 +540,7 @@ class Auth(object):
         )
 
         try:
-            with open(f"{CONFIG_DIR}/credentials.json", "r") as file:
+            with open(f"{config_dir}/credentials.json", "r") as file:
                 key_str = file.read().replace("\n", "")
             keys = json.loads(key_str)
         except:

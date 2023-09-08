@@ -122,8 +122,12 @@ class Dataset:
                 ssh_port=self._dataset.get("vpn")
                 .get("client")
                 .get("ssh_port"),
-                input_path=self._dataset.get("source_uri"),
-                output_path=None,
+                input_path=self._dataset.get("source_uri")
+                if self.status in ["new", "downloading"]
+                else None,
+                output_path=self._dataset.get("output_uri")
+                if self.status == "exporting"
+                else None,
             )
         else:
             details = dict()
@@ -133,7 +137,7 @@ class Dataset:
         if self.status in ["ready", "failed"]:
             raise SpecificationError(
                 "status",
-                f"You can only connect to new or downloading datasets.",
+                f"You can only connect to downloading or exporting datasets.",
             )
         if self.status == "new":
             await self.wait_for("downloading")
@@ -163,6 +167,20 @@ class Dataset:
             "PATCH",
             None,
             dict(name=name),
+        )
+        self.__init__(self.trainml, **resp)
+        return self
+
+    async def export(self, output_type, output_uri, output_options=dict()):
+        resp = await self.trainml._query(
+            f"/dataset/{self._id}/export",
+            "POST",
+            dict(project_uuid=self._project_uuid),
+            dict(
+                output_type=output_type,
+                output_uri=output_uri,
+                output_options=output_options,
+            ),
         )
         self.__init__(self.trainml, **resp)
         return self

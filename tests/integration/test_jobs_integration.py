@@ -548,17 +548,16 @@ class JobTypeTests:
             ),
             environment=dict(
                 type="CUSTOM",
-                custom_image="tensorflow/tensorflow:2.10.0-gpu",
+                custom_image="tensorflow/tensorflow:2.13.0-gpu",
                 packages=dict(
                     pip=[
-                        "tensorflow_addons==0.18.0",
                         "matplotlib",
                         "scipy",
-                        "tensorflow_hub==0.12.0",
+                        "tensorflow_hub",
                         "keras_applications",
                         "keras_preprocessing",
-                        "protobuf==3.20.1",
-                        "typing-extensions==4.4.0",
+                        "protobuf",
+                        "typing-extensions",
                     ]
                 ),
             ),

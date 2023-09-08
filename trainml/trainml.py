@@ -28,7 +28,7 @@ async def delayed_close(ws):
 class TrainML(object):
     def __init__(self, **kwargs):
         self._version = version("trainml")
-        CONFIG_DIR = os.path.expanduser(
+        CONFIG_DIR = kwargs.get("config_dir") or os.path.expanduser(
             os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
         )
         try:
@@ -50,6 +50,7 @@ class TrainML(object):
             or "trainml.ai"
         )
         self.auth = Auth(
+            config_dir=CONFIG_DIR,
             domain_suffix=self.domain_suffix,
             user=kwargs.get("user"),
             key=kwargs.get("key"),

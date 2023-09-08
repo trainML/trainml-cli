@@ -115,18 +115,23 @@ class Model:
                 project_uuid=self._model.get("project_uuid"),
                 cidr=self._model.get("vpn").get("cidr"),
                 ssh_port=self._model.get("vpn").get("client").get("ssh_port"),
-                input_path=self._model.get("source_uri"),
-                output_path=None,
+                input_path=self._model.get("source_uri")
+                if self.status in ["new", "downloading"]
+                else None,
+                output_path=self._model.get("output_uri")
+                if self.status == "exporting"
+                else None,
             )
         else:
             details = dict()
+        logging.debug(f"Connection Details: {details}")
         return details
 
     async def connect(self):
         if self.status in ["ready", "failed"]:
             raise SpecificationError(
                 "status",
-                f"You can only connect to new or downloading models.",
+                f"You can only connect to downloading or exporting models.",
             )
         if self.status == "new":
             await self.wait_for("downloading")
@@ -156,6 +161,20 @@ class Model:
             "PATCH",
             None,
             dict(name=name),
+        )
+        self.__init__(self.trainml, **resp)
+        return self
+
+    async def export(self, output_type, output_uri, output_options=dict()):
+        resp = await self.trainml._query(
+            f"/model/{self._id}/export",
+            "POST",
+            dict(project_uuid=self._project_uuid),
+            dict(
+                output_type=output_type,
+                output_uri=output_uri,
+                output_options=output_options,
+            ),
         )
         self.__init__(self.trainml, **resp)
         return self

@@ -22,7 +22,7 @@ pytestmark = [mark.sdk, mark.unit]
     },
 )
 def test_auth_from_envs():
-    auth = specimen.Auth()
+    auth = specimen.Auth(config_dir=os.path.expanduser("~/.trainml"))
     assert auth.__dict__.get("username") == "user-id"
     assert auth.__dict__.get("password") == "key"
     assert auth.__dict__.get("region") == "ap-east-1"

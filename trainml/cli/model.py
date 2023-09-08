@@ -1,4 +1,5 @@
 import click
+import logging
 from trainml.cli import cli, pass_config, search_by_id_name
 
 
@@ -64,6 +65,7 @@ def connect(config, model, attach):
     models = config.trainml.run(config.trainml.client.models.list())
 
     found = search_by_id_name(model, models)
+    logging.debug(found)
     if None is found:
         raise click.UsageError("Cannot find specified model.")
 
