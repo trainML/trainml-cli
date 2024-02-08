@@ -683,7 +683,7 @@ def training(
         config.trainml.client.jobs.create(
             name=name,
             type="training",
-            gpu_type=gpu_type,
+            gpu_types=gpu_type,
             cpu_count=cpu_count,
             disk_size=disk_size,
             workers=[command for command in commands],
@@ -1021,7 +1021,7 @@ def inference(
         config.trainml.client.jobs.create(
             name=name,
             type="inference",
-            gpu_type=gpu_type,
+            gpu_types=gpu_type,
             cpu_count=cpu_count,
             disk_size=disk_size,
             workers=[command],
@@ -1330,7 +1330,7 @@ def endpoint(
         config.trainml.client.jobs.create(
             name=name,
             type="endpoint",
-            gpu_type=gpu_type,
+            gpu_types=gpu_type,
             cpu_count=cpu_count,
             disk_size=disk_size,
             endpoint=dict(routes=routes),

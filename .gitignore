@@ -17,3 +17,4 @@ config-*
 .pytest*
 **/__pycache__/
 sync.sh
+.pypirc

@@ -9,7 +9,7 @@ pytest --cov-report term-missing --cov=trainml --dist=loadscope -nauto --env=<de
 ### Run unit tests
 
 ```
-pytest --cov-report term-missing --cov=trainml -nauto -m unit
+pytest --cov-report term-missing --cov=trainml --dist=loadscope -nauto -m unit
 ```
 
 ### Run integration tests

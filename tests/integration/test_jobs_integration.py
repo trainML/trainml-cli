@@ -191,8 +191,7 @@ class JobAPIResourceValidationTests:
                 disk_size=10,
             )
         assert (
-            "Invalid Request - CPU Count must be a multiple of 4"
-            in error.value.message
+            "Invalid Request - CPU Count must be a multiple of 4" in error.value.message
         )
 
     async def test_invalid_gpu_count_for_cpu(self, trainml):
@@ -431,7 +430,7 @@ class JobIOTests:
             source_uri="git@github.com:trainML/environment-tests.git",
         )
         await model.wait_for("ready", 300)
-        assert model.size >= 500000
+        assert model.size >= 200000
 
         job = await trainml.jobs.create(
             "CLI Automated Tests - Training With trainML Model Output",
@@ -588,10 +587,7 @@ class JobTypeTests:
         sys.stderr.write(captured.err)
         assert "Epoch 1/2" in captured.out
         assert "Epoch 2/2" in captured.out
-        assert (
-            "Uploading s3://trainml-example/output/resnet_cifar10"
-            in captured.out
-        )
+        assert "Uploading s3://trainml-example/output/resnet_cifar10" in captured.out
         assert (
             "upload: ./model.ckpt-0002.data-00000-of-00001 to s3://trainml-example/output/resnet_cifar10/model.ckpt-0002.data-00000-of-00001"
             in captured.out

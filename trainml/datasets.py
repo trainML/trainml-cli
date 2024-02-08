@@ -37,8 +37,7 @@ class Datasets(object):
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
-            project_uuid=kwargs.get("project_uuid")
-            or self.trainml.active_project,
+            project_uuid=kwargs.get("project_uuid") or self.trainml.active_project,
         )
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Dataset {name}")
@@ -119,9 +118,7 @@ class Dataset:
                 entity_type="dataset",
                 project_uuid=self._dataset.get("project_uuid"),
                 cidr=self._dataset.get("vpn").get("cidr"),
-                ssh_port=self._dataset.get("vpn")
-                .get("client")
-                .get("ssh_port"),
+                ssh_port=self._dataset.get("vpn").get("client").get("ssh_port"),
                 input_path=self._dataset.get("source_uri")
                 if self.status in ["new", "downloading"]
                 else None,
@@ -191,9 +188,7 @@ class Dataset:
                 if msg_handler:
                     msg_handler(data)
                 else:
-                    timestamp = datetime.fromtimestamp(
-                        int(data.get("time")) / 1000
-                    )
+                    timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
                     print(
                         f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
                     )
@@ -230,9 +225,7 @@ class Dataset:
             return
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
-        POLL_INTERVAL = max(
-            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
-        )
+        POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:
