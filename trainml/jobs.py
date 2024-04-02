@@ -77,8 +77,7 @@ class Jobs(object):
             model=model,
             endpoint=endpoint,
             source_job_uuid=kwargs.get("source_job_uuid"),
-            project_uuid=kwargs.get("project_uuid")
-            or self.trainml.active_project,
+            project_uuid=kwargs.get("project_uuid") or self.trainml.active_project,
         )
         payload = {
             k: v
@@ -103,9 +102,7 @@ class Jobs(object):
         return job
 
     async def remove(self, id, **kwargs):
-        await self.trainml._query(
-            f"/job/{id}", "DELETE", dict(**kwargs, force=True)
-        )
+        await self.trainml._query(f"/job/{id}", "DELETE", dict(**kwargs, force=True))
 
 
 class Job:
@@ -308,18 +305,26 @@ class Job:
             entity_type="job",
             project_uuid=self._job.get("project_uuid"),
             cidr=self.dict.get("vpn").get("cidr"),
-            ssh_port=self._job.get("vpn").get("client").get("ssh_port")
-            if self._job.get("vpn").get("client")
-            else None,
-            model_path=self._job.get("model").get("source_uri")
-            if self._job.get("model").get("source_type") == "local"
-            else None,
-            input_path=self._job.get("data").get("input_uri")
-            if self._job.get("data").get("input_type") == "local"
-            else None,
-            output_path=self._job.get("data").get("output_uri")
-            if self._job.get("data").get("output_type") == "local"
-            else None,
+            ssh_port=(
+                self._job.get("vpn").get("client").get("ssh_port")
+                if self._job.get("vpn").get("client")
+                else None
+            ),
+            model_path=(
+                self._job.get("model").get("source_uri")
+                if self._job.get("model").get("source_type") == "local"
+                else None
+            ),
+            input_path=(
+                self._job.get("data").get("input_uri")
+                if self._job.get("data").get("input_type") == "local"
+                else None
+            ),
+            output_path=(
+                self._job.get("data").get("output_uri")
+                if self._job.get("data").get("output_type") == "local"
+                else None
+            ),
         )
         return details
 
@@ -396,8 +401,7 @@ class Job:
 
     def _get_msg_handler(self, msg_handler):
         worker_numbers = {
-            w.get("job_worker_uuid"): ind + 1
-            for ind, w in enumerate(self._workers)
+            w.get("job_worker_uuid"): ind + 1 for ind, w in enumerate(self._workers)
         }
         worker_numbers["data_worker"] = 0
 
@@ -407,9 +411,7 @@ class Job:
                 if msg_handler:
                     msg_handler(data)
                 else:
-                    timestamp = datetime.fromtimestamp(
-                        int(data.get("time")) / 1000
-                    )
+                    timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
                     if len(self._workers) > 1:
                         print(
                             f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: Worker {data.get('worker_number')} - {data.get('msg').rstrip()}"
@@ -422,10 +424,7 @@ class Job:
         return handler
 
     async def attach(self, msg_handler=None):
-        if (
-            self.type == "notebook"
-            and self.status != "waiting for data/model download"
-        ):
+        if self.type == "notebook" and self.status != "waiting for data/model download":
             raise SpecificationError(
                 "type",
                 "Notebooks cannot be attached to after model download is complete.  Use open() instead.",
@@ -442,9 +441,7 @@ class Job:
     async def copy(self, name, **kwargs):
         logging.debug(f"copy request - name: {name} ; kwargs: {kwargs}")
         if self.type != "notebook":
-            raise SpecificationError(
-                "job", "Only notebook job types can be copied"
-            )
+            raise SpecificationError("job", "Only notebook job types can be copied")
 
         job = await self.trainml.jobs.create(
             name,
@@ -504,9 +501,7 @@ class Job:
 
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
-        POLL_INTERVAL = max(
-            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
-        )
+        POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:
@@ -520,22 +515,24 @@ class Job:
             if (
                 self.status == status
                 or (
-                    self.type == "training"
-                    and status == "finished"
-                    and self.status == "stopped"
-                )
-                or (
                     status
                     in [
                         "waiting for GPUs",
                         "waiting for resources",
                     ]  ## this status could be very short and the polling could miss it
-                    and self.status in ["starting", "provisioning", "running"]
+                    and self.status
+                    not in ["new", "waiting for GPUs", "waiting for resources"]
                 )
                 or (
                     status
                     == "waiting for data/model download"  ## this status could be very short and the polling could miss it
-                    and self.status in ["starting", "provisioning", "running"]
+                    and self.status
+                    not in [
+                        "new",
+                        "waiting for GPUs",
+                        "waiting for resources",
+                        "waiting for data/model download",
+                    ]
                 )
             ):
                 return self

@@ -97,14 +97,27 @@ class CheckpointError(TrainMLException):
         return self._status
 
     def __repr__(self):
-        return "CheckpointError({self.status}, {self.message})".format(
-            self=self
-        )
+        return "CheckpointError({self.status}, {self.message})".format(self=self)
 
     def __str__(self):
-        return "CheckpointError({self.status}, {self.message})".format(
-            self=self
-        )
+        return "CheckpointError({self.status}, {self.message})".format(self=self)
+
+
+class VolumeError(TrainMLException):
+    def __init__(self, status, data, *args):
+        super().__init__(data, *args)
+        self._status = status
+        self._message = data
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    def __repr__(self):
+        return "VolumeError({self.status}, {self.message})".format(self=self)
+
+    def __str__(self):
+        return "VolumeError({self.status}, {self.message})".format(self=self)
 
 
 class ConnectionError(TrainMLException):
@@ -130,11 +143,7 @@ class SpecificationError(TrainMLException):
         return self._attribute
 
     def __repr__(self):
-        return "SpecificationError({self.attribute}, {self.message})".format(
-            self=self
-        )
+        return "SpecificationError({self.attribute}, {self.message})".format(self=self)
 
     def __str__(self):
-        return "SpecificationError({self.attribute}, {self.message})".format(
-            self=self
-        )
+        return "SpecificationError({self.attribute}, {self.message})".format(self=self)

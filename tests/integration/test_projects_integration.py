@@ -11,9 +11,7 @@ pytestmark = [mark.sdk, mark.integration, mark.projects]
 class GetProjectsTests:
     @fixture(scope="class")
     async def project(self, trainml):
-        project = await trainml.projects.create(
-            name="New Project", copy_keys=False
-        )
+        project = await trainml.projects.create(name="New Project", copy_keys=False)
         yield project
         await project.remove()
 
@@ -41,8 +39,6 @@ class GetProjectsTests:
 
     async def test_project_repr(self, project):
         string = repr(project)
-        regex = (
-            r"^Project\( trainml , \*\*{.*'id': '" + project.id + r"'.*}\)$"
-        )
+        regex = r"^Project\( trainml , \*\*{.*'id': '" + project.id + r"'.*}\)$"
         assert isinstance(string, str)
         assert re.match(regex, string)

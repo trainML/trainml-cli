@@ -13,8 +13,9 @@ class GetDatasetTests:
     async def dataset(self, trainml):
         dataset = await trainml.datasets.create(
             name="CLI Automated",
-            source_type="aws",
-            source_uri="s3://trainml-examples/data/cifar10",
+            source_type="wasabi",
+            source_uri="s3://trainml-example/input/cifar-10/cifar-10-batches-bin",
+            source_options=dict(endpoint_url="https://s3.wasabisys.com"),
         )
         dataset = await dataset.wait_for("ready", 300)
         yield dataset
@@ -48,9 +49,7 @@ class GetDatasetTests:
     async def test_dataset_repr(self, dataset):
         string = repr(dataset)
         regex = (
-            r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '"
-            + dataset.id
-            + r"'.*}\)$"
+            r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '" + dataset.id + r"'.*}\)$"
         )
         assert isinstance(string, str)
         assert re.match(regex, string)

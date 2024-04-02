@@ -3,9 +3,7 @@ python_files = "test_*"
 python_classes = "*Tests"
 python_functions = "test_*"
 asyncio_mode = "auto"
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]
 markers = [
     "create: Tests that create resources on the trainml platform",
     "gpu_types: Gpu Type tests",
@@ -13,6 +11,7 @@ markers = [
     "datasets: Datasets tests",
     "models: Models tests",
     "checkpoints: Checkpoints tests",
+    "volumes: Volumes tests",
     "jobs: Jobs tests",
     "connections: Connections tests",
     "projects: Projects tests",
@@ -27,5 +26,5 @@ markers = [
     "unit: All unit tests (no trainML environment required)",
     "integration: All integration tests (trainML environment required)",
     "sdk: All tests of the SDK",
-    "cli: All test of the cli"
+    "cli: All test of the cli",
 ]

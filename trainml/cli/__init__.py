@@ -142,9 +142,7 @@ def configure(config):
         project for project in projects if project.id == active_project_id
     ]
 
-    active_project_name = (
-        active_project[0].name if len(active_project) else "UNSET"
-    )
+    active_project_name = active_project[0].name if len(active_project) else "UNSET"
 
     click.echo(f"Current Active Project: {active_project_name}")
 
@@ -154,9 +152,7 @@ def configure(config):
         show_choices=True,
         default=active_project_name,
     )
-    selected_project = [
-        project for project in projects if project.name == name
-    ]
+    selected_project = [project for project in projects if project.name == name]
     config.trainml.client.set_active_project(selected_project[0].id)
 
 
@@ -164,6 +160,7 @@ from trainml.cli.connection import connection
 from trainml.cli.dataset import dataset
 from trainml.cli.model import model
 from trainml.cli.checkpoint import checkpoint
+from trainml.cli.volume import volume
 from trainml.cli.environment import environment
 from trainml.cli.gpu import gpu
 from trainml.cli.job import job

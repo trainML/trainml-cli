@@ -7,6 +7,7 @@ from trainml.trainml import TrainML
 from trainml.auth import Auth
 from trainml.datasets import Dataset, Datasets
 from trainml.checkpoints import Checkpoint, Checkpoints
+from trainml.volumes import Volume, Volumes
 from trainml.models import Model, Models
 from trainml.gpu_types import GpuType, GpuTypes
 from trainml.environments import Environment, Environments
@@ -253,6 +254,79 @@ def mock_models():
             name="failed",
             status="failed",
             size=10000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+    ]
+
+
+@fixture(scope="session")
+def mock_my_volumes():
+    trainml = Mock()
+    yield [
+        Volume(
+            trainml,
+            id="1",
+            project_uuid="proj-id-1",
+            name="first one",
+            status="ready",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2020-12-31T23:59:59.000Z",
+        ),
+        Volume(
+            trainml,
+            id="2",
+            project_uuid="proj-id-1",
+            name="second one",
+            status="ready",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Volume(
+            trainml,
+            id="3",
+            project_uuid="proj-id-1",
+            name="first one",
+            status="ready",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Volume(
+            trainml,
+            id="4",
+            project_uuid="proj-id-1",
+            name="other one",
+            status="ready",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2020-12-31T23:59:59.000Z",
+        ),
+        Volume(
+            trainml,
+            id="5",
+            project_uuid="proj-id-1",
+            name="not ready",
+            status="new",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
+            createdAt="2021-01-01T00:00:01.000Z",
+        ),
+        Volume(
+            trainml,
+            id="6",
+            project_uuid="proj-id-1",
+            name="failed",
+            status="failed",
+            capacity="10G",
+            used_size=100000000,
+            billed_size=100000000,
             createdAt="2021-01-01T00:00:01.000Z",
         ),
     ]
@@ -903,6 +977,9 @@ def mock_device_configs():
 def mock_trainml(
     mock_my_datasets,
     mock_public_datasets,
+    mock_my_checkpoints,
+    mock_public_checkpoints,
+    mock_my_volumes,
     mock_models,
     mock_gpu_types,
     mock_environments,
@@ -921,6 +998,7 @@ def mock_trainml(
     trainml.project = "proj-id-1"
     trainml.datasets = create_autospec(Datasets)
     trainml.checkpoints = create_autospec(Checkpoints)
+    trainml.volumes = create_autospec(Volumes)
     trainml.models = create_autospec(Models)
     trainml.gpu_types = create_autospec(GpuTypes)
     trainml.environments = create_autospec(Environments)
@@ -930,10 +1008,9 @@ def mock_trainml(
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
     trainml.checkpoints.list = AsyncMock(return_value=mock_my_checkpoints)
-    trainml.checkpoints.list_public = AsyncMock(
-        return_value=mock_public_checkpoints
-    )
+    trainml.checkpoints.list_public = AsyncMock(return_value=mock_public_checkpoints)
     trainml.models.list = AsyncMock(return_value=mock_models)
+    trainml.volumes.list = AsyncMock(return_value=mock_my_volumes)
     trainml.gpu_types.list = AsyncMock(return_value=mock_gpu_types)
     trainml.environments.list = AsyncMock(return_value=mock_environments)
     trainml.jobs.list = AsyncMock(return_value=mock_jobs)
@@ -950,13 +1027,9 @@ def mock_trainml(
     trainml.cloudbender.devices = create_autospec(Nodes)
     trainml.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     trainml.cloudbender.datastores = create_autospec(Datastores)
-    trainml.cloudbender.datastores.list = AsyncMock(
-        return_value=mock_datastores
-    )
+    trainml.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
     trainml.cloudbender.reservations = create_autospec(Reservations)
-    trainml.cloudbender.reservations.list = AsyncMock(
-        return_value=mock_reservations
-    )
+    trainml.cloudbender.reservations.list = AsyncMock(return_value=mock_reservations)
     trainml.cloudbender.device_configs = create_autospec(DeviceConfigs)
     trainml.cloudbender.device_configs.list = AsyncMock(
         return_value=mock_device_configs

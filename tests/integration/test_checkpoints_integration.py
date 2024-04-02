@@ -54,18 +54,20 @@ class GetCheckpointTests:
 
 @mark.create
 @mark.asyncio
-async def test_checkpoint_aws(trainml, capsys):
+async def test_checkpoint_wasabi(trainml, capsys):
     checkpoint = await trainml.checkpoints.create(
-        name="CLI Automated AWS",
-        source_type="aws",
-        source_uri="s3://trainml-examples/models/mxnet-model.zip",
+        name="CLI Automated Wasabi",
+        source_type="wasabi",
+        source_uri="s3://trainml-example/models/trainml-examples",
+        capacity="10G",
+        source_options=dict(endpoint_url="https://s3.wasabisys.com"),
     )
     checkpoint = await checkpoint.wait_for("ready", 300)
     status = checkpoint.status
     size = checkpoint.size
     await checkpoint.remove()
     assert status == "ready"
-    assert size >= 1000000
+    assert size >= 500000
 
 
 @mark.create

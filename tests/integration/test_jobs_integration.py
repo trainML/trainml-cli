@@ -269,7 +269,7 @@ class JobAPIDataValidationTests:
                 ),
             )
         assert (
-            "Invalid Request - Only regional datastore are allowed for Notebook and Endpoint output locations"
+            "Invalid Request - output_type invalid for Notebook and Endpoint jobs"
             in error.value.message
         )
 
@@ -298,7 +298,45 @@ class JobAPIDataValidationTests:
                 ),
             )
         assert (
-            "Invalid Request - Only regional datastore are allowed for Notebook and Endpoint output locations"
+            "Invalid Request - output_type invalid for Notebook and Endpoint jobs"
+            in error.value.message
+        )
+
+    async def test_invalid_volumes_for_training(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid Volumes for Training",
+                type="training",
+                gpu_types=["rtx3090"],
+                disk_size=10,
+                data=dict(
+                    output_uri="s3://trainml-examples/output/resnet_cifar10",
+                    output_type="aws",
+                    volumes=["volume-id"],
+                ),
+                workers=["python train.py"],
+            )
+        assert (
+            "Invalid Request - Only Notebook and Endpoint job types can use writable volumes"
+            in error.value.message
+        )
+
+    async def test_invalid_volumes_for_inference(self, trainml):
+        with raises(ApiError) as error:
+            await trainml.jobs.create(
+                name="Invalid Volumes for Inference",
+                type="inference",
+                gpu_types=["rtx3090"],
+                disk_size=10,
+                data=dict(
+                    output_uri="s3://trainml-examples/output/resnet_cifar10",
+                    output_type="aws",
+                    volumes=["volume-id"],
+                ),
+                workers=["python predict.py"],
+            )
+        assert (
+            "Invalid Request - Only Notebook and Endpoint job types can use writable volumes"
             in error.value.message
         )
 
