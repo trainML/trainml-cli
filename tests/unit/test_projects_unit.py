@@ -49,11 +49,11 @@ def project_datastore(mock_trainml):
 
 
 @fixture
-def project_reservation(mock_trainml):
-    yield specimen.ProjectReservation(
+def project_service(mock_trainml):
+    yield specimen.ProjectService(
         mock_trainml,
         id="res-id-1",
-        name="reservation 1",
+        name="service 1",
         project_uuid="proj-id-1",
         region_uuid="reg-id-1",
         type="port",
@@ -72,9 +72,7 @@ class ProjectsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await projects.get("1234")
-        mock_trainml._query.assert_called_once_with(
-            "/project/1234", "GET", dict()
-        )
+        mock_trainml._query.assert_called_once_with("/project/1234", "GET", dict())
 
     @mark.asyncio
     async def test_list_projects(
@@ -96,9 +94,7 @@ class ProjectsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await projects.remove("4567")
-        mock_trainml._query.assert_called_once_with(
-            "/project/4567", "DELETE", dict()
-        )
+        mock_trainml._query.assert_called_once_with("/project/4567", "DELETE", dict())
 
     @mark.asyncio
     async def test_create_project_simple(self, projects, mock_trainml):
@@ -156,36 +152,36 @@ class ProjectDatastoreTests:
         assert not bool(empty_project_datastore)
 
 
-class ProjectReservationTests:
-    def test_project_reservation_properties(self, project_reservation):
-        assert isinstance(project_reservation.id, str)
-        assert isinstance(project_reservation.name, str)
-        assert isinstance(project_reservation.project_uuid, str)
-        assert isinstance(project_reservation.type, str)
-        assert isinstance(project_reservation.hostname, str)
-        assert isinstance(project_reservation.resource, str)
-        assert isinstance(project_reservation.region_uuid, str)
+class ProjectServiceTests:
+    def test_project_service_properties(self, project_service):
+        assert isinstance(project_service.id, str)
+        assert isinstance(project_service.name, str)
+        assert isinstance(project_service.project_uuid, str)
+        assert isinstance(project_service.type, str)
+        assert isinstance(project_service.hostname, str)
+        assert isinstance(project_service.resource, str)
+        assert isinstance(project_service.region_uuid, str)
 
-    def test_project_reservation_str(self, project_reservation):
-        string = str(project_reservation)
-        regex = r"^{.*\"id\": \"" + project_reservation.id + r"\".*}$"
+    def test_project_service_str(self, project_service):
+        string = str(project_service)
+        regex = r"^{.*\"id\": \"" + project_service.id + r"\".*}$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
-    def test_project_reservation_repr(self, project_reservation):
-        string = repr(project_reservation)
+    def test_project_service_repr(self, project_service):
+        string = repr(project_service)
         regex = (
-            r"^ProjectReservation\( trainml , \*\*{.*'id': '"
-            + project_reservation.id
+            r"^ProjectService\( trainml , \*\*{.*'id': '"
+            + project_service.id
             + r"'.*}\)$"
         )
         assert isinstance(string, str)
         assert re.match(regex, string)
 
-    def test_project_reservation_bool(self, project_reservation, mock_trainml):
-        empty_project_reservation = specimen.ProjectReservation(mock_trainml)
-        assert bool(project_reservation)
-        assert not bool(empty_project_reservation)
+    def test_project_service_bool(self, project_service, mock_trainml):
+        empty_project_service = specimen.ProjectService(mock_trainml)
+        assert bool(project_service)
+        assert not bool(empty_project_service)
 
 
 class ProjectTests:
@@ -203,9 +199,7 @@ class ProjectTests:
 
     def test_project_repr(self, project):
         string = repr(project)
-        regex = (
-            r"^Project\( trainml , \*\*{.*'id': '" + project.id + r"'.*}\)$"
-        )
+        regex = r"^Project\( trainml , \*\*{.*'id': '" + project.id + r"'.*}\)$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
@@ -226,18 +220,14 @@ class ProjectTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await project.refresh_datastores()
-        mock_trainml._query.assert_called_once_with(
-            "/project/1/datastores", "PATCH"
-        )
+        mock_trainml._query.assert_called_once_with("/project/1/datastores", "PATCH")
 
     @mark.asyncio
-    async def test_project_refresh_reservations(self, project, mock_trainml):
+    async def test_project_refresh_services(self, project, mock_trainml):
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
-        await project.refresh_reservations()
-        mock_trainml._query.assert_called_once_with(
-            "/project/1/reservations", "PATCH"
-        )
+        await project.refresh_services()
+        mock_trainml._query.assert_called_once_with("/project/1/services", "PATCH")
 
     @mark.asyncio
     async def test_project_list_datastores(self, project, mock_trainml):
@@ -259,13 +249,11 @@ class ProjectTests:
         ]
         mock_trainml._query = AsyncMock(return_value=api_response)
         resp = await project.list_datastores()
-        mock_trainml._query.assert_called_once_with(
-            "/project/1/datastores", "GET"
-        )
+        mock_trainml._query.assert_called_once_with("/project/1/datastores", "GET")
         assert len(resp) == 2
 
     @mark.asyncio
-    async def test_project_list_reservations(self, project, mock_trainml):
+    async def test_project_list_services(self, project, mock_trainml):
         api_response = [
             {
                 "project_uuid": "proj-id-1",
@@ -287,8 +275,6 @@ class ProjectTests:
             },
         ]
         mock_trainml._query = AsyncMock(return_value=api_response)
-        resp = await project.list_reservations()
-        mock_trainml._query.assert_called_once_with(
-            "/project/1/reservations", "GET"
-        )
+        resp = await project.list_services()
+        mock_trainml._query.assert_called_once_with("/project/1/services", "GET")
         assert len(resp) == 2

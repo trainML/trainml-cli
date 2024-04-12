@@ -21,7 +21,7 @@ markers = [
     "nodes: Nodes tests",
     "devices: Devices tests",
     "datastores: Datastores tests",
-    "reservations: Reservations tests",
+    "services: Services tests",
     "device_configs: DeviceConfigs tests",
     "unit: All unit tests (no trainML environment required)",
     "integration: All integration tests (trainML environment required)",

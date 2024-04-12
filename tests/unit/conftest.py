@@ -17,7 +17,7 @@ from trainml.projects import (
     Projects,
     Project,
     ProjectDatastore,
-    ProjectReservation,
+    ProjectService,
 )
 from trainml.cloudbender import Cloudbender
 from trainml.cloudbender.providers import Provider, Providers
@@ -25,7 +25,7 @@ from trainml.cloudbender.regions import Region, Regions
 from trainml.cloudbender.nodes import Node, Nodes
 from trainml.cloudbender.devices import Device, Devices
 from trainml.cloudbender.datastores import Datastore, Datastores
-from trainml.cloudbender.reservations import Reservation, Reservations
+from trainml.cloudbender.services import Service, Services
 from trainml.cloudbender.device_configs import DeviceConfig, DeviceConfigs
 
 
@@ -887,27 +887,27 @@ def mock_project_datastores():
 
 
 @fixture(scope="session")
-def mock_reservations():
+def mock_services():
     trainml = Mock()
     yield [
-        Reservation(
+        Service(
             trainml,
             **{
                 "provider_uuid": "prov-id-1",
                 "region_uuid": "reg-id-1",
-                "reservation_id": "res-id-1",
+                "service_id": "res-id-1",
                 "type": "port",
                 "name": "On-Prem Service A",
                 "resource": "8001",
                 "hostname": "service-a.local",
             },
         ),
-        Reservation(
+        Service(
             trainml,
             **{
                 "provider_uuid": "prov-id-2",
                 "region_uuid": "reg-id-2",
-                "reservation_id": "res-id-2",
+                "service_id": "res-id-2",
                 "type": "port",
                 "name": "Cloud Service B",
                 "resource": "8001",
@@ -918,10 +918,10 @@ def mock_reservations():
 
 
 @fixture(scope="session")
-def mock_project_reservations():
+def mock_project_services():
     trainml = Mock()
     yield [
-        ProjectReservation(
+        ProjectService(
             trainml,
             **{
                 "project_uuid": "proj-id-1",
@@ -933,7 +933,7 @@ def mock_project_reservations():
                 "hostname": "service-a.local",
             },
         ),
-        ProjectReservation(
+        ProjectService(
             trainml,
             **{
                 "project_uuid": "proj-id-1",
@@ -990,7 +990,7 @@ def mock_trainml(
     mock_nodes,
     mock_devices,
     mock_datastores,
-    mock_reservations,
+    mock_services,
     mock_device_configs,
 ):
     trainml = create_autospec(TrainML)
@@ -1028,8 +1028,8 @@ def mock_trainml(
     trainml.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     trainml.cloudbender.datastores = create_autospec(Datastores)
     trainml.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
-    trainml.cloudbender.reservations = create_autospec(Reservations)
-    trainml.cloudbender.reservations.list = AsyncMock(return_value=mock_reservations)
+    trainml.cloudbender.services = create_autospec(Services)
+    trainml.cloudbender.services.list = AsyncMock(return_value=mock_services)
     trainml.cloudbender.device_configs = create_autospec(DeviceConfigs)
     trainml.cloudbender.device_configs.list = AsyncMock(
         return_value=mock_device_configs

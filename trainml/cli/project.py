@@ -115,13 +115,11 @@ def list_datastores(config):
 
 @project.command()
 @pass_config
-def list_reservations(config):
-    """List project reservations."""
+def list_services(config):
+    """List project services."""
     data = [
-        ["ID", "NAME", "TYPE", "RESOURCE", "HOSTNAME", "REGION_UUID"],
+        ["ID", "NAME", "HOSTNAME", "REGION_UUID"],
         [
-            "-" * 80,
-            "-" * 80,
             "-" * 80,
             "-" * 80,
             "-" * 80,
@@ -132,23 +130,20 @@ def list_reservations(config):
         config.trainml.client.projects.get(config.trainml.client.project)
     )
 
-    reservations = config.trainml.run(project.list_reservations())
+    services = config.trainml.run(project.list_services())
 
-    for reservation in reservations:
+    for service in services:
         data.append(
             [
-                reservation.id,
-                reservation.name,
-                reservation.type,
-                reservation.resource,
-                reservation.hostname,
-                reservation.region_uuid,
+                service.id,
+                service.name,
+                service.hostname,
+                service.region_uuid,
             ]
         )
 
     for row in data:
         click.echo(
-            "{: >38.36} {: >30.28} {: >8.6} {: >15.13} {: >30.28} {: >38.36}"
-            "".format(*row),
+            "{: >38.36} {: >30.28} {: >30.28} {: >38.36}" "".format(*row),
             file=config.stdout,
         )

@@ -72,17 +72,17 @@ class ProjectDatastore:
         return bool(self._id)
 
 
-class ProjectReservation:
+class ProjectService:
     def __init__(self, trainml, **kwargs):
         self.trainml = trainml
-        self._reservation = kwargs
-        self._id = self._reservation.get("id")
-        self._project_uuid = self._reservation.get("project_uuid")
-        self._name = self._reservation.get("name")
-        self._type = self._reservation.get("type")
-        self._hostname = self._reservation.get("hostname")
-        self._resource = self._reservation.get("resource")
-        self._region_uuid = self._reservation.get("region_uuid")
+        self._service = kwargs
+        self._id = self._service.get("id")
+        self._project_uuid = self._service.get("project_uuid")
+        self._name = self._service.get("name")
+        self._type = self._service.get("type")
+        self._hostname = self._service.get("hostname")
+        self._resource = self._service.get("resource")
+        self._region_uuid = self._service.get("region_uuid")
 
     @property
     def id(self) -> str:
@@ -113,12 +113,10 @@ class ProjectReservation:
         return self._region_uuid
 
     def __str__(self):
-        return json.dumps({k: v for k, v in self._reservation.items()})
+        return json.dumps({k: v for k, v in self._service.items()})
 
     def __repr__(self):
-        return (
-            f"ProjectReservation( trainml , **{self._reservation.__repr__()})"
-        )
+        return f"ProjectService( trainml , **{self._service.__repr__()})"
 
     def __bool__(self):
         return bool(self._id)
@@ -162,26 +160,17 @@ class Project:
         await self.trainml._query(f"/project/{self._id}", "DELETE")
 
     async def list_datastores(self):
-        resp = await self.trainml._query(
-            f"/project/{self._id}/datastores", "GET"
-        )
-        datastores = [
-            ProjectDatastore(self.trainml, **datastore) for datastore in resp
-        ]
+        resp = await self.trainml._query(f"/project/{self._id}/datastores", "GET")
+        datastores = [ProjectDatastore(self.trainml, **datastore) for datastore in resp]
         return datastores
 
-    async def list_reservations(self):
-        resp = await self.trainml._query(
-            f"/project/{self._id}/reservations", "GET"
-        )
-        reservations = [
-            ProjectReservation(self.trainml, **reservation)
-            for reservation in resp
-        ]
-        return reservations
+    async def list_services(self):
+        resp = await self.trainml._query(f"/project/{self._id}/services", "GET")
+        services = [ProjectService(self.trainml, **service) for service in resp]
+        return services
 
     async def refresh_datastores(self):
         await self.trainml._query(f"/project/{self._id}/datastores", "PATCH")
 
-    async def refresh_reservations(self):
-        await self.trainml._query(f"/project/{self._id}/reservations", "PATCH")
+    async def refresh_services(self):
+        await self.trainml._query(f"/project/{self._id}/services", "PATCH")
