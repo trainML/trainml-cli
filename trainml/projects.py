@@ -10,6 +10,12 @@ class Projects(object):
         resp = await self.trainml._query(f"/project/{id}", "GET", kwargs)
         return Project(self.trainml, **resp)
 
+    async def get_current(self, **kwargs):
+        resp = await self.trainml._query(
+            f"/project/{self.trainml.project}", "GET", kwargs
+        )
+        return Project(self.trainml, **resp)
+
     async def list(self, **kwargs):
         resp = await self.trainml._query(f"/project", "GET", kwargs)
         projects = [Project(self.trainml, **project) for project in resp]
@@ -72,17 +78,15 @@ class ProjectDatastore:
         return bool(self._id)
 
 
-class ProjectService:
+class ProjectDataConnector:
     def __init__(self, trainml, **kwargs):
         self.trainml = trainml
-        self._service = kwargs
-        self._id = self._service.get("id")
-        self._project_uuid = self._service.get("project_uuid")
-        self._name = self._service.get("name")
-        self._type = self._service.get("type")
-        self._hostname = self._service.get("hostname")
-        self._resource = self._service.get("resource")
-        self._region_uuid = self._service.get("region_uuid")
+        self._data_connector = kwargs
+        self._id = self._data_connector.get("id")
+        self._project_uuid = self._data_connector.get("project_uuid")
+        self._name = self._data_connector.get("name")
+        self._type = self._data_connector.get("type")
+        self._region_uuid = self._data_connector.get("region_uuid")
 
     @property
     def id(self) -> str:
@@ -101,12 +105,49 @@ class ProjectService:
         return self._type
 
     @property
+    def region_uuid(self) -> str:
+        return self._region_uuid
+
+    def __str__(self):
+        return json.dumps({k: v for k, v in self._data_connector.items()})
+
+    def __repr__(self):
+        return f"ProjectDataConnector( trainml , **{self._data_connector.__repr__()})"
+
+    def __bool__(self):
+        return bool(self._id)
+
+
+class ProjectService:
+    def __init__(self, trainml, **kwargs):
+        self.trainml = trainml
+        self._service = kwargs
+        self._id = self._service.get("id")
+        self._project_uuid = self._service.get("project_uuid")
+        self._name = self._service.get("name")
+        self._hostname = self._service.get("hostname")
+        self._public = self._service.get("public")
+        self._region_uuid = self._service.get("region_uuid")
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def project_uuid(self) -> str:
+        return self._project_uuid
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
     def hostname(self) -> str:
         return self._hostname
 
     @property
-    def resource(self) -> str:
-        return self._resource
+    def public(self) -> bool:
+        return self._public
 
     @property
     def region_uuid(self) -> str:
@@ -164,6 +205,14 @@ class Project:
         datastores = [ProjectDatastore(self.trainml, **datastore) for datastore in resp]
         return datastores
 
+    async def list_data_connectors(self):
+        resp = await self.trainml._query(f"/project/{self._id}/data_connectors", "GET")
+        data_connectors = [
+            ProjectDataConnector(self.trainml, **data_connector)
+            for data_connector in resp
+        ]
+        return data_connectors
+
     async def list_services(self):
         resp = await self.trainml._query(f"/project/{self._id}/services", "GET")
         services = [ProjectService(self.trainml, **service) for service in resp]
@@ -171,6 +220,9 @@ class Project:
 
     async def refresh_datastores(self):
         await self.trainml._query(f"/project/{self._id}/datastores", "PATCH")
+
+    async def refresh_data_connectors(self):
+        await self.trainml._query(f"/project/{self._id}/data_connectors", "PATCH")
 
     async def refresh_services(self):
         await self.trainml._query(f"/project/{self._id}/services", "PATCH")

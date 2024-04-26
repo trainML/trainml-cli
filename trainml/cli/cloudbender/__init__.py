@@ -15,4 +15,5 @@ from trainml.cli.cloudbender.region import region
 from trainml.cli.cloudbender.node import node
 from trainml.cli.cloudbender.device import device
 from trainml.cli.cloudbender.datastore import datastore
+from trainml.cli.cloudbender.data_connector import data_connector
 from trainml.cli.cloudbender.service import service

@@ -468,6 +468,12 @@ class Job:
         return job
 
     async def wait_for(self, status, timeout=300):
+        if self.status == status or (
+            self.type == "training"
+            and status == "finished"
+            and self.status == "stopped"
+        ):
+            return
         valid_statuses = [
             "waiting for data/model download",
             "waiting for GPUs",
@@ -492,12 +498,13 @@ class Job:
                 "'stopped' status is deprecated for training jobs, use 'finished' instead.",
                 DeprecationWarning,
             )
-        if self.status == status or (
-            self.type == "training"
-            and status == "finished"
-            and self.status == "stopped"
-        ):
-            return
+
+        MAX_TIMEOUT = 24 * 60 * 60
+        if timeout > MAX_TIMEOUT:
+            raise SpecificationError(
+                "timeout",
+                f"timeout must be less than {MAX_TIMEOUT} seconds.",
+            )
 
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60

@@ -6,8 +6,17 @@ import asyncio
 import aiohttp
 from pytest import mark, fixture, raises
 from trainml.exceptions import ApiError
+from urllib.parse import urlparse
 
 pytestmark = [mark.sdk, mark.integration, mark.jobs]
+
+
+def extract_domain_suffix(hostname):
+    parts = hostname.split(".")
+    if len(parts) >= 2:
+        return ".".join(parts[-2:])
+    else:
+        return None
 
 
 @fixture(scope="class")
@@ -34,6 +43,8 @@ class JobLifeCycleTests:
         assert job.status != "running"
         job = await job.wait_for("running")
         assert job.status == "running"
+        assert job.url
+        assert extract_domain_suffix(urlparse(job.url).hostname) == "proximl.cloud"
 
     async def test_stop_job(self, job):
         assert job.status == "running"
@@ -518,6 +529,7 @@ class JobIOTests:
 @mark.asyncio
 class JobTypeTests:
     async def test_endpoint(self, trainml):
+
         job = await trainml.jobs.create(
             "CLI Automated Tests - Endpoint",
             type="endpoint",
@@ -544,6 +556,7 @@ class JobTypeTests:
         await job.wait_for("running")
         await job.refresh()
         assert job.url
+        assert extract_domain_suffix(urlparse(job.url).hostname) == "proximl.cloud"
         tries = 0
         await asyncio.sleep(30)
         async with aiohttp.ClientSession() as session:

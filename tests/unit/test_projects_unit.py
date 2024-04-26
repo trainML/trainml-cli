@@ -49,6 +49,18 @@ def project_datastore(mock_trainml):
 
 
 @fixture
+def project_data_connector(mock_trainml):
+    yield specimen.ProjectDataConnector(
+        mock_trainml,
+        id="ds-id-1",
+        name="connector 1",
+        project_uuid="proj-id-1",
+        type="custom",
+        region_uuid="reg-id-1",
+    )
+
+
+@fixture
 def project_service(mock_trainml):
     yield specimen.ProjectService(
         mock_trainml,
@@ -56,9 +68,8 @@ def project_service(mock_trainml):
         name="service 1",
         project_uuid="proj-id-1",
         region_uuid="reg-id-1",
-        type="port",
-        resource="8001",
-        hostname="service.local",
+        public=False,
+        hostname="asdf.proximl.cloud",
     )
 
 
@@ -152,14 +163,43 @@ class ProjectDatastoreTests:
         assert not bool(empty_project_datastore)
 
 
+class ProjectDataConnectorTests:
+    def test_project_data_connector_properties(self, project_data_connector):
+        assert isinstance(project_data_connector.id, str)
+        assert isinstance(project_data_connector.name, str)
+        assert isinstance(project_data_connector.project_uuid, str)
+        assert isinstance(project_data_connector.type, str)
+        assert isinstance(project_data_connector.region_uuid, str)
+
+    def test_project_data_connector_str(self, project_data_connector):
+        string = str(project_data_connector)
+        regex = r"^{.*\"id\": \"" + project_data_connector.id + r"\".*}$"
+        assert isinstance(string, str)
+        assert re.match(regex, string)
+
+    def test_project_data_connector_repr(self, project_data_connector):
+        string = repr(project_data_connector)
+        regex = (
+            r"^ProjectDataConnector\( trainml , \*\*{.*'id': '"
+            + project_data_connector.id
+            + r"'.*}\)$"
+        )
+        assert isinstance(string, str)
+        assert re.match(regex, string)
+
+    def test_project_data_connector_bool(self, project_data_connector, mock_trainml):
+        empty_project_data_connector = specimen.ProjectDataConnector(mock_trainml)
+        assert bool(project_data_connector)
+        assert not bool(empty_project_data_connector)
+
+
 class ProjectServiceTests:
     def test_project_service_properties(self, project_service):
         assert isinstance(project_service.id, str)
         assert isinstance(project_service.name, str)
         assert isinstance(project_service.project_uuid, str)
-        assert isinstance(project_service.type, str)
         assert isinstance(project_service.hostname, str)
-        assert isinstance(project_service.resource, str)
+        assert isinstance(project_service.public, bool)
         assert isinstance(project_service.region_uuid, str)
 
     def test_project_service_str(self, project_service):

@@ -75,6 +75,19 @@ def list(config, provider, region):
     help="The region ID to create the service in.",
 )
 @click.option(
+    "--type",
+    "-t",
+    type=click.Choice(
+        [
+            "https",
+            "tcp",
+            "udp",
+        ],
+    ),
+    required=True,
+    help="The type of regional service.",
+)
+@click.option(
     "--public/--no-public",
     default=True,
     show_default=True,
@@ -82,13 +95,17 @@ def list(config, provider, region):
 )
 @click.argument("name", type=click.STRING, required=True)
 @pass_config
-def create(config, provider, region, public, name):
+def create(config, provider, region, type, public, name):
     """
     Creates a service.
     """
     return config.trainml.run(
         config.trainml.client.cloudbender.services.create(
-            provider_uuid=provider, region_uuid=region, name=name, public=public
+            provider_uuid=provider,
+            region_uuid=region,
+            name=name,
+            type=type,
+            public=public,
         )
     )
 

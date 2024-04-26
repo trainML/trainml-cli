@@ -23,9 +23,7 @@ class Checkpoints(object):
 
     async def list(self, **kwargs):
         resp = await self.trainml._query(f"/checkpoint", "GET", kwargs)
-        checkpoints = [
-            Checkpoint(self.trainml, **checkpoint) for checkpoint in resp
-        ]
+        checkpoints = [Checkpoint(self.trainml, **checkpoint) for checkpoint in resp]
         return checkpoints
 
     async def list_public(self, **kwargs):
@@ -39,8 +37,7 @@ class Checkpoints(object):
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
-            project_uuid=kwargs.get("project_uuid")
-            or self.trainml.active_project,
+            project_uuid=kwargs.get("project_uuid") or self.trainml.active_project,
         )
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Checkpoint {name}")
@@ -60,9 +57,7 @@ class Checkpoint:
     def __init__(self, trainml, **kwargs):
         self.trainml = trainml
         self._checkpoint = kwargs
-        self._id = self._checkpoint.get(
-            "id", self._checkpoint.get("checkpoint_uuid")
-        )
+        self._id = self._checkpoint.get("id", self._checkpoint.get("checkpoint_uuid"))
         self._status = self._checkpoint.get("status")
         self._name = self._checkpoint.get("name")
         self._size = self._checkpoint.get("size")
@@ -123,15 +118,17 @@ class Checkpoint:
                 entity_type="checkpoint",
                 project_uuid=self._checkpoint.get("project_uuid"),
                 cidr=self._checkpoint.get("vpn").get("cidr"),
-                ssh_port=self._checkpoint.get("vpn")
-                .get("client")
-                .get("ssh_port"),
-                input_path=self._checkpoint.get("source_uri")
-                if self.status in ["new", "downloading"]
-                else None,
-                output_path=self._checkpoint.get("output_uri")
-                if self.status == "exporting"
-                else None,
+                ssh_port=self._checkpoint.get("vpn").get("client").get("ssh_port"),
+                input_path=(
+                    self._checkpoint.get("source_uri")
+                    if self.status in ["new", "downloading"]
+                    else None
+                ),
+                output_path=(
+                    self._checkpoint.get("output_uri")
+                    if self.status == "exporting"
+                    else None
+                ),
             )
         else:
             details = dict()
@@ -195,9 +192,7 @@ class Checkpoint:
                 if msg_handler:
                     msg_handler(data)
                 else:
-                    timestamp = datetime.fromtimestamp(
-                        int(data.get("time")) / 1000
-                    )
+                    timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
                     print(
                         f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
                     )
@@ -224,19 +219,24 @@ class Checkpoint:
         return self
 
     async def wait_for(self, status, timeout=300):
+        if self.status == status:
+            return
         valid_statuses = ["downloading", "ready", "archived"]
         if not status in valid_statuses:
             raise SpecificationError(
                 "status",
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
             )
-        if self.status == status:
-            return
+
+        MAX_TIMEOUT = 24 * 60 * 60
+        if timeout > MAX_TIMEOUT:
+            raise SpecificationError(
+                "timeout",
+                f"timeout must be less than {MAX_TIMEOUT} seconds.",
+            )
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
-        POLL_INTERVAL = max(
-            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
-        )
+        POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:

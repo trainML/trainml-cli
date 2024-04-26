@@ -119,12 +119,16 @@ class Dataset:
                 project_uuid=self._dataset.get("project_uuid"),
                 cidr=self._dataset.get("vpn").get("cidr"),
                 ssh_port=self._dataset.get("vpn").get("client").get("ssh_port"),
-                input_path=self._dataset.get("source_uri")
-                if self.status in ["new", "downloading"]
-                else None,
-                output_path=self._dataset.get("output_uri")
-                if self.status == "exporting"
-                else None,
+                input_path=(
+                    self._dataset.get("source_uri")
+                    if self.status in ["new", "downloading"]
+                    else None
+                ),
+                output_path=(
+                    self._dataset.get("output_uri")
+                    if self.status == "exporting"
+                    else None
+                ),
             )
         else:
             details = dict()
@@ -215,14 +219,21 @@ class Dataset:
         return self
 
     async def wait_for(self, status, timeout=300):
+        if self.status == status:
+            return
         valid_statuses = ["downloading", "ready", "archived"]
         if not status in valid_statuses:
             raise SpecificationError(
                 "status",
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
             )
-        if self.status == status:
-            return
+        MAX_TIMEOUT = 24 * 60 * 60
+        if timeout > MAX_TIMEOUT:
+            raise SpecificationError(
+                "timeout",
+                f"timeout must be less than {MAX_TIMEOUT} seconds.",
+            )
+
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
         POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)

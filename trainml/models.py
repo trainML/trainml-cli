@@ -32,8 +32,7 @@ class Models(object):
             source_type=source_type,
             source_uri=source_uri,
             source_options=kwargs.get("source_options"),
-            project_uuid=kwargs.get("project_uuid")
-            or self.trainml.active_project,
+            project_uuid=kwargs.get("project_uuid") or self.trainml.active_project,
         )
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Model {name}")
@@ -44,9 +43,7 @@ class Models(object):
         return model
 
     async def remove(self, id, **kwargs):
-        await self.trainml._query(
-            f"/model/{id}", "DELETE", dict(**kwargs, force=True)
-        )
+        await self.trainml._query(f"/model/{id}", "DELETE", dict(**kwargs, force=True))
 
 
 class Model:
@@ -115,12 +112,16 @@ class Model:
                 project_uuid=self._model.get("project_uuid"),
                 cidr=self._model.get("vpn").get("cidr"),
                 ssh_port=self._model.get("vpn").get("client").get("ssh_port"),
-                input_path=self._model.get("source_uri")
-                if self.status in ["new", "downloading"]
-                else None,
-                output_path=self._model.get("output_uri")
-                if self.status == "exporting"
-                else None,
+                input_path=(
+                    self._model.get("source_uri")
+                    if self.status in ["new", "downloading"]
+                    else None
+                ),
+                output_path=(
+                    self._model.get("output_uri")
+                    if self.status == "exporting"
+                    else None
+                ),
             )
         else:
             details = dict()
@@ -185,9 +186,7 @@ class Model:
                 if msg_handler:
                     msg_handler(data)
                 else:
-                    timestamp = datetime.fromtimestamp(
-                        int(data.get("time")) / 1000
-                    )
+                    timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
                     print(
                         f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
                     )
@@ -214,19 +213,23 @@ class Model:
         return self
 
     async def wait_for(self, status, timeout=300):
+        if self.status == status:
+            return
         valid_statuses = ["downloading", "ready", "archived"]
         if not status in valid_statuses:
             raise SpecificationError(
                 "status",
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
             )
-        if self.status == status:
-            return
+        MAX_TIMEOUT = 24 * 60 * 60
+        if timeout > MAX_TIMEOUT:
+            raise SpecificationError(
+                "timeout",
+                f"timeout must be less than {MAX_TIMEOUT} seconds.",
+            )
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
-        POLL_INTERVAL = max(
-            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
-        )
+        POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:

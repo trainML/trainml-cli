@@ -28,6 +28,7 @@ def service(mock_trainml):
         region_uuid="a",
         service_id="x",
         name="On-Prem Service",
+        type="https",
         public=False,
         hostname="app1.proximl.cloud",
     )
@@ -79,10 +80,12 @@ class RegionsTests:
             provider_uuid="provider-id-1",
             region_uuid="region-id-1",
             name="On-Prem Service",
+            type="https",
             public=False,
         )
         expected_payload = dict(
             name="On-Prem Service",
+            type="https",
             public=False,
         )
         api_response = {
@@ -90,6 +93,7 @@ class RegionsTests:
             "region_uuid": "region-id-1",
             "service_id": "service-id-1",
             "name": "On-Prem Service",
+            "type": "https",
             "public": False,
             "hostname": "app1.proximl.cloud",
             "createdAt": "2020-12-31T23:59:59.000Z",
@@ -114,6 +118,7 @@ class serviceTests:
         assert isinstance(service.public, bool)
         assert isinstance(service.name, str)
         assert isinstance(service.hostname, str)
+        assert isinstance(service.type, str)
 
     def test_service_str(self, service):
         string = str(service)
@@ -148,6 +153,7 @@ class serviceTests:
             "region_uuid": "region-id-1",
             "service_id": "service-id-1",
             "name": "On-Prem Service",
+            "type": "https",
             "public": False,
             "hostname": "app1.proximl.cloud",
             "createdAt": "2020-12-31T23:59:59.000Z",
