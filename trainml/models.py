@@ -53,7 +53,8 @@ class Model:
         self._id = self._model.get("id", self._model.get("model_uuid"))
         self._status = self._model.get("status")
         self._name = self._model.get("name")
-        self._size = self._model.get("size")
+        self._size = self._model.get("size") or self._model.get("used_size")
+        self._billed_size = self._model.get("billed_size") or self._model.get("size")
         self._project_uuid = self._model.get("project_uuid")
 
     @property
@@ -71,6 +72,10 @@ class Model:
     @property
     def size(self) -> int:
         return self._size
+
+    @property
+    def billed_size(self) -> int:
+        return self._billed_size
 
     def __str__(self):
         return json.dumps({k: v for k, v in self._model.items()})

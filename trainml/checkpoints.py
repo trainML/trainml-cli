@@ -60,7 +60,10 @@ class Checkpoint:
         self._id = self._checkpoint.get("id", self._checkpoint.get("checkpoint_uuid"))
         self._status = self._checkpoint.get("status")
         self._name = self._checkpoint.get("name")
-        self._size = self._checkpoint.get("size")
+        self._size = self._checkpoint.get("size") or self._checkpoint.get("used_size")
+        self._billed_size = self._checkpoint.get("billed_size") or self._checkpoint.get(
+            "size"
+        )
         self._project_uuid = self._checkpoint.get("project_uuid")
 
     @property
@@ -78,6 +81,10 @@ class Checkpoint:
     @property
     def size(self) -> int:
         return self._size
+
+    @property
+    def billed_size(self) -> int:
+        return self._billed_size
 
     def __str__(self):
         return json.dumps({k: v for k, v in self._checkpoint.items()})

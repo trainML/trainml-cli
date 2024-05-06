@@ -60,7 +60,10 @@ class Dataset:
         self._id = self._dataset.get("id", self._dataset.get("dataset_uuid"))
         self._status = self._dataset.get("status")
         self._name = self._dataset.get("name")
-        self._size = self._dataset.get("size")
+        self._size = self._dataset.get("size") or self._dataset.get("used_size")
+        self._billed_size = self._dataset.get("billed_size") or self._dataset.get(
+            "size"
+        )
         self._project_uuid = self._dataset.get("project_uuid")
 
     @property
@@ -78,6 +81,10 @@ class Dataset:
     @property
     def size(self) -> int:
         return self._size or 0
+
+    @property
+    def billed_size(self) -> int:
+        return self._billed_size
 
     def __str__(self):
         return json.dumps({k: v for k, v in self._dataset.items()})
