@@ -9,12 +9,6 @@ pytestmark = [mark.sdk, mark.integration, mark.projects]
 @mark.create
 @mark.asyncio
 class GetProjectsTests:
-    @fixture(scope="class")
-    async def project(self, trainml):
-        project = await trainml.projects.create(name="New Project", copy_keys=False)
-        yield project
-        await project.remove()
-
     async def test_get_projects(self, trainml):
         projects = await trainml.projects.list()
         assert len(projects) > 0

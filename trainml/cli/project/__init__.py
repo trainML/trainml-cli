@@ -147,3 +147,7 @@ def list_services(config):
             "{: >38.36} {: >30.28} {: >30.28} {: >38.36}" "".format(*row),
             file=config.stdout,
         )
+
+
+from trainml.cli.project.secret import secret
+from trainml.cli.project.key import key
