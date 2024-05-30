@@ -29,10 +29,8 @@ def datastore(config):
 def list(config, provider, region):
     """List datastores."""
     data = [
-        ["ID", "NAME", "TYPE", "URI", "ROOT"],
+        ["ID", "NAME", "TYPE"],
         [
-            "-" * 80,
-            "-" * 80,
             "-" * 80,
             "-" * 80,
             "-" * 80,
@@ -51,15 +49,12 @@ def list(config, provider, region):
                 datastore.id,
                 datastore.name,
                 datastore.type,
-                datastore.uri,
-                datastore.root,
             ]
         )
 
     for row in data:
         click.echo(
-            "{: >37.36} {: >29.28} {: >9.8} {: >12.11} {: >12.11}"
-            "".format(*row),
+            "{: >37.36} {: >29.28} {: >9.8} " "".format(*row),
             file=config.stdout,
         )
 

@@ -1,5 +1,13 @@
 import json
 import logging
+import asyncio
+import math
+
+from trainml.exceptions import (
+    ApiError,
+    SpecificationError,
+    TrainMLException,
+)
 
 
 class Datastores(object):
@@ -20,9 +28,7 @@ class Datastores(object):
             "GET",
             kwargs,
         )
-        datastores = [
-            Datastore(self.trainml, **datastore) for datastore in resp
-        ]
+        datastores = [Datastore(self.trainml, **datastore) for datastore in resp]
         return datastores
 
     async def create(
@@ -31,18 +37,12 @@ class Datastores(object):
         region_uuid,
         name,
         type,
-        uri,
-        root,
-        options=None,
         **kwargs,
     ):
         logging.info(f"Creating Datastore {name}")
         data = dict(
             name=name,
             type=type,
-            uri=uri,
-            root=root,
-            options=options,
             **kwargs,
         )
         payload = {k: v for k, v in data.items() if v is not None}
@@ -73,8 +73,6 @@ class Datastore:
         self._region_uuid = self._datastore.get("region_uuid")
         self._type = self._datastore.get("type")
         self._name = self._datastore.get("name")
-        self._uri = self._datastore.get("uri")
-        self._root = self._datastore.get("root")
 
     @property
     def id(self) -> str:
@@ -95,14 +93,6 @@ class Datastore:
     @property
     def name(self) -> str:
         return self._name
-
-    @property
-    def uri(self) -> str:
-        return self._uri
-
-    @property
-    def root(self) -> str:
-        return self._root
 
     def __str__(self):
         return json.dumps({k: v for k, v in self._datastore.items()})

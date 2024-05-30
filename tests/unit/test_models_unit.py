@@ -28,6 +28,7 @@ def model(mock_trainml):
         model_uuid="1",
         project_uuid="proj-id-1",
         name="first one",
+        type="evefs",
         status="downloading",
         size=100000,
         createdAt="2020-12-31T23:59:59.000Z",
@@ -44,9 +45,7 @@ class ModelsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await models.get("1234")
-        mock_trainml._query.assert_called_once_with(
-            "/model/1234", "GET", dict()
-        )
+        mock_trainml._query.assert_called_once_with("/model/1234", "GET", dict())
 
     @mark.asyncio
     async def test_list_models(
@@ -84,12 +83,14 @@ class ModelsTests:
             name="new model",
             source_type="aws",
             source_uri="s3://trainml-examples/models/resnet50",
+            type="evefs",
         )
         api_response = {
             "customer_uuid": "cus-id-1",
             "model_uuid": "model-id-1",
             "name": "new model",
             "status": "new",
+            "type": "evefs",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/models/resnet50",
             "createdAt": "2020-12-20T16:46:23.909Z",
@@ -118,11 +119,7 @@ class ModelTests:
 
     def test_model_repr(self, model):
         string = repr(model)
-        regex = (
-            r"^Model\( trainml , \*\*{.*'model_uuid': '"
-            + model.id
-            + r"'.*}\)$"
-        )
+        regex = r"^Model\( trainml , \*\*{.*'model_uuid': '" + model.id + r"'.*}\)$"
         assert isinstance(string, str)
         assert re.match(regex, string)
 
@@ -133,7 +130,9 @@ class ModelTests:
 
     @mark.asyncio
     async def test_model_get_log_url(self, model, mock_trainml):
-        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
+        api_response = (
+            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
+        )
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_log_url()
         mock_trainml._query.assert_called_once_with(
@@ -159,7 +158,9 @@ class ModelTests:
 
     @mark.asyncio
     async def test_model_get_connection_utility_url(self, model, mock_trainml):
-        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
+        api_response = (
+            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
+        )
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await model.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
@@ -425,9 +426,7 @@ class ModelTests:
         mock_trainml._query.assert_called()
 
     @mark.asyncio
-    async def test_model_wait_for_archived_succeeded(
-        self, model, mock_trainml
-    ):
+    async def test_model_wait_for_archived_succeeded(self, model, mock_trainml):
         mock_trainml._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Model Not Found"))
         )
@@ -435,9 +434,7 @@ class ModelTests:
         mock_trainml._query.assert_called()
 
     @mark.asyncio
-    async def test_model_wait_for_unexpected_api_error(
-        self, model, mock_trainml
-    ):
+    async def test_model_wait_for_unexpected_api_error(self, model, mock_trainml):
         mock_trainml._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Model Not Found"))
         )

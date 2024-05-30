@@ -476,7 +476,6 @@ class Job:
             return
         valid_statuses = [
             "waiting for data/model download",
-            "waiting for GPUs",
             "waiting for resources",
             "running",
             "stopped",
@@ -487,11 +486,6 @@ class Job:
             raise SpecificationError(
                 "status",
                 f"Invalid wait_for status {status}.  Valid statuses are: {valid_statuses}",
-            )
-        if status == "waiting for GPUs":
-            warnings.warn(
-                "'waiting for GPUs' status is deprecated, use 'waiting for resources' instead.",
-                DeprecationWarning,
             )
         if (self.type == "training") and status == "stopped":
             warnings.warn(
@@ -523,12 +517,8 @@ class Job:
                 self.status == status
                 or (
                     status
-                    in [
-                        "waiting for GPUs",
-                        "waiting for resources",
-                    ]  ## this status could be very short and the polling could miss it
-                    and self.status
-                    not in ["new", "waiting for GPUs", "waiting for resources"]
+                    == "waiting for resources"  ## this status could be very short and the polling could miss it
+                    and self.status not in ["new", "waiting for resources"]
                 )
                 or (
                     status
@@ -536,7 +526,6 @@ class Job:
                     and self.status
                     not in [
                         "new",
-                        "waiting for GPUs",
                         "waiting for resources",
                         "waiting for data/model download",
                     ]

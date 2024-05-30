@@ -26,6 +26,7 @@ def volume(mock_trainml):
     yield specimen.Volume(
         mock_trainml,
         id="1",
+        type="evefs",
         project_uuid="proj-id-1",
         name="first one",
         status="downloading",
@@ -86,12 +87,14 @@ class VolumesTests:
             source_type="aws",
             source_uri="s3://trainml-examples/volumes/resnet50",
             capacity="10G",
+            type="evefs",
         )
         api_response = {
             "project_uuid": "cus-id-1",
             "id": "volume-id-1",
             "name": "new volume",
             "status": "new",
+            "type": "evefs",
             "source_type": "aws",
             "capacity": "10G",
             "source_uri": "s3://trainml-examples/volumes/resnet50",

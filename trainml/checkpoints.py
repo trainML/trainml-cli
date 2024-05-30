@@ -31,13 +31,24 @@ class Checkpoints(object):
         datasets = [Checkpoint(self.trainml, **dataset) for dataset in resp]
         return datasets
 
-    async def create(self, name, source_type, source_uri, **kwargs):
+    async def create(
+        self,
+        name,
+        source_type,
+        source_uri,
+        type="evefs",
+        project_uuid=None,
+        **kwargs,
+    ):
+        if not project_uuid:
+            project_uuid = self.trainml.active_project
         data = dict(
             name=name,
             source_type=source_type,
             source_uri=source_uri,
-            source_options=kwargs.get("source_options"),
-            project_uuid=kwargs.get("project_uuid") or self.trainml.active_project,
+            project_uuid=project_uuid,
+            type=type,
+            **kwargs,
         )
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Checkpoint {name}")

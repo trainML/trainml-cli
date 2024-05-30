@@ -44,9 +44,7 @@ class CheckpointsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await checkpoints.get("1234")
-        mock_trainml._query.assert_called_once_with(
-            "/checkpoint/1234", "GET", dict()
-        )
+        mock_trainml._query.assert_called_once_with("/checkpoint/1234", "GET", dict())
 
     @mark.asyncio
     async def test_list_checkpoints(
@@ -57,9 +55,7 @@ class CheckpointsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await checkpoints.list()
-        mock_trainml._query.assert_called_once_with(
-            "/checkpoint", "GET", dict()
-        )
+        mock_trainml._query.assert_called_once_with("/checkpoint", "GET", dict())
 
     @mark.asyncio
     async def test_remove_checkpoint(
@@ -86,11 +82,13 @@ class CheckpointsTests:
             name="new checkpoint",
             source_type="aws",
             source_uri="s3://trainml-examples/checkpoints/resnet50",
+            type="evefs",
         )
         api_response = {
             "project_uuid": "cus-id-1",
             "checkpoint_uuid": "checkpoint-id-1",
             "name": "new checkpoint",
+            "type": "evefs",
             "status": "new",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/checkpoints/resnet50",
@@ -135,7 +133,9 @@ class CheckpointTests:
 
     @mark.asyncio
     async def test_checkpoint_get_log_url(self, checkpoint, mock_trainml):
-        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
+        api_response = (
+            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
+        )
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await checkpoint.get_log_url()
         mock_trainml._query.assert_called_once_with(
@@ -163,7 +163,9 @@ class CheckpointTests:
     async def test_checkpoint_get_connection_utility_url(
         self, checkpoint, mock_trainml
     ):
-        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
+        api_response = (
+            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
+        )
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await checkpoint.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
@@ -338,9 +340,7 @@ class CheckpointTests:
         assert response.id == "data-id-1"
 
     @mark.asyncio
-    async def test_checkpoint_wait_for_successful(
-        self, checkpoint, mock_trainml
-    ):
+    async def test_checkpoint_wait_for_successful(self, checkpoint, mock_trainml):
         api_response = {
             "customer_uuid": "cus-id-1",
             "checkpoint_uuid": "data-id-1",
@@ -373,9 +373,7 @@ class CheckpointTests:
         mock_trainml._query.assert_not_called()
 
     @mark.asyncio
-    async def test_checkpoint_wait_for_incorrect_status(
-        self, checkpoint, mock_trainml
-    ):
+    async def test_checkpoint_wait_for_incorrect_status(self, checkpoint, mock_trainml):
         api_response = None
         mock_trainml._query = AsyncMock(return_value=api_response)
         with raises(SpecificationError):
@@ -383,9 +381,7 @@ class CheckpointTests:
         mock_trainml._query.assert_not_called()
 
     @mark.asyncio
-    async def test_checkpoint_wait_for_with_delay(
-        self, checkpoint, mock_trainml
-    ):
+    async def test_checkpoint_wait_for_with_delay(self, checkpoint, mock_trainml):
         api_response_initial = dict(
             checkpoint_uuid="1",
             name="first one",
@@ -441,9 +437,7 @@ class CheckpointTests:
         self, checkpoint, mock_trainml
     ):
         mock_trainml._query = AsyncMock(
-            side_effect=ApiError(
-                404, dict(errorMessage="Checkpoint Not Found")
-            )
+            side_effect=ApiError(404, dict(errorMessage="Checkpoint Not Found"))
         )
         await checkpoint.wait_for("archived")
         mock_trainml._query.assert_called()
@@ -453,9 +447,7 @@ class CheckpointTests:
         self, checkpoint, mock_trainml
     ):
         mock_trainml._query = AsyncMock(
-            side_effect=ApiError(
-                404, dict(errorMessage="Checkpoint Not Found")
-            )
+            side_effect=ApiError(404, dict(errorMessage="Checkpoint Not Found"))
         )
         with raises(ApiError):
             await checkpoint.wait_for("ready")

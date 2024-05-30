@@ -26,14 +26,26 @@ class Volumes(object):
         volumes = [Volume(self.trainml, **volume) for volume in resp]
         return volumes
 
-    async def create(self, name, source_type, source_uri, capacity, **kwargs):
+    async def create(
+        self,
+        name,
+        source_type,
+        source_uri,
+        capacity,
+        type="evefs",
+        project_uuid=None,
+        **kwargs,
+    ):
+        if not project_uuid:
+            project_uuid = self.trainml.active_project
         data = dict(
             name=name,
             source_type=source_type,
             source_uri=source_uri,
             capacity=capacity,
-            source_options=kwargs.get("source_options"),
-            project_uuid=kwargs.get("project_uuid") or self.trainml.active_project,
+            project_uuid=project_uuid,
+            type=type,
+            **kwargs,
         )
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Volume {name}")

@@ -59,7 +59,6 @@ async def test_checkpoint_wasabi(trainml, capsys):
         name="CLI Automated Wasabi",
         source_type="wasabi",
         source_uri="s3://trainml-example/models/trainml-examples",
-        capacity="10G",
         source_options=dict(endpoint_url="https://s3.wasabisys.com"),
     )
     checkpoint = await checkpoint.wait_for("ready", 300)

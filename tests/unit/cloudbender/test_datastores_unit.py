@@ -119,8 +119,6 @@ class datastoreTests:
         assert isinstance(datastore.region_uuid, str)
         assert isinstance(datastore.type, str)
         assert isinstance(datastore.name, str)
-        assert isinstance(datastore.uri, str)
-        assert isinstance(datastore.root, str)
 
     def test_datastore_str(self, datastore):
         string = str(datastore)
@@ -131,9 +129,7 @@ class datastoreTests:
     def test_datastore_repr(self, datastore):
         string = repr(datastore)
         regex = (
-            r"^Datastore\( trainml , \*\*{.*'store_id': '"
-            + datastore.id
-            + r"'.*}\)$"
+            r"^Datastore\( trainml , \*\*{.*'store_id': '" + datastore.id + r"'.*}\)$"
         )
         assert isinstance(string, str)
         assert re.match(regex, string)

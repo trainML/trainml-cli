@@ -28,6 +28,7 @@ def dataset(mock_trainml):
         dataset_uuid="1",
         project_uuid="proj-id-1",
         name="first one",
+        type="evefs",
         status="downloading",
         size=100000,
         createdAt="2020-12-31T23:59:59.000Z",
@@ -103,6 +104,7 @@ class DatasetsTests:
             name="new dataset",
             source_type="aws",
             source_uri="s3://trainml-examples/data/cifar10",
+            type="evefs",
         )
         api_response = {
             "customer_uuid": "cus-id-1",
@@ -110,6 +112,7 @@ class DatasetsTests:
             "dataset_uuid": "data-id-1",
             "name": "new dataset",
             "status": "new",
+            "type": "evefs",
             "source_type": "aws",
             "source_uri": "s3://trainml-examples/data/cifar10",
             "createdAt": "2020-12-20T16:46:23.909Z",
@@ -139,9 +142,7 @@ class DatasetTests:
     def test_dataset_repr(self, dataset):
         string = repr(dataset)
         regex = (
-            r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '"
-            + dataset.id
-            + r"'.*}\)$"
+            r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '" + dataset.id + r"'.*}\)$"
         )
         assert isinstance(string, str)
         assert re.match(regex, string)
@@ -153,7 +154,9 @@ class DatasetTests:
 
     @mark.asyncio
     async def test_dataset_get_log_url(self, dataset, mock_trainml):
-        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
+        api_response = (
+            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
+        )
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_log_url()
         mock_trainml._query.assert_called_once_with(
@@ -178,10 +181,10 @@ class DatasetTests:
         assert response == api_response
 
     @mark.asyncio
-    async def test_dataset_get_connection_utility_url(
-        self, dataset, mock_trainml
-    ):
-        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
+    async def test_dataset_get_connection_utility_url(self, dataset, mock_trainml):
+        api_response = (
+            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
+        )
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_connection_utility_url()
         mock_trainml._query.assert_called_once_with(
@@ -388,9 +391,7 @@ class DatasetTests:
         mock_trainml._query.assert_not_called()
 
     @mark.asyncio
-    async def test_dataset_wait_for_incorrect_status(
-        self, dataset, mock_trainml
-    ):
+    async def test_dataset_wait_for_incorrect_status(self, dataset, mock_trainml):
         api_response = None
         mock_trainml._query = AsyncMock(return_value=api_response)
         with raises(SpecificationError):
@@ -435,9 +436,7 @@ class DatasetTests:
         mock_trainml._query.assert_called()
 
     @mark.asyncio
-    async def test_dataset_wait_for_dataset_failed(
-        self, dataset, mock_trainml
-    ):
+    async def test_dataset_wait_for_dataset_failed(self, dataset, mock_trainml):
         api_response = dict(
             dataset_uuid="1",
             name="first one",
@@ -450,9 +449,7 @@ class DatasetTests:
         mock_trainml._query.assert_called()
 
     @mark.asyncio
-    async def test_dataset_wait_for_archived_succeeded(
-        self, dataset, mock_trainml
-    ):
+    async def test_dataset_wait_for_archived_succeeded(self, dataset, mock_trainml):
         mock_trainml._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Dataset Not Found"))
         )
@@ -460,9 +457,7 @@ class DatasetTests:
         mock_trainml._query.assert_called()
 
     @mark.asyncio
-    async def test_dataset_wait_for_unexpected_api_error(
-        self, dataset, mock_trainml
-    ):
+    async def test_dataset_wait_for_unexpected_api_error(self, dataset, mock_trainml):
         mock_trainml._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Dataset Not Found"))
         )
