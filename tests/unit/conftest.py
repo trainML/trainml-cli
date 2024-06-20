@@ -17,9 +17,11 @@ from trainml.projects import (
     Projects,
     Project,
 )
-from trainml.projects.datastores import ProjectDatastore
-from trainml.projects.services import ProjectService
-from trainml.projects.data_connectors import ProjectDataConnector
+from trainml.projects.datastores import ProjectDatastores, ProjectDatastore
+from trainml.projects.services import ProjectServices, ProjectService
+from trainml.projects.data_connectors import ProjectDataConnectors, ProjectDataConnector
+from trainml.projects.keys import ProjectKeys, ProjectKey
+from trainml.projects.secrets import ProjectSecrets, ProjectSecret
 
 from trainml.cloudbender import Cloudbender
 from trainml.cloudbender.providers import Provider, Providers
@@ -1038,6 +1040,60 @@ def mock_device_configs():
     ]
 
 
+@fixture(
+    scope="session",
+)
+def mock_project_keys():
+    trainml = Mock()
+    yield [
+        ProjectKey(
+            trainml,
+            **{
+                "project_uuid": "proj-id-1",
+                "type": "aws",
+                "key_id": "AKSHFKHDFS",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+        ProjectKey(
+            trainml,
+            **{
+                "project_uuid": "proj-id-1",
+                "type": "gcp",
+                "key_id": "credentials.json",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+    ]
+
+
+@fixture(
+    scope="session",
+)
+def mock_project_secrets():
+    trainml = Mock()
+    yield [
+        ProjectSecret(
+            trainml,
+            **{
+                "project_uuid": "proj-id-1",
+                "name": "super_secret",
+                "created_by": "User",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+        ProjectSecret(
+            trainml,
+            **{
+                "project_uuid": "proj-id-1",
+                "name": "super_secret_2",
+                "created_by": "User",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+    ]
+
+
 @fixture(scope="function")
 def mock_trainml(
     mock_my_datasets,
@@ -1058,6 +1114,11 @@ def mock_trainml(
     mock_services,
     mock_data_connectors,
     mock_device_configs,
+    mock_project_datastores,
+    mock_project_services,
+    mock_project_data_connectors,
+    mock_project_keys,
+    mock_project_secrets,
 ):
     trainml = create_autospec(TrainML)
     trainml.active_project = "proj-id-1"
@@ -1081,6 +1142,18 @@ def mock_trainml(
     trainml.environments.list = AsyncMock(return_value=mock_environments)
     trainml.jobs.list = AsyncMock(return_value=mock_jobs)
     trainml.projects.list = AsyncMock(return_value=mock_projects)
+    trainml.projects.datastores = create_autospec(ProjectDatastores)
+    trainml.projects.datastores.list = AsyncMock(return_value=mock_project_datastores)
+    trainml.projects.services = create_autospec(ProjectServices)
+    trainml.projects.services.list = AsyncMock(return_value=mock_project_services)
+    trainml.projects.data_connectors = create_autospec(ProjectDataConnectors)
+    trainml.projects.data_connectors.list = AsyncMock(
+        return_value=mock_project_data_connectors
+    )
+    trainml.projects.keys = create_autospec(ProjectKeys)
+    trainml.projects.keys.list = AsyncMock(return_value=mock_project_keys)
+    trainml.projects.secrets = create_autospec(ProjectSecrets)
+    trainml.projects.secrets.list = AsyncMock(return_value=mock_project_secrets)
 
     trainml.cloudbender = create_autospec(Cloudbender)
 
@@ -1090,7 +1163,7 @@ def mock_trainml(
     trainml.cloudbender.regions.list = AsyncMock(return_value=mock_regions)
     trainml.cloudbender.nodes = create_autospec(Nodes)
     trainml.cloudbender.nodes.list = AsyncMock(return_value=mock_nodes)
-    trainml.cloudbender.devices = create_autospec(Nodes)
+    trainml.cloudbender.devices = create_autospec(Devices)
     trainml.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     trainml.cloudbender.datastores = create_autospec(Datastores)
     trainml.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)

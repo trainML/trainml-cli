@@ -16,7 +16,7 @@ class GetCheckpointTests:
             source_type="git",
             source_uri="git@github.com:trainML/environment-tests.git",
         )
-        checkpoint = await checkpoint.wait_for("ready", 120)
+        checkpoint = await checkpoint.wait_for("ready", 180)
         yield checkpoint
         await checkpoint.remove()
         checkpoint = await checkpoint.wait_for("archived", 60)

@@ -147,3 +147,54 @@ class SpecificationError(TrainMLException):
 
     def __str__(self):
         return "SpecificationError({self.attribute}, {self.message})".format(self=self)
+
+
+class NodeError(TrainMLException):
+    def __init__(self, status, data, *args):
+        super().__init__(data, *args)
+        self._status = status
+        self._message = data
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    def __repr__(self):
+        return "NodeError({self.status}, {self.message})".format(self=self)
+
+    def __str__(self):
+        return "NodeError({self.status}, {self.message})".format(self=self)
+
+
+class ProviderError(TrainMLException):
+    def __init__(self, status, data, *args):
+        super().__init__(data, *args)
+        self._status = status
+        self._message = data
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    def __repr__(self):
+        return "ProviderError({self.status}, {self.message})".format(self=self)
+
+    def __str__(self):
+        return "ProviderError({self.status}, {self.message})".format(self=self)
+
+
+class RegionError(TrainMLException):
+    def __init__(self, status, data, *args):
+        super().__init__(data, *args)
+        self._status = status
+        self._message = data
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    def __repr__(self):
+        return "RegionError({self.status}, {self.message})".format(self=self)
+
+    def __str__(self):
+        return "RegionError({self.status}, {self.message})".format(self=self)
