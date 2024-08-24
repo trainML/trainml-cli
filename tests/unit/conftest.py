@@ -20,7 +20,7 @@ from trainml.projects import (
 from trainml.projects.datastores import ProjectDatastores, ProjectDatastore
 from trainml.projects.services import ProjectServices, ProjectService
 from trainml.projects.data_connectors import ProjectDataConnectors, ProjectDataConnector
-from trainml.projects.keys import ProjectKeys, ProjectKey
+from trainml.projects.credentials import ProjectCredentials, ProjectCredential
 from trainml.projects.secrets import ProjectSecrets, ProjectSecret
 
 from trainml.cloudbender import Cloudbender
@@ -532,7 +532,7 @@ def mock_jobs():
                         {"value": "env1val", "key": "env1"},
                         {"value": "env2val", "key": "env2"},
                     ],
-                    "worker_key_types": ["aws", "gcp"],
+                    "credentials": ["aws", "gcp"],
                     "status": "new",
                 },
                 "vpn": {
@@ -609,7 +609,7 @@ def mock_jobs():
                     "type": "DEEPLEARNING_PY37",
                     "image_size": 39656398629,
                     "env": [],
-                    "worker_key_types": [],
+                    "credentials": [],
                     "status": "ready",
                 },
                 "vpn": {
@@ -1043,10 +1043,10 @@ def mock_device_configs():
 @fixture(
     scope="session",
 )
-def mock_project_keys():
+def mock_project_credentials():
     trainml = Mock()
     yield [
-        ProjectKey(
+        ProjectCredential(
             trainml,
             **{
                 "project_uuid": "proj-id-1",
@@ -1055,7 +1055,7 @@ def mock_project_keys():
                 "updatedAt": "2023-06-02T21:22:40.084Z",
             },
         ),
-        ProjectKey(
+        ProjectCredential(
             trainml,
             **{
                 "project_uuid": "proj-id-1",
@@ -1117,7 +1117,7 @@ def mock_trainml(
     mock_project_datastores,
     mock_project_services,
     mock_project_data_connectors,
-    mock_project_keys,
+    mock_project_credentials,
     mock_project_secrets,
 ):
     trainml = create_autospec(TrainML)
@@ -1150,8 +1150,8 @@ def mock_trainml(
     trainml.projects.data_connectors.list = AsyncMock(
         return_value=mock_project_data_connectors
     )
-    trainml.projects.keys = create_autospec(ProjectKeys)
-    trainml.projects.keys.list = AsyncMock(return_value=mock_project_keys)
+    trainml.projects.credentials = create_autospec(ProjectCredentials)
+    trainml.projects.credentials.list = AsyncMock(return_value=mock_project_credentials)
     trainml.projects.secrets = create_autospec(ProjectSecrets)
     trainml.projects.secrets.list = AsyncMock(return_value=mock_project_secrets)
 

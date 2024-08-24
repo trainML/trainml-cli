@@ -1,4 +1,5 @@
 import click
+import os
 from trainml.cli import pass_config
 from trainml.cli.project import project
 
@@ -42,17 +43,25 @@ def list(config):
 
 
 @secret.command()
+@click.option(
+    "--file",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, resolve_path=True),
+    help="Load the secret value from the file at the provided path",
+)
 @click.argument("name", type=click.STRING)
 @pass_config
-def put(config, name):
+def put(config, file, name):
     """
     Set a secret value.
 
     Secret is created with the specified NAME.
     """
     project = config.trainml.run(config.trainml.client.projects.get_current())
-
-    value = click.prompt("Enter the secret value", type=str, hide_input=True)
+    if file:
+        with open(os.path.expanduser(file)) as f:
+            value = f.read()
+    else:
+        value = click.prompt("Enter the secret value", type=str, hide_input=True)
 
     return config.trainml.run(project.secrets.put(name=name, value=value))
 

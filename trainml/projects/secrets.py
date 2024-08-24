@@ -24,7 +24,7 @@ class ProjectSecrets(object):
             f"/project/{self.project_id}/secret/{name}", "PUT", None, payload
         )
         secret = ProjectSecret(self.trainml, **resp)
-        logging.info(f"Created Project Key {name} in project {self.project_id}")
+        logging.info(f"Created Project Secret {name} in project {self.project_id}")
         return secret
 
     async def remove(self, name, **kwargs):

@@ -78,7 +78,7 @@ def remove(config, project):
 
 
 from trainml.cli.project.secret import secret
-from trainml.cli.project.key import key
+from trainml.cli.project.credential import credential
 from trainml.cli.project.data_connector import data_connector
 from trainml.cli.project.datastore import datastore
 from trainml.cli.project.service import service

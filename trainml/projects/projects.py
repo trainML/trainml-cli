@@ -3,7 +3,7 @@ import logging
 from .datastores import ProjectDatastores
 from .data_connectors import ProjectDataConnectors
 from .services import ProjectServices
-from .keys import ProjectKeys
+from .credentials import ProjectCredentials
 from .secrets import ProjectSecrets
 
 
@@ -26,8 +26,11 @@ class Projects(object):
         projects = [Project(self.trainml, **project) for project in resp]
         return projects
 
-    async def create(self, name, copy_keys=False, copy_secrets=False, **kwargs):
-        data = dict(name=name, copy_keys=copy_keys, copy_secrets=copy_secrets)
+    async def create(self, name, copy_credentials=False, **kwargs):
+        data = dict(
+            name=name,
+            copy_credentials=copy_credentials,
+        )
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Project {name}")
         resp = await self.trainml._query("/project", "POST", None, payload)
@@ -51,7 +54,7 @@ class Project:
         self.datastores = ProjectDatastores(self.trainml, self._id)
         self.data_connectors = ProjectDataConnectors(self.trainml, self._id)
         self.services = ProjectServices(self.trainml, self._id)
-        self.keys = ProjectKeys(self.trainml, self._id)
+        self.credentials = ProjectCredentials(self.trainml, self._id)
         self.secrets = ProjectSecrets(self.trainml, self._id)
 
     @property

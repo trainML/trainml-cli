@@ -172,12 +172,12 @@ def create(config):
     help="Conda packages to install as a comma separated list 'p1,\"p2=v2\",p3'",
 )
 @click.option(
-    "--key",
+    "--credential",
     type=click.Choice(
         ["aws", "gcp", "kaggle", "azure", "wasabi"],
         case_sensitive=False,
     ),
-    help="Third Party Keys to add to the job environment",
+    help="Third Party Credentials to add to the job environment",
     multiple=True,
 )
 @click.option(
@@ -221,7 +221,7 @@ def notebook(
     environment,
     custom_image,
     env,
-    key,
+    credential,
     apt_packages,
     pip_packages,
     conda_packages,
@@ -254,7 +254,7 @@ def notebook(
         data=dict(datasets=datasets),
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            worker_key_types=[k for k in key],
+            credentials=[k for k in credential],
         ),
     )
 
@@ -500,12 +500,12 @@ def notebook(
     multiple=True,
 )
 @click.option(
-    "--key",
+    "--credential",
     type=click.Choice(
         ["aws", "gcp", "kaggle", "azure", "wasabi"],
         case_sensitive=False,
     ),
-    help="Third Party Keys to add to the job environment",
+    help="Third Party Credentials to add to the job environment",
     multiple=True,
 )
 @click.option(
@@ -563,7 +563,7 @@ def training(
     environment,
     custom_image,
     env,
-    key,
+    credential,
     apt_packages,
     pip_packages,
     conda_packages,
@@ -596,7 +596,7 @@ def training(
         data=dict(datasets=datasets),
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            worker_key_types=[k for k in key],
+            credentials=[k for k in credential],
         ),
     )
 
@@ -844,12 +844,12 @@ def training(
     multiple=True,
 )
 @click.option(
-    "--key",
+    "--credential",
     type=click.Choice(
         ["aws", "gcp", "kaggle", "azure", "wasabi"],
         case_sensitive=False,
     ),
-    help="Third Party Keys to add to the job environment",
+    help="Third Party Credentials to add to the job environment",
     multiple=True,
 )
 @click.option(
@@ -907,7 +907,7 @@ def inference(
     environment,
     custom_image,
     env,
-    key,
+    credential,
     apt_packages,
     pip_packages,
     conda_packages,
@@ -933,7 +933,7 @@ def inference(
         data=dict(datasets=[]),
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            worker_key_types=[k for k in key],
+            credentials=[k for k in credential],
         ),
     )
 
@@ -1163,12 +1163,12 @@ def from_json(config, attach, connect, file):
     multiple=True,
 )
 @click.option(
-    "--key",
+    "--credential",
     type=click.Choice(
         ["aws", "gcp", "kaggle", "azure", "wasabi"],
         case_sensitive=False,
     ),
-    help="Third Party Keys to add to the job environment",
+    help="Third Party Credentials to add to the job environment",
     multiple=True,
 )
 @click.option(
@@ -1230,7 +1230,7 @@ def endpoint(
     environment,
     custom_image,
     env,
-    key,
+    credential,
     apt_packages,
     pip_packages,
     conda_packages,
@@ -1257,7 +1257,7 @@ def endpoint(
         max_price=max_price,
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            worker_key_types=[k for k in key],
+            credentials=[k for k in credential],
         ),
     )
 

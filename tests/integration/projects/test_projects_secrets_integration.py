@@ -17,7 +17,7 @@ class ProjectSecretsTests:
         yield project_secret
         await project.secrets.remove(name="secret_value")
 
-    async def test_list_project_keys(self, project, project_secret):
+    async def test_list_project_secrets(self, project, project_secret):
         secrets = await project.secrets.list()
         assert len(secrets) > 0
 
