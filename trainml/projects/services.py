@@ -7,6 +7,12 @@ class ProjectServices(object):
         self.trainml = trainml
         self.project_id = project_id
 
+    async def get(self, id, **kwargs):
+        resp = await self.trainml._query(
+            f"/project/{self.project_id}/services/{id}", "GET", kwargs
+        )
+        return ProjectService(self.trainml, **resp)
+
     async def list(self, **kwargs):
         resp = await self.trainml._query(
             f"/project/{self.project_id}/services", "GET", kwargs
@@ -61,3 +67,13 @@ class ProjectService:
 
     def __bool__(self):
         return bool(self._id)
+
+    async def enable(self):
+        await self.trainml._query(
+            f"/project/{self._project_uuid}/services/{self._id}/enable", "PATCH"
+        )
+
+    async def disable(self):
+        await self.trainml._query(
+            f"/project/{self._project_uuid}/services/{self._id}/disable", "PATCH"
+        )

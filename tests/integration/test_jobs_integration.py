@@ -175,7 +175,7 @@ class JobAPIResourceValidationTests:
                 disk_size=10,
             )
         assert (
-            "Invalid Request - None (CPU Only) may be not be combined with other GPU Types"
+            "Invalid Request - CPU Only may be not be combined with other GPU Types"
             in error.value.message
         )
 

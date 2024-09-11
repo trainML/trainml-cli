@@ -7,6 +7,12 @@ class ProjectDatastores(object):
         self.trainml = trainml
         self.project_id = project_id
 
+    async def get(self, id, **kwargs):
+        resp = await self.trainml._query(
+            f"/project/{self.project_id}/datastores/{id}", "GET", kwargs
+        )
+        return ProjectDatastore(self.trainml, **resp)
+
     async def list(self, **kwargs):
         resp = await self.trainml._query(
             f"/project/{self.project_id}/datastores", "GET", kwargs
@@ -56,3 +62,13 @@ class ProjectDatastore:
 
     def __bool__(self):
         return bool(self._id)
+
+    async def enable(self):
+        await self.trainml._query(
+            f"/project/{self._project_uuid}/datastores/{self._id}/enable", "PATCH"
+        )
+
+    async def disable(self):
+        await self.trainml._query(
+            f"/project/{self._project_uuid}/datastores/{self._id}/disable", "PATCH"
+        )

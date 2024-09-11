@@ -7,6 +7,12 @@ class ProjectDataConnectors(object):
         self.trainml = trainml
         self.project_id = project_id
 
+    async def get(self, id, **kwargs):
+        resp = await self.trainml._query(
+            f"/project/{self.project_id}/data_connectors/{id}", "GET", kwargs
+        )
+        return ProjectDataConnector(self.trainml, **resp)
+
     async def list(self, **kwargs):
         resp = await self.trainml._query(
             f"/project/{self.project_id}/data_connectors", "GET", kwargs
@@ -61,3 +67,13 @@ class ProjectDataConnector:
 
     def __bool__(self):
         return bool(self._id)
+
+    async def enable(self):
+        await self.trainml._query(
+            f"/project/{self._project_uuid}/data_connectors/{self._id}/enable", "PATCH"
+        )
+
+    async def disable(self):
+        await self.trainml._query(
+            f"/project/{self._project_uuid}/data_connectors/{self._id}/disable", "PATCH"
+        )
