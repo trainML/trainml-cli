@@ -13,5 +13,5 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-__version__ = "0.5.13"
+__version__ = "0.5.14"
 __all__ = "TrainML"
