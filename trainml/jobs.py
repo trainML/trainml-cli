@@ -530,6 +530,15 @@ class Job:
                         "waiting for data/model download",
                     ]
                 )
+                or (
+                    status
+                    == "running"  ## this status could be too short for polling could miss it
+                    and self.status
+                    in [
+                        "uploading",
+                        "finished"
+                    ]
+                )
             ):
                 return self
             elif self.status == "failed":

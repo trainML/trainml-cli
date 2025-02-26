@@ -423,11 +423,11 @@ class JobIOTests:
             disk_size=10,
             workers=["python $ML_MODEL_PATH/tensorflow/main.py"],
             environment=dict(
-                type="DEEPLEARNING_PY310",
+                type="DEEPLEARNING_PY312",
                 env=[
                     dict(
                         key="CHECKPOINT_FILE",
-                        value="model.ckpt-0050",
+                        value="model.ckpt-0050.weights.h5",
                     )
                 ],
             ),
@@ -469,7 +469,7 @@ class JobIOTests:
         sys.stderr.write(captured.err)
         assert "Epoch 1/2" in captured.out
         assert "Epoch 2/2" in captured.out
-        assert "adding: model.ckpt-0001.data-00000-of-00001" in captured.out
+        assert "adding: model.ckpt-0001" in captured.out
         assert "Send complete" in captured.out
 
     async def test_job_model_input_and_output(self, trainml, capsys):
@@ -558,7 +558,7 @@ class JobTypeTests:
         assert job.url
         assert extract_domain_suffix(urlparse(job.url).hostname) == "proximl.cloud"
         tries = 0
-        await asyncio.sleep(30)
+        await asyncio.sleep(180) ## downloading weights can be slow
         async with aiohttp.ClientSession() as session:
             retry = True
             while retry:
@@ -640,7 +640,7 @@ class JobTypeTests:
         assert "Epoch 2/2" in captured.out
         assert "Uploading s3://trainml-example/output/resnet_cifar10" in captured.out
         assert (
-            "upload: ./model.ckpt-0002.data-00000-of-00001 to s3://trainml-example/output/resnet_cifar10/model.ckpt-0002.data-00000-of-00001"
+            "upload: ./model.ckpt-0002.weights.h5 to s3://trainml-example/output/resnet_cifar10/model.ckpt-0002.weights.h5"
             in captured.out
         )
         assert "Upload complete" in captured.out
@@ -713,9 +713,9 @@ class JobFeatureTests:
         sys.stderr.write(captured.err)
         upload_contents = os.listdir(temp_dir.name)
         temp_dir.cleanup()
-        assert len(upload_contents) > 4
+        assert len(upload_contents) >= 3
         assert any(
-            "model.ckpt-0002.data-00000-of-00001" in content
+            "model.ckpt-0002" in content
             for content in upload_contents
         )
 
@@ -724,5 +724,5 @@ class JobFeatureTests:
         sys.stderr.write(captured.err)
         assert "Epoch 1/2" in captured.out
         assert "Epoch 2/2" in captured.out
-        assert "Number of regular files transferred: 7" in captured.out
+        assert "Number of regular files transferred: 4" in captured.out
         assert "Send complete" in captured.out

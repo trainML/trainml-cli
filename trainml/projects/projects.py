@@ -5,6 +5,7 @@ from .data_connectors import ProjectDataConnectors
 from .services import ProjectServices
 from .credentials import ProjectCredentials
 from .secrets import ProjectSecrets
+from .members import ProjectMembers
 
 
 class Projects(object):
@@ -56,6 +57,7 @@ class Project:
         self.services = ProjectServices(self.trainml, self._id)
         self.credentials = ProjectCredentials(self.trainml, self._id)
         self.secrets = ProjectSecrets(self.trainml, self._id)
+        self.members = ProjectMembers(self.trainml, self._id)
 
     @property
     def id(self) -> str:

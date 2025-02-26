@@ -181,6 +181,12 @@ def create(config):
     multiple=True,
 )
 @click.option(
+    "--secret",
+    type=click.STRING,
+    help="Project secrets to add to the job environment",
+    multiple=True,
+)
+@click.option(
     "--git-uri",
     type=click.STRING,
     help="Git repository to use as the model data",
@@ -222,6 +228,7 @@ def notebook(
     custom_image,
     env,
     credential,
+    secret,
     apt_packages,
     pip_packages,
     conda_packages,
@@ -254,7 +261,7 @@ def notebook(
         data=dict(datasets=datasets),
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            credentials=[k for k in credential],
+            credentials=[k for k in credential], secrets=[s for s in secret]
         ),
     )
 
@@ -509,6 +516,12 @@ def notebook(
     multiple=True,
 )
 @click.option(
+    "--secret",
+    type=click.STRING,
+    help="Project secrets to add to the job environment",
+    multiple=True,
+)
+@click.option(
     "--apt-packages",
     type=click.STRING,
     help="Apt packages to install as a comma separated list 'p1,p2=v2,p3'",
@@ -564,6 +577,7 @@ def training(
     custom_image,
     env,
     credential,
+    secret,
     apt_packages,
     pip_packages,
     conda_packages,
@@ -596,7 +610,7 @@ def training(
         data=dict(datasets=datasets),
         model=dict(checkpoints=checkpoints),
         environment=dict(
-            credentials=[k for k in credential],
+            credentials=[k for k in credential], secrets=[s for s in secret]
         ),
     )
 
@@ -853,6 +867,12 @@ def training(
     multiple=True,
 )
 @click.option(
+    "--secret",
+    type=click.STRING,
+    help="Project secrets to add to the job environment",
+    multiple=True,
+)
+@click.option(
     "--apt-packages",
     type=click.STRING,
     help="Apt packages to install as a comma separated list 'p1,p2=v2,p3'",
@@ -908,6 +928,7 @@ def inference(
     custom_image,
     env,
     credential,
+    secret,
     apt_packages,
     pip_packages,
     conda_packages,
@@ -934,6 +955,7 @@ def inference(
         model=dict(checkpoints=checkpoints),
         environment=dict(
             credentials=[k for k in credential],
+            secrets=[s for s in secret],
         ),
     )
 
@@ -1172,6 +1194,12 @@ def from_json(config, attach, connect, file):
     multiple=True,
 )
 @click.option(
+    "--secret",
+    type=click.STRING,
+    help="Project secrets to add to the job environment",
+    multiple=True,
+)
+@click.option(
     "--apt-packages",
     type=click.STRING,
     help="Apt packages to install as a comma separated list 'p1,p2=v2,p3'",
@@ -1231,6 +1259,7 @@ def endpoint(
     custom_image,
     env,
     credential,
+    secret,
     apt_packages,
     pip_packages,
     conda_packages,
@@ -1258,6 +1287,7 @@ def endpoint(
         model=dict(checkpoints=checkpoints),
         environment=dict(
             credentials=[k for k in credential],
+            secrets=[s for s in secret],
         ),
     )
 

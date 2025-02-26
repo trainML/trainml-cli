@@ -508,7 +508,7 @@ class AWSSRP(object):
 
 
 class Auth(object):
-    def __init__(self, config_dir, domain_suffix="trainml.ai", **kwargs):
+    def __init__(self, config_dir, domain_suffix="proximl.ai", **kwargs):
         try:
             with open(f"{config_dir}/environment.json", "r") as file:
                 env_str = file.read().replace("\n", "")
