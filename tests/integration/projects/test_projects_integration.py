@@ -8,6 +8,7 @@ pytestmark = [mark.sdk, mark.integration, mark.projects]
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("project_resources")
 class GetProjectsTests:
     async def test_get_projects(self, trainml):
         projects = await trainml.projects.list()

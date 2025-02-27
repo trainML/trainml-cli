@@ -8,6 +8,7 @@ pytestmark = [mark.sdk, mark.integration, mark.volumes]
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("volumes")
 class GetVolumeTests:
     @fixture(scope="class")
     async def volume(self, trainml):

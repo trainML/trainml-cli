@@ -8,14 +8,9 @@ pytestmark = [mark.sdk, mark.integration, mark.cloudbender, mark.providers]
 
 @mark.create
 @mark.asyncio
-class GetProvidersTests:
-    @fixture(scope="class")
-    async def provider(self, trainml):
-        provider = await trainml.cloudbender.providers.enable(type="test")
-        yield provider
-        await provider.remove()
-
-    async def test_get_providers(self, trainml):
+@mark.xdist_group("cloudbender_resources")
+class GetProviderTests:
+    async def test_get_providers(self, trainml, provider):
         providers = await trainml.cloudbender.providers.list()
         assert len(providers) > 0
 

@@ -8,6 +8,7 @@ pytestmark = [mark.sdk, mark.integration, mark.models]
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("models")
 class GetModelTests:
     @fixture(scope="class")
     async def model(self, trainml):

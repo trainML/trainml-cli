@@ -8,6 +8,7 @@ pytestmark = [mark.sdk, mark.integration, mark.datasets]
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("datasets")
 class GetDatasetTests:
     @fixture(scope="class")
     async def dataset(self, trainml):

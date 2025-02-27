@@ -8,6 +8,7 @@ pytestmark = [mark.sdk, mark.integration, mark.projects]
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("project_resources")
 class ProjectDatastoresTests:
     @fixture(scope="class")
     async def project_datastore(self, project):

@@ -67,7 +67,7 @@ class Services(object):
 
 
 class Service:
-    def __init__(self, trainml, **kwargs):
+    def __init__(self, trainml,  **kwargs):
         self.trainml = trainml
         self._service = kwargs
         self._id = self._service.get("service_id")
@@ -177,3 +177,21 @@ class Service:
                 logging.debug(f"self: {self}, retry count {count}")
 
         raise TrainMLException(f"Timeout waiting for {status}")
+    
+    async def generate_certificate(self, **kwargs):
+        resp = await self.trainml._query(
+            f"/provider/{self._provider_uuid}/region/{self._region_uuid}/service/{self._id}/certificate",
+            "POST",
+            kwargs
+        )
+        self.__init__(self.trainml, **resp)
+        return self
+    
+    async def sign_client_certificate(self, csr, **kwargs):
+        certificate = await self.trainml._query(
+            f"/provider/{self._provider_uuid}/region/{self._region_uuid}/service/{self._id}/certificate/sign",
+            "POST",
+            kwargs,
+            dict(csr=csr)
+        )
+        return certificate

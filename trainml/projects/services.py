@@ -77,3 +77,20 @@ class ProjectService:
         await self.trainml._query(
             f"/project/{self._project_uuid}/services/{self._id}/disable", "PATCH"
         )
+
+    async def get_service_ca_certificate(self, **kwargs):
+        certificate = await self.trainml._query(
+            f"/project/{self._project_uuid}/services/{self._id}/certificate/ca",
+            "GET",
+            kwargs,
+        )
+        return certificate
+    
+    async def sign_client_certificate(self, csr, **kwargs):
+        certificate = await self.trainml._query(
+            f"/project/{self._project_uuid}/services/{self._id}/certificate/sign",
+            "POST",
+            kwargs,
+            dict(csr=csr)
+        )
+        return certificate

@@ -20,6 +20,7 @@ def extract_domain_suffix(hostname):
 
 
 @fixture(scope="class")
+@mark.xdist_group("job_lifecycle")
 async def job(trainml):
     job = await trainml.jobs.create(
         name="CLI Automated Tests - Job Lifecycle",
@@ -38,6 +39,7 @@ async def job(trainml):
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("job_lifecycle")
 class JobLifeCycleTests:
     async def test_wait_for_running(self, job):
         assert job.status != "running"
@@ -413,6 +415,7 @@ class JobAPIWorkerValidationTests:
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("job_io")
 class JobIOTests:
     async def test_job_local_output(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
@@ -527,6 +530,7 @@ class JobIOTests:
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("job_types")
 class JobTypeTests:
     async def test_endpoint(self, trainml):
 
@@ -648,6 +652,7 @@ class JobTypeTests:
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("job_features")
 class JobFeatureTests:
     async def test_cpu_instance(self, trainml, capsys):
         job = await trainml.jobs.create(

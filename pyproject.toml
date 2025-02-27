@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
+addopts = "--cov-report term-missing --cov=trainml -n 4 --dist=loadgroup"
 python_files = "test_*"
 python_classes = "*Tests"
 python_functions = "test_*"

@@ -40,7 +40,7 @@ def env(request):
     yield ENVS[env]
 
 
-@fixture(scope="module")
+@fixture(scope="session")
 def trainml(env):
     trainml = TrainML(**env)
     yield trainml

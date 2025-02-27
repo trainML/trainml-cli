@@ -8,6 +8,7 @@ pytestmark = [mark.sdk, mark.integration, mark.checkpoints]
 
 @mark.create
 @mark.asyncio
+@mark.xdist_group("checkpoints")
 class GetCheckpointTests:
     @fixture(scope="class")
     async def checkpoint(self, trainml):
