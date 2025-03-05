@@ -2,12 +2,21 @@ import json
 import logging
 import asyncio
 import math
+from enum import Enum
 
 from trainml.exceptions import (
     ApiError,
     SpecificationError,
     TrainMLException,
 )
+
+class SERVICE_CERT_ALGORITHMS(str, Enum):
+    RSA_2048 = 'rsa2048'
+    RSA_4096 = 'rsa4096'
+    ED25519 = 'ed25519'
+    P256 = 'p256'
+    P384 ='p384'
+    P521='p521'
 
 
 class Services(object):
@@ -178,11 +187,12 @@ class Service:
 
         raise TrainMLException(f"Timeout waiting for {status}")
     
-    async def generate_certificate(self, **kwargs):
+    async def generate_certificate(self, algorithm=SERVICE_CERT_ALGORITHMS.ED25519.value, **kwargs):
         resp = await self.trainml._query(
             f"/provider/{self._provider_uuid}/region/{self._region_uuid}/service/{self._id}/certificate",
             "POST",
-            kwargs
+            kwargs,
+            dict(algorithm=algorithm)
         )
         self.__init__(self.trainml, **resp)
         return self
