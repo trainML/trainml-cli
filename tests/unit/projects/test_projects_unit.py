@@ -75,7 +75,7 @@ class ProjectsTests:
         requested_config = dict(
             name="new project",
         )
-        expected_payload = dict(name="new project", copy_credentials=False)
+        expected_payload = dict(name="new project")
         api_response = {
             "id": "project-id-1",
             "name": "new project",

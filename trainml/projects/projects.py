@@ -27,10 +27,10 @@ class Projects(object):
         projects = [Project(self.trainml, **project) for project in resp]
         return projects
 
-    async def create(self, name, copy_credentials=False, **kwargs):
+    async def create(self, name, **kwargs):
         data = dict(
             name=name,
-            copy_credentials=copy_credentials,
+            **kwargs
         )
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Project {name}")
