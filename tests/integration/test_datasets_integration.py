@@ -79,6 +79,7 @@ class GetDatasetTests:
 
 @mark.create
 @mark.asyncio
+@mark.local
 async def test_dataset_local(trainml, capsys):
     dataset = await trainml.datasets.create(
         name="CLI Automated Local",

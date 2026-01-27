@@ -74,6 +74,7 @@ async def test_volume_wasabi(trainml, capsys):
 
 @mark.create
 @mark.asyncio
+@mark.local
 async def test_volume_local(trainml, capsys):
     volume = await trainml.volumes.create(
         name="CLI Automated Local",

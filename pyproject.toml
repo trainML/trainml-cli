@@ -25,6 +25,7 @@ markers = [
     "data_connectors: Data Connector tests",
     "services: Services tests",
     "device_configs: DeviceConfigs tests",
+    "local: Local Connection Utility tests",
     "unit: All unit tests (no trainML environment required)",
     "integration: All integration tests (trainML environment required)",
     "sdk: All tests of the SDK",

@@ -72,6 +72,7 @@ async def test_checkpoint_wasabi(trainml, capsys):
 
 @mark.create
 @mark.asyncio
+@mark.local
 async def test_checkpoint_local(trainml, capsys):
     checkpoint = await trainml.checkpoints.create(
         name="CLI Automated Local",

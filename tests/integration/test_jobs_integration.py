@@ -417,6 +417,7 @@ class JobAPIWorkerValidationTests:
 @mark.asyncio
 @mark.xdist_group("job_io")
 class JobIOTests:
+    @mark.local
     async def test_job_local_output(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(
@@ -426,7 +427,7 @@ class JobIOTests:
             disk_size=10,
             workers=["python $ML_MODEL_PATH/tensorflow/main.py"],
             environment=dict(
-                type="DEEPLEARNING_PY312",
+                type="DEEPLEARNING_PY313",
                 env=[
                     dict(
                         key="CHECKPOINT_FILE",
@@ -683,6 +684,7 @@ class JobFeatureTests:
         assert "Train Epoch: 1 [0/60000 (0%)]" in captured.out
         assert "Train Epoch: 1 [59520/60000 (99%)]" in captured.out
 
+    @mark.local
     async def test_inference_job(self, trainml, capsys):
         temp_dir = tempfile.TemporaryDirectory()
         job = await trainml.jobs.create(

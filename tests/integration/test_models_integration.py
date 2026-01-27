@@ -68,6 +68,7 @@ async def test_model_wasabi(trainml, capsys):
 
 @mark.create
 @mark.asyncio
+@mark.local
 async def test_model_local(trainml, capsys):
     model = await trainml.models.create(
         name="CLI Automated Local",
