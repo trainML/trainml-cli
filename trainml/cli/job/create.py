@@ -298,11 +298,9 @@ def notebook(
         )
         if attach:
             config.trainml.run(new_dataset.attach(), new_dataset.connect())
-            config.trainml.run(new_dataset.disconnect())
         else:
             config.trainml.run(new_dataset.connect())
             config.trainml.run(new_dataset.wait_for("ready"))
-            config.trainml.run(new_dataset.disconnect())
         options["data"]["datasets"].append(dict(id=new_dataset.id, type="existing"))
 
     if git_uri:
@@ -331,13 +329,11 @@ def notebook(
         if attach or connect:
             click.echo("Waiting for job to start...", file=config.stdout)
             config.trainml.run(job.connect(), job.attach())
-            config.trainml.run(job.disconnect())
             click.echo("Launching...", file=config.stdout)
             browse(job.notebook_url)
         else:
             config.trainml.run(job.connect())
             config.trainml.run(job.wait_for("running"))
-            config.trainml.run(job.disconnect())
     elif attach or connect:
         click.echo("Waiting for job to start...", file=config.stdout)
         config.trainml.run(job.wait_for("running", timeout))
@@ -657,11 +653,9 @@ def training(
         )
         if attach:
             config.trainml.run(new_dataset.attach(), new_dataset.connect())
-            config.trainml.run(new_dataset.disconnect())
         else:
             config.trainml.run(new_dataset.connect())
             config.trainml.run(new_dataset.wait_for("ready"))
-            config.trainml.run(new_dataset.disconnect())
         options["data"]["datasets"].append(dict(id=new_dataset.id, type="existing"))
 
     if git_uri:
@@ -1349,7 +1343,6 @@ def endpoint(
             config.trainml.run(job.connect())
         click.echo("Waiting for job to start...", file=config.stdout)
         config.trainml.run(job.wait_for("running", timeout))
-        config.trainml.run(job.disconnect())
         config.trainml.run(job.refresh())
         click.echo(f"Endpoint is running at:  {job.url}", file=config.stdout)
     else:

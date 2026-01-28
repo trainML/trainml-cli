@@ -169,7 +169,7 @@ To list all datasets:
 trainml dataset list
 ```
 
-To connect to a job that requires the [connection capability](https://docs.trainml.ai/reference/connection-capability):
+To connect to a job that uses the "local" file transfer method:
 
 ```
 trainml job connect <job ID or name>

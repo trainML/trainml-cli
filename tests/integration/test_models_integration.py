@@ -78,7 +78,6 @@ async def test_model_local(trainml, capsys):
     attach_task = asyncio.create_task(model.attach())
     connect_task = asyncio.create_task(model.connect())
     await asyncio.gather(attach_task, connect_task)
-    await model.disconnect()
     await model.refresh()
     status = model.status
     size = model.size
@@ -89,5 +88,5 @@ async def test_model_local(trainml, capsys):
     sys.stdout.write(captured.out)
     sys.stderr.write(captured.err)
     assert "Starting data upload from local" in captured.out
-    assert "official/LICENSE  11456 bytes" in captured.out
+    assert "official/LICENSE" in captured.out
     assert "Upload complete" in captured.out

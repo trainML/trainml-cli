@@ -164,79 +164,56 @@ class VolumeTests:
         assert response == api_response
 
     @mark.asyncio
-    async def test_volume_get_connection_utility_url(self, volume, mock_trainml):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
-        )
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        response = await volume.get_connection_utility_url()
-        mock_trainml._query.assert_called_once_with(
-            "/volume/1/download", "GET", dict(project_uuid="proj-id-1")
-        )
-        assert response == api_response
-
-    def test_volume_get_connection_details_no_vpn(self, volume):
-        details = volume.get_connection_details()
-        expected_details = dict()
-        assert details == expected_details
-
-    def test_volume_get_connection_details_local_data(self, mock_trainml):
+    async def test_volume_connect_downloading_status(self, mock_trainml):
         volume = specimen.Volume(
             mock_trainml,
             id="1",
-            project_uuid="a",
-            name="first one",
-            status="new",
-            capacity="10G",
-            createdAt="2020-12-31T23:59:59.000Z",
-            source_type="local",
-            source_uri="~/tensorflow-example",
-            vpn={
-                "status": "new",
-                "cidr": "10.106.171.0/24",
-                "client": {
-                    "port": "36017",
-                    "id": "cus-id-1",
-                    "address": "10.106.171.253",
-                    "ssh_port": 46600,
-                },
-                "net_prefix_type_id": 1,
-            },
+            project_uuid="proj-id-1",
+            name="test volume",
+            status="downloading",
+            auth_token="test-token",
+            hostname="example.com",
+            source_uri="/path/to/source",
         )
-        details = volume.get_connection_details()
-        expected_details = dict(
-            project_uuid="a",
-            entity_type="volume",
-            cidr="10.106.171.0/24",
-            ssh_port=46600,
-            input_path="~/tensorflow-example",
-            output_path=None,
-        )
-        assert details == expected_details
+        
+        with patch("trainml.volumes.Volume.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.volumes.upload", new_callable=AsyncMock) as mock_upload:
+                await volume.connect()
+                mock_refresh.assert_called_once()
+                mock_upload.assert_called_once_with("example.com", "test-token", "/path/to/source")
 
     @mark.asyncio
-    async def test_volume_connect(self, volume, mock_trainml):
-        with patch(
-            "trainml.volumes.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "connected"
-            resp = await volume.connect()
-            connection.start.assert_called_once()
-            assert resp == "connected"
+    async def test_volume_connect_exporting_status(self, mock_trainml, tmp_path):
+        output_dir = str(tmp_path / "output")
+        volume = specimen.Volume(
+            mock_trainml,
+            id="1",
+            project_uuid="proj-id-1",
+            name="test volume",
+            status="exporting",
+            auth_token="test-token",
+            hostname="example.com",
+            output_uri=output_dir,
+        )
+        
+        with patch("trainml.volumes.Volume.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.volumes.download", new_callable=AsyncMock) as mock_download:
+                await volume.connect()
+                mock_refresh.assert_called_once()
+                mock_download.assert_called_once_with("example.com", "test-token", output_dir)
 
     @mark.asyncio
-    async def test_volume_disconnect(self, volume, mock_trainml):
-        with patch(
-            "trainml.volumes.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "removed"
-            resp = await volume.disconnect()
-            connection.stop.assert_called_once()
-            assert resp == "removed"
+    async def test_volume_connect_invalid_status(self, mock_trainml):
+        volume = specimen.Volume(
+            mock_trainml,
+            id="1",
+            project_uuid="proj-id-1",
+            name="test volume",
+            status="ready",
+        )
+        
+        with raises(SpecificationError, match="You can only connect to downloading or exporting volumes"):
+            await volume.connect()
 
     @mark.asyncio
     async def test_volume_remove(self, volume, mock_trainml):

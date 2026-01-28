@@ -89,7 +89,6 @@ async def test_dataset_local(trainml, capsys):
     attach_task = asyncio.create_task(dataset.attach())
     connect_task = asyncio.create_task(dataset.connect())
     await asyncio.gather(attach_task, connect_task)
-    await dataset.disconnect()
     await dataset.refresh()
     status = dataset.status
     size = dataset.size
@@ -100,5 +99,5 @@ async def test_dataset_local(trainml, capsys):
     sys.stdout.write(captured.out)
     sys.stderr.write(captured.err)
     assert "Starting data upload from local" in captured.out
-    assert "data_batch_1.bin  30733788 bytes" in captured.out
+    assert "data_batch_1.bin" in captured.out
     assert "Upload complete" in captured.out

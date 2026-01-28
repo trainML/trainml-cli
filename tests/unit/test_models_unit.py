@@ -157,79 +157,56 @@ class ModelTests:
         assert response == api_response
 
     @mark.asyncio
-    async def test_model_get_connection_utility_url(self, model, mock_trainml):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
-        )
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        response = await model.get_connection_utility_url()
-        mock_trainml._query.assert_called_once_with(
-            "/model/1/download", "GET", dict(project_uuid="proj-id-1")
-        )
-        assert response == api_response
-
-    def test_model_get_connection_details_no_vpn(self, model):
-        details = model.get_connection_details()
-        expected_details = dict()
-        assert details == expected_details
-
-    def test_model_get_connection_details_local_data(self, mock_trainml):
+    async def test_model_connect_downloading_status(self, mock_trainml):
         model = specimen.Model(
             mock_trainml,
             model_uuid="1",
-            project_uuid="a",
-            name="first one",
-            status="new",
-            size=100000,
-            createdAt="2020-12-31T23:59:59.000Z",
-            source_type="local",
-            source_uri="~/tensorflow-example",
-            vpn={
-                "status": "new",
-                "cidr": "10.106.171.0/24",
-                "client": {
-                    "port": "36017",
-                    "id": "cus-id-1",
-                    "address": "10.106.171.253",
-                    "ssh_port": 46600,
-                },
-                "net_prefix_type_id": 1,
-            },
+            project_uuid="proj-id-1",
+            name="test model",
+            status="downloading",
+            auth_token="test-token",
+            hostname="example.com",
+            source_uri="/path/to/source",
         )
-        details = model.get_connection_details()
-        expected_details = dict(
-            project_uuid="a",
-            entity_type="model",
-            cidr="10.106.171.0/24",
-            ssh_port=46600,
-            input_path="~/tensorflow-example",
-            output_path=None,
-        )
-        assert details == expected_details
+        
+        with patch("trainml.models.Model.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.models.upload", new_callable=AsyncMock) as mock_upload:
+                await model.connect()
+                mock_refresh.assert_called_once()
+                mock_upload.assert_called_once_with("example.com", "test-token", "/path/to/source")
 
     @mark.asyncio
-    async def test_model_connect(self, model, mock_trainml):
-        with patch(
-            "trainml.models.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "connected"
-            resp = await model.connect()
-            connection.start.assert_called_once()
-            assert resp == "connected"
+    async def test_model_connect_exporting_status(self, mock_trainml, tmp_path):
+        output_dir = str(tmp_path / "output")
+        model = specimen.Model(
+            mock_trainml,
+            model_uuid="1",
+            project_uuid="proj-id-1",
+            name="test model",
+            status="exporting",
+            auth_token="test-token",
+            hostname="example.com",
+            output_uri=output_dir,
+        )
+        
+        with patch("trainml.models.Model.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.models.download", new_callable=AsyncMock) as mock_download:
+                await model.connect()
+                mock_refresh.assert_called_once()
+                mock_download.assert_called_once_with("example.com", "test-token", output_dir)
 
     @mark.asyncio
-    async def test_model_disconnect(self, model, mock_trainml):
-        with patch(
-            "trainml.models.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "removed"
-            resp = await model.disconnect()
-            connection.stop.assert_called_once()
-            assert resp == "removed"
+    async def test_model_connect_invalid_status(self, mock_trainml):
+        model = specimen.Model(
+            mock_trainml,
+            model_uuid="1",
+            project_uuid="proj-id-1",
+            name="test model",
+            status="ready",
+        )
+        
+        with raises(SpecificationError, match="You can only connect to downloading or exporting models"):
+            await model.connect()
 
     @mark.asyncio
     async def test_model_remove(self, model, mock_trainml):

@@ -35,15 +35,7 @@ def attach(config, checkpoint):
     if None is found:
         raise click.UsageError("Cannot find specified checkpoint.")
 
-    try:
-        config.trainml.run(found.attach())
-        return config.trainml.run(found.disconnect())
-    except:
-        try:
-            config.trainml.run(found.disconnect())
-        except:
-            pass
-        raise
+    config.trainml.run(found.attach())
 
 
 @checkpoint.command()
@@ -67,18 +59,10 @@ def connect(config, checkpoint, attach):
     if None is found:
         raise click.UsageError("Cannot find specified checkpoint.")
 
-    try:
-        if attach:
-            config.trainml.run(found.connect(), found.attach())
-            return config.trainml.run(found.disconnect())
-        else:
-            return config.trainml.run(found.connect())
-    except:
-        try:
-            config.trainml.run(found.disconnect())
-        except:
-            pass
-        raise
+    if attach:
+        config.trainml.run(found.connect(), found.attach())
+    else:
+        config.trainml.run(found.connect())
 
 
 @checkpoint.command()
@@ -123,41 +107,15 @@ def create(config, attach, connect, source, name, path):
             )
         )
 
-        try:
-            if connect and attach:
-                config.trainml.run(checkpoint.attach(), checkpoint.connect())
-                return config.trainml.run(checkpoint.disconnect())
-            elif connect:
-                return config.trainml.run(checkpoint.connect())
-            else:
-                raise click.UsageError(
-                    "Abort!\n"
-                    "No logs to show for local sourced checkpoint without connect."
-                )
-        except:
-            try:
-                config.trainml.run(checkpoint.disconnect())
-            except:
-                pass
-            raise
-
-
-@checkpoint.command()
-@click.argument("checkpoint", type=click.STRING)
-@pass_config
-def disconnect(config, checkpoint):
-    """
-    Disconnect and clean-up checkpoint upload.
-
-    CHECKPOINT may be specified by name or ID, but ID is preferred.
-    """
-    checkpoints = config.trainml.run(config.trainml.client.checkpoints.list())
-
-    found = search_by_id_name(checkpoint, checkpoints)
-    if None is found:
-        raise click.UsageError("Cannot find specified checkpoint.")
-
-    return config.trainml.run(found.disconnect())
+        if connect and attach:
+            config.trainml.run(checkpoint.attach(), checkpoint.connect())
+        elif connect:
+            config.trainml.run(checkpoint.connect())
+        else:
+            raise click.UsageError(
+                "Abort!\n"
+                "No logs to show for local sourced checkpoint without connect."
+            )
 
 
 @checkpoint.command()

@@ -19,7 +19,6 @@ async def create_dataset():
     attach_task = asyncio.create_task(dataset.attach())
     connect_task = asyncio.create_task(dataset.connect())
     await asyncio.gather(attach_task, connect_task)
-    await dataset.disconnect()
     return dataset
 
 
@@ -55,7 +54,6 @@ async def run_job(dataset):
     await asyncio.gather(attach_task, connect_task)
 
     # Cleanup job
-    await job.disconnect()
     await job.remove()
 
 

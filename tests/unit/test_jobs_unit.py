@@ -361,135 +361,297 @@ class JobTests:
         assert response == api_response
 
     @mark.asyncio
-    async def test_job_get_connection_utility_url(self, job, mock_trainml):
-        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/job-id-1/vpn/trainml-test_notebook.zip"
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        response = await job.get_connection_utility_url()
-        mock_trainml._query.assert_called_once_with(
-            "/job/job-id-1/download", "GET", dict(project_uuid="proj-id-1")
-        )
-        assert response == api_response
-
-    def test_job_get_connection_details_no_data(self, job):
-        details = job.get_connection_details()
-        expected_details = dict(
-            project_uuid="proj-id-1",
-            entity_type="job",
-            cidr="10.106.171.0/24",
-            ssh_port=None,
-            model_path=None,
-            input_path=None,
-            output_path=None,
-        )
-        assert details == expected_details
-
-    def test_job_get_connection_details_local_output_data(self, mock_trainml):
+    async def test_job_connect_waiting_for_data_model_download_local_model_only(self, mock_trainml):
         job = specimen.Job(
             mock_trainml,
             **{
                 "customer_uuid": "cus-id-1",
                 "project_uuid": "proj-id-1",
                 "job_uuid": "job-id-1",
-                "name": "test notebook",
-                "type": "notebook",
-                "status": "new",
-                "model": {},
-                "data": {
-                    "datasets": [],
-                    "output_type": "local",
-                    "output_uri": "~/tensorflow-example/output",
-                    "status": "ready",
+                "name": "test job",
+                "type": "training",
+                "status": "waiting for data/model download",
+                "model": {
+                    "source_type": "local",
+                    "auth_token": "model-token",
+                    "hostname": "model-host.com",
+                    "source_uri": "/path/to/model",
                 },
-                "vpn": {
-                    "status": "new",
-                    "cidr": "10.106.171.0/24",
-                    "client": {
-                        "port": "36017",
-                        "id": "cus-id-1",
-                        "address": "10.106.171.253",
-                        "ssh_port": 46600,
-                    },
+                "data": {
+                    "input_type": "trainml",
                 },
             },
         )
-        details = job.get_connection_details()
-        expected_details = dict(
-            project_uuid="proj-id-1",
-            entity_type="job",
-            cidr="10.106.171.0/24",
-            ssh_port=46600,
-            model_path=None,
-            input_path=None,
-            output_path="~/tensorflow-example/output",
-        )
-        assert details == expected_details
+        
+        with patch("trainml.jobs.Job.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.jobs.upload", new_callable=AsyncMock) as mock_upload:
+                await job.connect()
+                mock_refresh.assert_called_once()
+                mock_upload.assert_called_once_with("model-host.com", "model-token", "/path/to/model")
 
-    def test_job_get_connection_details_local_model_and_input_data(
-        self, mock_trainml
-    ):
+    @mark.asyncio
+    async def test_job_connect_waiting_for_data_model_download_local_data_only(self, mock_trainml):
         job = specimen.Job(
             mock_trainml,
             **{
                 "customer_uuid": "cus-id-1",
                 "project_uuid": "proj-id-1",
                 "job_uuid": "job-id-1",
-                "name": "test notebook",
-                "type": "notebook",
-                "status": "new",
-                "model": {"source_type": "local", "source_uri": "~/model_dir"},
+                "name": "test job",
+                "type": "training",
+                "status": "waiting for data/model download",
+                "model": {
+                    "source_type": "trainml",
+                },
                 "data": {
-                    "datasets": [],
                     "input_type": "local",
-                    "input_uri": "~/data_dir",
-                    "status": "ready",
-                },
-                "vpn": {
-                    "status": "new",
-                    "cidr": "10.106.171.0/24",
-                    "client": {
-                        "port": "36017",
-                        "id": "cus-id-1",
-                        "address": "10.106.171.253",
-                        "ssh_port": 46600,
-                    },
+                    "input_auth_token": "data-token",
+                    "input_hostname": "data-host.com",
+                    "input_uri": "/path/to/data",
                 },
             },
         )
-        details = job.get_connection_details()
-        expected_details = dict(
-            project_uuid="proj-id-1",
-            entity_type="job",
-            cidr="10.106.171.0/24",
-            ssh_port=46600,
-            model_path="~/model_dir",
-            input_path="~/data_dir",
-            output_path=None,
+        
+        with patch("trainml.jobs.Job.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.jobs.upload", new_callable=AsyncMock) as mock_upload:
+                await job.connect()
+                mock_refresh.assert_called_once()
+                mock_upload.assert_called_once_with("data-host.com", "data-token", "/path/to/data")
+
+    @mark.asyncio
+    async def test_job_connect_waiting_for_data_model_download_both_local_parallel(self, mock_trainml):
+        job = specimen.Job(
+            mock_trainml,
+            **{
+                "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
+                "job_uuid": "job-id-1",
+                "name": "test job",
+                "type": "training",
+                "status": "waiting for data/model download",
+                "model": {
+                    "source_type": "local",
+                    "auth_token": "model-token",
+                    "hostname": "model-host.com",
+                    "source_uri": "/path/to/model",
+                },
+                "data": {
+                    "input_type": "local",
+                    "input_auth_token": "data-token",
+                    "input_hostname": "data-host.com",
+                    "input_uri": "/path/to/data",
+                },
+            },
         )
-        assert details == expected_details
+        
+        with patch("trainml.jobs.Job.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.jobs.upload", new_callable=AsyncMock) as mock_upload:
+                await job.connect()
+                mock_refresh.assert_called_once()
+                assert mock_upload.call_count == 2
+                # Verify both were called with correct parameters
+                calls = mock_upload.call_args_list
+                assert any(call[0] == ("model-host.com", "model-token", "/path/to/model") for call in calls)
+                assert any(call[0] == ("data-host.com", "data-token", "/path/to/data") for call in calls)
 
     @mark.asyncio
-    async def test_job_connect(self, training_job, mock_trainml):
-        with patch(
-            "trainml.jobs.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "connected"
-            resp = await training_job.connect()
-            connection.start.assert_called_once()
-            assert resp == "connected"
+    async def test_job_connect_waiting_for_data_model_download_neither_local_error(self, mock_trainml):
+        job = specimen.Job(
+            mock_trainml,
+            **{
+                "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
+                "job_uuid": "job-id-1",
+                "name": "test job",
+                "type": "training",
+                "status": "waiting for data/model download",
+                "model": {
+                    "source_type": "trainml",
+                },
+                "data": {
+                    "input_type": "trainml",
+                },
+            },
+        )
+        
+        with patch("trainml.jobs.Job.refresh", new_callable=AsyncMock):
+            with raises(SpecificationError, match="Job has no local model or data to upload"):
+                await job.connect()
 
     @mark.asyncio
-    async def test_job_disconnect(self, training_job, mock_trainml):
-        with patch(
-            "trainml.jobs.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "removed"
-            resp = await training_job.disconnect()
-            connection.stop.assert_called_once()
-            assert resp == "removed"
+    async def test_job_connect_uploading_status_single_worker(self, mock_trainml, tmp_path):
+        job = specimen.Job(
+            mock_trainml,
+            **{
+                "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
+                "job_uuid": "job-id-1",
+                "name": "test job",
+                "type": "training",
+                "status": "uploading",
+                "data": {
+                    "output_type": "local",
+                    "output_uri": str(tmp_path / "output"),
+                },
+                "workers": [
+                    {
+                        "job_worker_uuid": "worker-1",
+                        "status": "uploading",
+                        "output_auth_token": "worker-token",
+                        "output_hostname": "worker-host.com",
+                    }
+                ],
+            },
+        )
+        
+        # Mock refresh to preserve job state and control loop behavior
+        refresh_call_count = [0]
+        async def mock_refresh():
+            refresh_call_count[0] += 1
+            # First refresh (before loop, line 346) - ensure state is correct
+            if refresh_call_count[0] == 1:
+                job._status = "uploading"
+                # Ensure workers list exists and has the uploading worker
+                if not job._job.get("workers") or len(job._job["workers"]) == 0:
+                    job._job["workers"] = [{
+                        "job_worker_uuid": "worker-1",
+                        "status": "uploading",
+                        "output_auth_token": "worker-token",
+                        "output_hostname": "worker-host.com",
+                    }]
+                else:
+                    job._job["workers"][0]["status"] = "uploading"
+                    job._job["workers"][0]["output_auth_token"] = "worker-token"
+                    job._job["workers"][0]["output_hostname"] = "worker-host.com"
+                # Also update _workers property
+                job._workers = job._job.get("workers")
+            # Second refresh (in loop, line 418, first iteration) - keep uploading so download task is created
+            elif refresh_call_count[0] == 2:
+                job._status = "uploading"
+                job._job["workers"][0]["status"] = "uploading"
+                job._job["workers"][0]["output_auth_token"] = "worker-token"
+                job._job["workers"][0]["output_hostname"] = "worker-host.com"
+                job._workers = job._job.get("workers")
+            # Third refresh (in loop, second iteration) - mark as finished to exit
+            elif refresh_call_count[0] == 3:
+                job._status = "finished"
+                job._job["workers"][0]["status"] = "finished"
+                job._workers = job._job.get("workers")
+            return job
+        
+        with patch.object(job, 'refresh', side_effect=mock_refresh):
+            with patch("trainml.jobs.download", new_callable=AsyncMock) as mock_download:
+                # Mock sleep - allow loop to continue
+                async def sleep_side_effect(delay):
+                    # After sleep, next refresh will mark as finished
+                    pass
+                
+                with patch("asyncio.sleep", side_effect=sleep_side_effect):
+                    await job.connect()
+                    # Download should be called once for the uploading worker
+                    # The download task is created in the first loop iteration, then we wait for it
+                    assert mock_download.call_count == 1
+                    mock_download.assert_called_with("worker-host.com", "worker-token", str(tmp_path / "output"))
+
+    @mark.asyncio
+    async def test_job_connect_running_status_multi_worker_polling(self, mock_trainml, tmp_path):
+        job = specimen.Job(
+            mock_trainml,
+            **{
+                "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
+                "job_uuid": "job-id-1",
+                "name": "test job",
+                "type": "training",
+                "status": "running",
+                "data": {
+                    "output_type": "local",
+                    "output_uri": str(tmp_path / "output"),
+                },
+                "workers": [
+                    {
+                        "job_worker_uuid": "worker-1",
+                        "status": "running",
+                    },
+                    {
+                        "job_worker_uuid": "worker-2",
+                        "status": "running",
+                    },
+                ],
+            },
+        )
+        
+        refresh_count = [0]
+        with patch("trainml.jobs.Job.refresh", new_callable=AsyncMock) as mock_refresh:
+            def refresh_side_effect():
+                refresh_count[0] += 1
+                if refresh_count[0] == 1:
+                    # First refresh: worker-1 becomes uploading
+                    job._job["workers"][0]["status"] = "uploading"
+                    job._job["workers"][0]["output_auth_token"] = "token-1"
+                    job._job["workers"][0]["output_hostname"] = "host-1.com"
+                elif refresh_count[0] == 2:
+                    # Second refresh: worker-2 becomes uploading
+                    job._job["workers"][1]["status"] = "uploading"
+                    job._job["workers"][1]["output_auth_token"] = "token-2"
+                    job._job["workers"][1]["output_hostname"] = "host-2.com"
+                else:
+                    # Third refresh: both finished
+                    job._status = "finished"
+                    job._job["workers"][0]["status"] = "finished"
+                    job._job["workers"][1]["status"] = "finished"
+            mock_refresh.side_effect = refresh_side_effect
+            
+            with patch("trainml.jobs.download", new_callable=AsyncMock) as mock_download:
+                sleep_mock = AsyncMock()
+                with patch("asyncio.sleep", sleep_mock):
+                    await job.connect()
+                    # Should have called download twice (once per worker)
+                    assert mock_download.call_count == 2
+                    # Should have slept between polls (at least once before both workers finish)
+                    assert sleep_mock.call_count >= 1
+                    # Verify both downloads were called with correct parameters
+                    calls = mock_download.call_args_list
+                    assert any(call[0] == ("host-1.com", "token-1", str(tmp_path / "output")) for call in calls)
+                    assert any(call[0] == ("host-2.com", "token-2", str(tmp_path / "output")) for call in calls)
+
+    @mark.asyncio
+    async def test_job_connect_invalid_status(self, mock_trainml):
+        job = specimen.Job(
+            mock_trainml,
+            **{
+                "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
+                "job_uuid": "job-id-1",
+                "name": "test job",
+                "type": "training",
+                "status": "finished",
+            },
+        )
+        
+        with raises(SpecificationError, match="You can only connect to active jobs"):
+            await job.connect()
+
+    @mark.asyncio
+    async def test_job_connect_uploading_no_local_output_error(self, mock_trainml):
+        job = specimen.Job(
+            mock_trainml,
+            **{
+                "customer_uuid": "cus-id-1",
+                "project_uuid": "proj-id-1",
+                "job_uuid": "job-id-1",
+                "name": "test job",
+                "type": "training",
+                "status": "uploading",
+                "data": {
+                    "output_type": "s3",
+                },
+            },
+        )
+        
+        with patch("trainml.jobs.Job.refresh", new_callable=AsyncMock):
+            with raises(SpecificationError, match="Job output_type is not 'local'"):
+                await job.connect()
 
     @mark.asyncio
     async def test_job_remove(self, job, mock_trainml):

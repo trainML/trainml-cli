@@ -36,15 +36,7 @@ def attach(config, model):
     if None is found:
         raise click.UsageError("Cannot find specified model.")
 
-    try:
-        config.trainml.run(found.attach())
-        return config.trainml.run(found.disconnect())
-    except:
-        try:
-            config.trainml.run(found.disconnect())
-        except:
-            pass
-        raise
+    config.trainml.run(found.attach())
 
 
 @model.command()
@@ -69,18 +61,10 @@ def connect(config, model, attach):
     if None is found:
         raise click.UsageError("Cannot find specified model.")
 
-    try:
-        if attach:
-            config.trainml.run(found.connect(), found.attach())
-            return config.trainml.run(found.disconnect())
-        else:
-            return config.trainml.run(found.connect())
-    except:
-        try:
-            config.trainml.run(found.disconnect())
-        except:
-            pass
-        raise
+    if attach:
+        config.trainml.run(found.connect(), found.attach())
+    else:
+        config.trainml.run(found.connect())
 
 
 @model.command()
@@ -125,41 +109,15 @@ def create(config, attach, connect, source, name, path):
             )
         )
 
-        try:
-            if connect and attach:
-                config.trainml.run(model.attach(), model.connect())
-                return config.trainml.run(model.disconnect())
-            elif connect:
-                return config.trainml.run(model.connect())
-            else:
-                raise click.UsageError(
-                    "Abort!\n"
-                    "No logs to show for local sourced model without connect."
-                )
-        except:
-            try:
-                config.trainml.run(model.disconnect())
-            except:
-                pass
-            raise
-
-
-@model.command()
-@click.argument("model", type=click.STRING)
-@pass_config
-def disconnect(config, model):
-    """
-    Disconnect and clean-up model upload.
-
-    MODEL may be specified by name or ID, but ID is preferred.
-    """
-    models = config.trainml.run(config.trainml.client.models.list())
-
-    found = search_by_id_name(model, models)
-    if None is found:
-        raise click.UsageError("Cannot find specified model.")
-
-    return config.trainml.run(found.disconnect())
+        if connect and attach:
+            config.trainml.run(model.attach(), model.connect())
+        elif connect:
+            config.trainml.run(model.connect())
+        else:
+            raise click.UsageError(
+                "Abort!\n"
+                "No logs to show for local sourced model without connect."
+            )
 
 
 @model.command()

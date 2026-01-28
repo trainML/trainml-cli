@@ -156,7 +156,6 @@ def configure(config):
     config.trainml.client.set_active_project(selected_project[0].id)
 
 
-from trainml.cli.connection import connection
 from trainml.cli.dataset import dataset
 from trainml.cli.model import model
 from trainml.cli.checkpoint import checkpoint

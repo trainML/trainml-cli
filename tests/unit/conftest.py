@@ -4,7 +4,7 @@ from pytest import fixture, mark
 from unittest.mock import Mock, AsyncMock, patch, create_autospec
 
 from trainml.trainml import TrainML
-from trainml.auth import Auth
+from trainml.utils.auth import Auth
 from trainml.datasets import Dataset, Datasets
 from trainml.checkpoints import Checkpoint, Checkpoints
 from trainml.volumes import Volume, Volumes
@@ -12,7 +12,6 @@ from trainml.models import Model, Models
 from trainml.gpu_types import GpuType, GpuTypes
 from trainml.environments import Environment, Environments
 from trainml.jobs import Job, Jobs
-from trainml.connections import Connections
 from trainml.projects import (
     Projects,
     Project,
@@ -1130,7 +1129,6 @@ def mock_trainml(
     trainml.gpu_types = create_autospec(GpuTypes)
     trainml.environments = create_autospec(Environments)
     trainml.jobs = create_autospec(Jobs)
-    trainml.connections = create_autospec(Connections)
     trainml.projects = create_autospec(Projects)
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)

@@ -181,78 +181,56 @@ class DatasetTests:
         assert response == api_response
 
     @mark.asyncio
-    async def test_dataset_get_connection_utility_url(self, dataset, mock_trainml):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/vpn/first_one.zip"
-        )
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        response = await dataset.get_connection_utility_url()
-        mock_trainml._query.assert_called_once_with(
-            "/dataset/1/download", "GET", dict(project_uuid="proj-id-1")
-        )
-        assert response == api_response
-
-    def test_dataset_get_connection_details_no_vpn(self, dataset):
-        details = dataset.get_connection_details()
-        expected_details = dict()
-        assert details == expected_details
-
-    def test_dataset_get_connection_details_local_data(self, mock_trainml):
+    async def test_dataset_connect_downloading_status(self, mock_trainml):
         dataset = specimen.Dataset(
             mock_trainml,
             dataset_uuid="1",
             project_uuid="proj-id-1",
-            name="first one",
-            status="new",
-            size=100000,
-            createdAt="2020-12-31T23:59:59.000Z",
-            source_type="local",
-            source_uri="~/tensorflow-example/data",
-            vpn={
-                "status": "new",
-                "cidr": "10.106.171.0/24",
-                "client": {
-                    "port": "36017",
-                    "id": "cus-id-1",
-                    "address": "10.106.171.253",
-                    "ssh_port": 46600,
-                },
-            },
+            name="test dataset",
+            status="downloading",
+            auth_token="test-token",
+            hostname="example.com",
+            source_uri="/path/to/source",
         )
-        details = dataset.get_connection_details()
-        expected_details = dict(
+        
+        with patch("trainml.datasets.Dataset.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.datasets.upload", new_callable=AsyncMock) as mock_upload:
+                await dataset.connect()
+                mock_refresh.assert_called_once()
+                mock_upload.assert_called_once_with("example.com", "test-token", "/path/to/source")
+
+    @mark.asyncio
+    async def test_dataset_connect_exporting_status(self, mock_trainml, tmp_path):
+        output_dir = str(tmp_path / "output")
+        dataset = specimen.Dataset(
+            mock_trainml,
+            dataset_uuid="1",
             project_uuid="proj-id-1",
-            entity_type="dataset",
-            cidr="10.106.171.0/24",
-            ssh_port=46600,
-            input_path="~/tensorflow-example/data",
-            output_path=None,
+            name="test dataset",
+            status="exporting",
+            auth_token="test-token",
+            hostname="example.com",
+            output_uri=output_dir,
         )
-        assert details == expected_details
+        
+        with patch("trainml.datasets.Dataset.refresh", new_callable=AsyncMock) as mock_refresh:
+            with patch("trainml.datasets.download", new_callable=AsyncMock) as mock_download:
+                await dataset.connect()
+                mock_refresh.assert_called_once()
+                mock_download.assert_called_once_with("example.com", "test-token", output_dir)
 
     @mark.asyncio
-    async def test_dataset_connect(self, dataset, mock_trainml):
-        with patch(
-            "trainml.datasets.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "connected"
-            resp = await dataset.connect()
-            connection.start.assert_called_once()
-            assert resp == "connected"
-
-    @mark.asyncio
-    async def test_dataset_disconnect(self, dataset, mock_trainml):
-        with patch(
-            "trainml.datasets.Connection",
-            autospec=True,
-        ) as mock_connection:
-            connection = mock_connection.return_value
-            connection.status = "removed"
-            resp = await dataset.disconnect()
-            connection.stop.assert_called_once()
-            assert resp == "removed"
+    async def test_dataset_connect_invalid_status(self, mock_trainml):
+        dataset = specimen.Dataset(
+            mock_trainml,
+            dataset_uuid="1",
+            project_uuid="proj-id-1",
+            name="test dataset",
+            status="ready",
+        )
+        
+        with raises(SpecificationError, match="You can only connect to downloading or exporting datasets"):
+            await dataset.connect()
 
     @mark.asyncio
     async def test_dataset_remove(self, dataset, mock_trainml):

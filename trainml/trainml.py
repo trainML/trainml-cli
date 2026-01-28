@@ -7,7 +7,7 @@ import traceback
 import random
 from importlib.metadata import version
 
-from trainml.auth import Auth
+from trainml.utils.auth import Auth
 from trainml.datasets import Datasets
 from trainml.models import Models
 from trainml.checkpoints import Checkpoints
@@ -16,7 +16,6 @@ from trainml.jobs import Jobs
 from trainml.gpu_types import GpuTypes
 from trainml.environments import Environments
 from trainml.exceptions import ApiError, TrainMLException
-from trainml.connections import Connections
 from trainml.projects import Projects
 from trainml.cloudbender import Cloudbender
 
@@ -34,13 +33,13 @@ class TrainML(object):
             os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
         )
         try:
-            with open(f"{CONFIG_DIR}/environment.json", "r") as file:
+            with open(f"{CONFIG_DIR}/environment.json", "r",encoding="utf-8") as file:
                 env_str = file.read().replace("\n", "")
             env = json.loads(env_str)
         except OSError:
             env = dict()
         try:
-            with open(f"{CONFIG_DIR}/config.json", "r") as file:
+            with open(f"{CONFIG_DIR}/config.json", "r",encoding="utf-8") as file:
                 config_str = file.read().replace("\n", "")
             config = json.loads(config_str)
         except OSError:
@@ -72,7 +71,6 @@ class TrainML(object):
         self.jobs = Jobs(self)
         self.gpu_types = GpuTypes(self)
         self.environments = Environments(self)
-        self.connections = Connections(self)
         self.projects = Projects(self)
         self.cloudbender = Cloudbender(self)
         self.api_url = (

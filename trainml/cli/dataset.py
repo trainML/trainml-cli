@@ -35,15 +35,7 @@ def attach(config, dataset):
     if None is found:
         raise click.UsageError("Cannot find specified dataset.")
 
-    try:
-        config.trainml.run(found.attach())
-        return config.trainml.run(found.disconnect())
-    except:
-        try:
-            config.trainml.run(found.disconnect())
-        except:
-            pass
-        raise
+    config.trainml.run(found.attach())
 
 
 @dataset.command()
@@ -67,18 +59,10 @@ def connect(config, dataset, attach):
     if None is found:
         raise click.UsageError("Cannot find specified dataset.")
 
-    try:
-        if attach:
-            config.trainml.run(found.connect(), found.attach())
-            return config.trainml.run(found.disconnect())
-        else:
-            return config.trainml.run(found.connect())
-    except:
-        try:
-            config.trainml.run(found.disconnect())
-        except:
-            pass
-        raise
+    if attach:
+        config.trainml.run(found.connect(), found.attach())
+    else:
+        config.trainml.run(found.connect())
 
 
 @dataset.command()
@@ -123,41 +107,15 @@ def create(config, attach, connect, source, name, path):
             )
         )
 
-        try:
-            if connect and attach:
-                config.trainml.run(dataset.attach(), dataset.connect())
-                return config.trainml.run(dataset.disconnect())
-            elif connect:
-                return config.trainml.run(dataset.connect())
-            else:
-                raise click.UsageError(
-                    "Abort!\n"
-                    "No logs to show for local sourced dataset without connect."
-                )
-        except:
-            try:
-                config.trainml.run(dataset.disconnect())
-            except:
-                pass
-            raise
-
-
-@dataset.command()
-@click.argument("dataset", type=click.STRING)
-@pass_config
-def disconnect(config, dataset):
-    """
-    Disconnect and clean-up dataset upload.
-
-    DATASET may be specified by name or ID, but ID is preferred.
-    """
-    datasets = config.trainml.run(config.trainml.client.datasets.list())
-
-    found = search_by_id_name(dataset, datasets)
-    if None is found:
-        raise click.UsageError("Cannot find specified dataset.")
-
-    return config.trainml.run(found.disconnect())
+        if connect and attach:
+            config.trainml.run(dataset.attach(), dataset.connect())
+        elif connect:
+            config.trainml.run(dataset.connect())
+        else:
+            raise click.UsageError(
+                "Abort!\n"
+                "No logs to show for local sourced dataset without connect."
+            )
 
 
 @dataset.command()

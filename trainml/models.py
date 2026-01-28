@@ -10,7 +10,7 @@ from .exceptions import (
     SpecificationError,
     TrainMLException,
 )
-from .connections import Connection
+from trainml.utils.transfer import upload, download
 
 
 class Models(object):
@@ -113,57 +113,45 @@ class Model:
         )
         return resp
 
-    async def get_connection_utility_url(self):
-        resp = await self.trainml._query(
-            f"/model/{self._id}/download",
-            "GET",
-            dict(project_uuid=self._project_uuid),
-        )
-        return resp
-
-    def get_connection_details(self):
-        if self._model.get("vpn"):
-            details = dict(
-                entity_type="model",
-                project_uuid=self._model.get("project_uuid"),
-                cidr=self._model.get("vpn").get("cidr"),
-                ssh_port=self._model.get("vpn").get("client").get("ssh_port"),
-                input_path=(
-                    self._model.get("source_uri")
-                    if self.status in ["new", "downloading"]
-                    else None
-                ),
-                output_path=(
-                    self._model.get("output_uri")
-                    if self.status == "exporting"
-                    else None
-                ),
-            )
-        else:
-            details = dict()
-        logging.debug(f"Connection Details: {details}")
-        return details
-
     async def connect(self):
-        if self.status in ["ready", "failed"]:
-            raise SpecificationError(
-                "status",
-                f"You can only connect to downloading or exporting models.",
-            )
-        if self.status == "new":
-            await self.wait_for("downloading")
-        connection = Connection(
-            self.trainml, entity_type="model", id=self.id, entity=self
-        )
-        await connection.start()
-        return connection.status
-
-    async def disconnect(self):
-        connection = Connection(
-            self.trainml, entity_type="model", id=self.id, entity=self
-        )
-        await connection.stop()
-        return connection.status
+        if self.status not in ["downloading", "exporting"]:
+            if self.status == "new":
+                await self.wait_for("downloading")
+            else:
+                raise SpecificationError(
+                    "status",
+                    f"You can only connect to downloading or exporting models.",
+                )
+        
+        # Refresh to get latest entity data
+        await self.refresh()
+        
+        if self.status == "downloading":
+            # Upload task - get auth_token, hostname, and source_uri from model
+            auth_token = self._model.get("auth_token")
+            hostname = self._model.get("hostname")
+            source_uri = self._model.get("source_uri")
+            
+            if not auth_token or not hostname or not source_uri:
+                raise SpecificationError(
+                    "status",
+                    f"Model in downloading status missing required connection properties (auth_token, hostname, source_uri).",
+                )
+            
+            await upload(hostname, auth_token, source_uri)
+        elif self.status == "exporting":
+            # Download task - get auth_token, hostname, and output_uri from model
+            auth_token = self._model.get("auth_token")
+            hostname = self._model.get("hostname")
+            output_uri = self._model.get("output_uri")
+            
+            if not auth_token or not hostname or not output_uri:
+                raise SpecificationError(
+                    "status",
+                    f"Model in exporting status missing required connection properties (auth_token, hostname, output_uri).",
+                )
+            
+            await download(hostname, auth_token, output_uri)
 
     async def remove(self, force=False):
         await self.trainml._query(

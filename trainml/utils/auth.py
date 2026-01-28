@@ -46,7 +46,7 @@
 #       editorial revisions, annotations, elaborations, or other modifications
 #       represent, as a whole, an original work of authorship. For the purposes
 #       of this License, Derivative Works shall not include works that remain
-#       separable from, or merely link (or bind by name) to the interfaces of,
+#       separable from, or merely link (or bind by name) to the interfaces of
 #       the Work and Derivative Works thereof.
 
 #       "Contribution" shall mean any work of authorship, including
@@ -609,15 +609,16 @@ class Auth(object):
         logging.debug(f"ID Token Verification: {id_verify}")
         if id_verify:
             id_token = tokens["AuthenticationResult"]["IdToken"]
+            self.id_token = id_token
+
         access_verify = self.verify_token(
             tokens["AuthenticationResult"]["AccessToken"], "access_token"
         )
         logging.debug(f"Access Token Verification: {access_verify}")
         if access_verify:
             access_token = tokens["AuthenticationResult"]["AccessToken"]
-
-        self.id_token = id_token
-        self.access_token = access_token
+            self.access_token = access_token
+        
         self.refresh_token = refresh_token
         self.expires = (
             id_verify.get("exp") - 300
