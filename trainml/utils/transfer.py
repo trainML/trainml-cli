@@ -20,7 +20,11 @@ MAX_RETRIES = 5
 RETRY_BACKOFF = 2  # Exponential backoff base (2^attempt)
 PARALLEL_UPLOADS = 10  # Max concurrent uploads
 CHUNK_SIZE = 5 * 1024 * 1024  # 5MB
-RETRY_STATUSES = {502, 503, 504}  # Server errors to retry during upload/download
+RETRY_STATUSES = {
+    502,
+    503,
+    504,
+}  # Server errors to retry during upload/download
 # Additional retries for DNS/connection errors (ClientConnectorError)
 DNS_MAX_RETRIES = 7  # More retries for DNS resolution issues
 DNS_INITIAL_DELAY = 1  # Initial delay in seconds before first DNS retry
@@ -29,45 +33,47 @@ DNS_INITIAL_DELAY = 1  # Initial delay in seconds before first DNS retry
 def normalize_endpoint(endpoint):
     """
     Normalize endpoint URL to ensure it has a protocol.
-    
+
     Args:
         endpoint: Endpoint URL (with or without protocol)
-    
+
     Returns:
         Normalized endpoint URL with https:// protocol
-    
+
     Raises:
         ValueError: If endpoint is empty
     """
     if not endpoint:
         raise ValueError("Endpoint URL cannot be empty")
-    
+
     # Remove trailing slashes
-    endpoint = endpoint.rstrip('/')
-    
+    endpoint = endpoint.rstrip("/")
+
     # Add https:// if no protocol is specified
-    if not endpoint.startswith(('http://', 'https://')):
-        endpoint = f'https://{endpoint}'
-    
+    if not endpoint.startswith(("http://", "https://")):
+        endpoint = f"https://{endpoint}"
+
     return endpoint
 
 
-async def ping_endpoint(endpoint, auth_token, max_retries=MAX_RETRIES, retry_backoff=RETRY_BACKOFF):
+async def ping_endpoint(
+    endpoint, auth_token, max_retries=MAX_RETRIES, retry_backoff=RETRY_BACKOFF
+):
     """
     Ping the endpoint to ensure it's ready before upload/download operations.
-    
+
     Retries on all errors (404, 500, DNS errors, etc.) with exponential backoff
     until a 200 response is received. This handles startup timing issues.
-    
+
     Creates a fresh TCPConnector for each attempt to force fresh DNS resolution
     and avoid stale DNS cache issues.
-    
+
     Args:
         endpoint: Server endpoint URL
         auth_token: Authentication token
         max_retries: Maximum number of retry attempts
         retry_backoff: Exponential backoff base
-    
+
     Raises:
         ConnectionError: If ping never returns 200 after max retries
         ClientConnectorError: If DNS/connection errors persist after max retries
@@ -75,7 +81,7 @@ async def ping_endpoint(endpoint, auth_token, max_retries=MAX_RETRIES, retry_bac
     endpoint = normalize_endpoint(endpoint)
     attempt = 1
     effective_max_retries = max_retries
-    
+
     while attempt <= effective_max_retries:
         # Create a fresh connector for each attempt to force DNS re-resolution
         # This helps avoid stale DNS cache issues
@@ -89,7 +95,9 @@ async def ping_endpoint(endpoint, auth_token, max_retries=MAX_RETRIES, retry_bac
                     timeout=30,
                 ) as response:
                     if response.status == 200:
-                        logging.debug(f"Endpoint {endpoint} is ready (ping successful)")
+                        logging.debug(
+                            f"Endpoint {endpoint} is ready (ping successful)"
+                        )
                         return
                     # For any non-200 status, retry
                     text = await response.text()
@@ -116,13 +124,13 @@ async def ping_endpoint(endpoint, auth_token, max_retries=MAX_RETRIES, retry_bac
             # DNS resolution errors need more retries and initial delay
             if effective_max_retries == max_retries:
                 effective_max_retries = max(max_retries, DNS_MAX_RETRIES)
-            
+
             if attempt < effective_max_retries:
                 # Use initial delay for first retry, then exponential backoff
                 if attempt == 1:
                     delay = DNS_INITIAL_DELAY
                 else:
-                    delay = retry_backoff**(attempt - 1)
+                    delay = retry_backoff ** (attempt - 1)
                 logging.debug(
                     f"Ping attempt {attempt}/{effective_max_retries} failed due to DNS/connection error: {str(e)}"
                 )
@@ -140,7 +148,9 @@ async def ping_endpoint(endpoint, auth_token, max_retries=MAX_RETRIES, retry_bac
             asyncio.TimeoutError,
         ) as e:
             if attempt < effective_max_retries:
-                logging.debug(f"Ping attempt {attempt}/{effective_max_retries} failed: {str(e)}")
+                logging.debug(
+                    f"Ping attempt {attempt}/{effective_max_retries} failed: {str(e)}"
+                )
                 await asyncio.sleep(retry_backoff**attempt)
                 attempt += 1
                 continue
@@ -163,13 +173,13 @@ async def retry_request(
 ):
     """
     Shared retry logic for network requests.
-    
+
     For DNS/connection errors (ClientConnectorError), uses more retries and
     an initial delay to handle transient DNS resolution issues.
     """
     attempt = 1
     effective_max_retries = max_retries
-    
+
     while attempt <= effective_max_retries:
         try:
             return await func(*args, **kwargs)
@@ -187,13 +197,13 @@ async def retry_request(
             # Update effective_max_retries if this is the first DNS error
             if effective_max_retries == max_retries:
                 effective_max_retries = max(max_retries, DNS_MAX_RETRIES)
-            
+
             if attempt < effective_max_retries:
                 # Use initial delay for first retry, then exponential backoff
                 if attempt == 1:
                     delay = DNS_INITIAL_DELAY
                 else:
-                    delay = retry_backoff**(attempt - 1)
+                    delay = retry_backoff ** (attempt - 1)
                 logging.debug(
                     f"Retry {attempt}/{effective_max_retries} due to DNS/connection error: {str(e)}"
                 )
@@ -267,7 +277,7 @@ async def upload(endpoint, auth_token, path):
         endpoint: Server endpoint URL
         auth_token: Authentication token
         path: Local file or directory path to upload
-    
+
     Raises:
         ValueError: If path doesn't exist or is invalid
         ConnectionError: If upload fails or endpoint ping fails
@@ -275,13 +285,13 @@ async def upload(endpoint, auth_token, path):
     """
     # Normalize endpoint URL to ensure it has a protocol
     endpoint = normalize_endpoint(endpoint)
-    
+
     # Ping endpoint to ensure it's ready before starting upload
     await ping_endpoint(endpoint, auth_token)
-    
+
     # Expand user home directory (~) in path
     path = os.path.expanduser(path)
-    
+
     if not os.path.exists(path):
         raise ValueError(f"Path not found: {path}")
 
@@ -349,6 +359,7 @@ async def upload(endpoint, auth_token, path):
 
         # Finalize upload
         file_hash = sha512.hexdigest()
+
         async def _finalize():
             async with session.post(
                 f"{endpoint}/finalize",
@@ -359,7 +370,7 @@ async def upload(endpoint, auth_token, path):
                     text = await response.text()
                     raise ConnectionError(f"Finalize failed: {text}")
                 return await response.json()
-        
+
         data = await retry_request(_finalize)
         logging.debug(f"Upload finalized: {data}")
 
@@ -374,20 +385,20 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
         target_directory: Directory to extract files to (or save zip file)
         file_name: Optional filename override for zip archive (if ARCHIVE=true).
                    If not provided, filename is extracted from Content-Disposition header.
-    
+
     Raises:
         ConnectionError: If download fails or endpoint ping fails
         TrainMLException: For other errors
     """
     # Normalize endpoint URL to ensure it has a protocol
     endpoint = normalize_endpoint(endpoint)
-    
+
     # Ping endpoint to ensure it's ready before starting download
     await ping_endpoint(endpoint, auth_token)
-    
+
     # Expand user home directory (~) in target_directory
     target_directory = os.path.expanduser(target_directory)
-    
+
     if not os.path.isdir(target_directory):
         os.makedirs(target_directory, exist_ok=True)
 
@@ -396,6 +407,7 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
     async with aiohttp.ClientSession() as session:
         use_archive = False
         try:
+
             async def _get_info():
                 async with session.get(
                     f"{endpoint}/info",
@@ -421,12 +433,16 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                 f"Error: {str(e)}"
             )
         except (ConnectionError, ClientResponseError) as e:
-            # If /info endpoint is not available (404) or other error, 
+            # If /info endpoint is not available (404) or other error,
             # default to TAR stream mode and continue
             if isinstance(e, ConnectionError) and "404" in str(e):
-                logging.debug("Warning: /info endpoint not available, defaulting to TAR stream mode")
+                logging.debug(
+                    "Warning: /info endpoint not available, defaulting to TAR stream mode"
+                )
             elif isinstance(e, ClientResponseError) and e.status == 404:
-                logging.debug("Warning: /info endpoint not available, defaulting to TAR stream mode")
+                logging.debug(
+                    "Warning: /info endpoint not available, defaulting to TAR stream mode"
+                )
             else:
                 # For other errors, re-raise
                 raise
@@ -450,7 +466,11 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                     request_info=response.request_info,
                     history=response.history,
                     status=response.status,
-                    message=text if text else f"Download endpoint returned status {response.status}",
+                    message=(
+                        text
+                        if text
+                        else f"Download endpoint returned status {response.status}"
+                    ),
                 )
             return response
 
@@ -460,9 +480,11 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
         content_type = response.headers.get("Content-Type", "").lower()
         content_length = response.headers.get("Content-Length")
         if "zip" in content_type and not use_archive:
-            logging.debug("Warning: Server returned zip content but /info indicated TAR mode. Using zip mode.")
+            logging.debug(
+                "Warning: Server returned zip content but /info indicated TAR mode. Using zip mode."
+            )
             use_archive = True
-        
+
         # Debug: Log response info
         if content_length:
             logging.debug(f"Response Content-Length: {content_length} bytes")
@@ -505,7 +527,9 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                 total_bytes = 0
                 async with aiofiles.open(output_path, "wb") as f:
                     # Stream the response content in chunks
-                    async for chunk in response.content.iter_chunked(CHUNK_SIZE):
+                    async for chunk in response.content.iter_chunked(
+                        CHUNK_SIZE
+                    ):
                         await f.write(chunk)
                         total_bytes += len(chunk)
 
@@ -514,8 +538,10 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                         "Downloaded file is empty (0 bytes). "
                         "The server may not have any files to download, or there was an error streaming the response."
                     )
-                
-                logging.info(f"Archive saved to: {output_path} ({total_bytes} bytes)")
+
+                logging.info(
+                    f"Archive saved to: {output_path} ({total_bytes} bytes)"
+                )
             else:
                 # Extract TAR stream directly
                 # Create tar extraction process
@@ -556,6 +582,6 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                     text = await response.text()
                     raise ConnectionError(f"Finalize failed: {text}")
                 return await response.json()
-        
+
         data = await retry_request(_finalize)
         logging.debug(f"Download finalized: {data}")

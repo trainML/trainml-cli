@@ -71,10 +71,12 @@ class Dataset:
         self._id = self._dataset.get("id", self._dataset.get("dataset_uuid"))
         self._status = self._dataset.get("status")
         self._name = self._dataset.get("name")
-        self._size = self._dataset.get("size") or self._dataset.get("used_size")
-        self._billed_size = self._dataset.get("billed_size") or self._dataset.get(
-            "size"
+        self._size = self._dataset.get("size") or self._dataset.get(
+            "used_size"
         )
+        self._billed_size = self._dataset.get(
+            "billed_size"
+        ) or self._dataset.get("size")
         self._project_uuid = self._dataset.get("project_uuid")
 
     @property
@@ -131,35 +133,35 @@ class Dataset:
                     "status",
                     f"You can only connect to downloading or exporting datasets.",
                 )
-        
+
         # Refresh to get latest entity data
         await self.refresh()
-        
+
         if self.status == "downloading":
             # Upload task - get auth_token, hostname, and source_uri from dataset
             auth_token = self._dataset.get("auth_token")
             hostname = self._dataset.get("hostname")
             source_uri = self._dataset.get("source_uri")
-            
+
             if not auth_token or not hostname or not source_uri:
                 raise SpecificationError(
                     "status",
                     f"Dataset in downloading status missing required connection properties (auth_token, hostname, source_uri).",
                 )
-            
+
             await upload(hostname, auth_token, source_uri)
         elif self.status == "exporting":
             # Download task - get auth_token, hostname, and output_uri from dataset
             auth_token = self._dataset.get("auth_token")
             hostname = self._dataset.get("hostname")
             output_uri = self._dataset.get("output_uri")
-            
+
             if not auth_token or not hostname or not output_uri:
                 raise SpecificationError(
                     "status",
                     f"Dataset in exporting status missing required connection properties (auth_token, hostname, output_uri).",
                 )
-            
+
             await download(hostname, auth_token, output_uri)
 
     async def remove(self, force=False):
@@ -199,7 +201,9 @@ class Dataset:
                 if msg_handler:
                     msg_handler(data)
                 else:
-                    timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+                    timestamp = datetime.fromtimestamp(
+                        int(data.get("time")) / 1000
+                    )
                     print(
                         f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
                     )
@@ -228,7 +232,7 @@ class Dataset:
     async def wait_for(self, status, timeout=300):
         if self.status == status:
             return
-        valid_statuses = ["downloading", "ready", "archived"]
+        valid_statuses = ["downloading", "ready", "exporting", "archived"]
         if not status in valid_statuses:
             raise SpecificationError(
                 "status",
@@ -243,7 +247,9 @@ class Dataset:
 
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
-        POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)
+        POLL_INTERVAL = max(
+            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
+        )
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:

@@ -142,7 +142,9 @@ def configure(config):
         project for project in projects if project.id == active_project_id
     ]
 
-    active_project_name = active_project[0].name if len(active_project) else "UNSET"
+    active_project_name = (
+        active_project[0].name if len(active_project) else "UNSET"
+    )
 
     click.echo(f"Current Active Project: {active_project_name}")
 
@@ -152,7 +154,9 @@ def configure(config):
         show_choices=True,
         default=active_project_name,
     )
-    selected_project = [project for project in projects if project.name == name]
+    selected_project = [
+        project for project in projects if project.name == name
+    ]
     config.trainml.client.set_active_project(selected_project[0].id)
 
 

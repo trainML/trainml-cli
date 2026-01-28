@@ -34,6 +34,23 @@ def project_datastore(mock_trainml):
 
 class ProjectDatastoresTests:
     @mark.asyncio
+    async def test_project_datastores_get(self, project_datastores, mock_trainml):
+        """Test get method (lines 11-14)."""
+        api_response = {
+            "project_uuid": "proj-id-1",
+            "region_uuid": "reg-id-1",
+            "id": "store-id-1",
+            "type": "nfs",
+            "name": "On-prem NFS",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await project_datastores.get("store-id-1", param1="value1")
+        mock_trainml._query.assert_called_once_with(
+            "/project/1/datastores/store-id-1", "GET", dict(param1="value1")
+        )
+        assert result.id == "store-id-1"
+
+    @mark.asyncio
     async def test_project_datastores_refresh(self, project_datastores, mock_trainml):
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -94,3 +111,23 @@ class ProjectDatastoreTests:
         empty_project_datastore = specimen.ProjectDatastore(mock_trainml)
         assert bool(project_datastore)
         assert not bool(empty_project_datastore)
+
+    @mark.asyncio
+    async def test_project_datastore_enable(self, project_datastore, mock_trainml):
+        """Test enable method (line 67)."""
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await project_datastore.enable()
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/datastores/ds-id-1/enable", "PATCH"
+        )
+
+    @mark.asyncio
+    async def test_project_datastore_disable(self, project_datastore, mock_trainml):
+        """Test disable method (line 72)."""
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await project_datastore.disable()
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/datastores/ds-id-1/disable", "PATCH"
+        )

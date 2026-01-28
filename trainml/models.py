@@ -54,7 +54,9 @@ class Models(object):
         return model
 
     async def remove(self, id, **kwargs):
-        await self.trainml._query(f"/model/{id}", "DELETE", dict(**kwargs, force=True))
+        await self.trainml._query(
+            f"/model/{id}", "DELETE", dict(**kwargs, force=True)
+        )
 
 
 class Model:
@@ -65,7 +67,9 @@ class Model:
         self._status = self._model.get("status")
         self._name = self._model.get("name")
         self._size = self._model.get("size") or self._model.get("used_size")
-        self._billed_size = self._model.get("billed_size") or self._model.get("size")
+        self._billed_size = self._model.get("billed_size") or self._model.get(
+            "size"
+        )
         self._project_uuid = self._model.get("project_uuid")
 
     @property
@@ -122,35 +126,35 @@ class Model:
                     "status",
                     f"You can only connect to downloading or exporting models.",
                 )
-        
+
         # Refresh to get latest entity data
         await self.refresh()
-        
+
         if self.status == "downloading":
             # Upload task - get auth_token, hostname, and source_uri from model
             auth_token = self._model.get("auth_token")
             hostname = self._model.get("hostname")
             source_uri = self._model.get("source_uri")
-            
+
             if not auth_token or not hostname or not source_uri:
                 raise SpecificationError(
                     "status",
                     f"Model in downloading status missing required connection properties (auth_token, hostname, source_uri).",
                 )
-            
+
             await upload(hostname, auth_token, source_uri)
         elif self.status == "exporting":
             # Download task - get auth_token, hostname, and output_uri from model
             auth_token = self._model.get("auth_token")
             hostname = self._model.get("hostname")
             output_uri = self._model.get("output_uri")
-            
+
             if not auth_token or not hostname or not output_uri:
                 raise SpecificationError(
                     "status",
                     f"Model in exporting status missing required connection properties (auth_token, hostname, output_uri).",
                 )
-            
+
             await download(hostname, auth_token, output_uri)
 
     async def remove(self, force=False):
@@ -190,7 +194,9 @@ class Model:
                 if msg_handler:
                     msg_handler(data)
                 else:
-                    timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+                    timestamp = datetime.fromtimestamp(
+                        int(data.get("time")) / 1000
+                    )
                     print(
                         f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: {data.get('msg').rstrip()}"
                     )
@@ -219,7 +225,7 @@ class Model:
     async def wait_for(self, status, timeout=300):
         if self.status == status:
             return
-        valid_statuses = ["downloading", "ready", "archived"]
+        valid_statuses = ["downloading", "ready","exporting", "archived"]
         if not status in valid_statuses:
             raise SpecificationError(
                 "status",
@@ -233,7 +239,9 @@ class Model:
             )
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
-        POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)
+        POLL_INTERVAL = max(
+            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
+        )
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:

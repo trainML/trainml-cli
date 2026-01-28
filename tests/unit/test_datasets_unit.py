@@ -142,7 +142,9 @@ class DatasetTests:
     def test_dataset_repr(self, dataset):
         string = repr(dataset)
         regex = (
-            r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '" + dataset.id + r"'.*}\)$"
+            r"^Dataset\( trainml , \*\*{.*'dataset_uuid': '"
+            + dataset.id
+            + r"'.*}\)$"
         )
         assert isinstance(string, str)
         assert re.match(regex, string)
@@ -154,9 +156,7 @@ class DatasetTests:
 
     @mark.asyncio
     async def test_dataset_get_log_url(self, dataset, mock_trainml):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
-        )
+        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await dataset.get_log_url()
         mock_trainml._query.assert_called_once_with(
@@ -192,15 +192,23 @@ class DatasetTests:
             hostname="example.com",
             source_uri="/path/to/source",
         )
-        
-        with patch("trainml.datasets.Dataset.refresh", new_callable=AsyncMock) as mock_refresh:
-            with patch("trainml.datasets.upload", new_callable=AsyncMock) as mock_upload:
+
+        with patch(
+            "trainml.datasets.Dataset.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
+            with patch(
+                "trainml.datasets.upload", new_callable=AsyncMock
+            ) as mock_upload:
                 await dataset.connect()
                 mock_refresh.assert_called_once()
-                mock_upload.assert_called_once_with("example.com", "test-token", "/path/to/source")
+                mock_upload.assert_called_once_with(
+                    "example.com", "test-token", "/path/to/source"
+                )
 
     @mark.asyncio
-    async def test_dataset_connect_exporting_status(self, mock_trainml, tmp_path):
+    async def test_dataset_connect_exporting_status(
+        self, mock_trainml, tmp_path
+    ):
         output_dir = str(tmp_path / "output")
         dataset = specimen.Dataset(
             mock_trainml,
@@ -212,12 +220,18 @@ class DatasetTests:
             hostname="example.com",
             output_uri=output_dir,
         )
-        
-        with patch("trainml.datasets.Dataset.refresh", new_callable=AsyncMock) as mock_refresh:
-            with patch("trainml.datasets.download", new_callable=AsyncMock) as mock_download:
+
+        with patch(
+            "trainml.datasets.Dataset.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
+            with patch(
+                "trainml.datasets.download", new_callable=AsyncMock
+            ) as mock_download:
                 await dataset.connect()
                 mock_refresh.assert_called_once()
-                mock_download.assert_called_once_with("example.com", "test-token", output_dir)
+                mock_download.assert_called_once_with(
+                    "example.com", "test-token", output_dir
+                )
 
     @mark.asyncio
     async def test_dataset_connect_invalid_status(self, mock_trainml):
@@ -228,8 +242,11 @@ class DatasetTests:
             name="test dataset",
             status="ready",
         )
-        
-        with raises(SpecificationError, match="You can only connect to downloading or exporting datasets"):
+
+        with raises(
+            SpecificationError,
+            match="You can only connect to downloading or exporting datasets",
+        ):
             await dataset.connect()
 
     @mark.asyncio
@@ -369,7 +386,9 @@ class DatasetTests:
         mock_trainml._query.assert_not_called()
 
     @mark.asyncio
-    async def test_dataset_wait_for_incorrect_status(self, dataset, mock_trainml):
+    async def test_dataset_wait_for_incorrect_status(
+        self, dataset, mock_trainml
+    ):
         api_response = None
         mock_trainml._query = AsyncMock(return_value=api_response)
         with raises(SpecificationError):
@@ -414,7 +433,9 @@ class DatasetTests:
         mock_trainml._query.assert_called()
 
     @mark.asyncio
-    async def test_dataset_wait_for_dataset_failed(self, dataset, mock_trainml):
+    async def test_dataset_wait_for_dataset_failed(
+        self, dataset, mock_trainml
+    ):
         api_response = dict(
             dataset_uuid="1",
             name="first one",
@@ -427,7 +448,156 @@ class DatasetTests:
         mock_trainml._query.assert_called()
 
     @mark.asyncio
-    async def test_dataset_wait_for_archived_succeeded(self, dataset, mock_trainml):
+    async def test_dataset_rename(self, dataset, mock_trainml):
+        api_response = dict(
+            dataset_uuid="1",
+            name="renamed dataset",
+            project_uuid="proj-id-1",
+            status="ready",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await dataset.rename("renamed dataset")
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/1",
+            "PATCH",
+            None,
+            dict(name="renamed dataset"),
+        )
+        assert result == dataset
+        assert dataset.name == "renamed dataset"
+
+    @mark.asyncio
+    async def test_dataset_export(self, dataset, mock_trainml):
+        api_response = dict(
+            dataset_uuid="1",
+            name="first one",
+            project_uuid="proj-id-1",
+            status="exporting",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await dataset.export("aws", "s3://bucket/path", dict(key="value"))
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/1/export",
+            "POST",
+            dict(project_uuid="proj-id-1"),
+            dict(
+                output_type="aws",
+                output_uri="s3://bucket/path",
+                output_options=dict(key="value"),
+            ),
+        )
+        assert result == dataset
+        assert dataset.status == "exporting"
+
+    @mark.asyncio
+    async def test_dataset_export_default_options(self, dataset, mock_trainml):
+        api_response = dict(
+            dataset_uuid="1",
+            name="first one",
+            project_uuid="proj-id-1",
+            status="exporting",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await dataset.export("aws", "s3://bucket/path")
+        mock_trainml._query.assert_called_once_with(
+            "/dataset/1/export",
+            "POST",
+            dict(project_uuid="proj-id-1"),
+            dict(
+                output_type="aws",
+                output_uri="s3://bucket/path",
+                output_options=dict(),
+            ),
+        )
+        assert result == dataset
+
+    @mark.asyncio
+    async def test_dataset_wait_for_timeout_validation(
+        self, dataset, mock_trainml
+    ):
+        with raises(SpecificationError) as exc_info:
+            await dataset.wait_for("ready", timeout=25 * 60 * 60)  # > 24 hours
+        assert "timeout" in str(exc_info.value.attribute).lower()
+        assert "less than" in str(exc_info.value.message).lower()
+
+    @mark.asyncio
+    async def test_dataset_connect_new_status_waits_for_downloading(
+        self, dataset, mock_trainml
+    ):
+        """Test that connect() waits for downloading status when status is 'new'."""
+        dataset._dataset["status"] = "new"
+        dataset._status = "new"
+        api_response_new = dict(
+            dataset_uuid="1",
+            name="first one",
+            status="new",
+        )
+        api_response_downloading = dict(
+            dataset_uuid="1",
+            name="first one",
+            status="downloading",
+            auth_token="token",
+            hostname="host",
+            source_uri="s3://bucket/path",
+        )
+        # wait_for calls refresh multiple times, then connect calls refresh again
+        # We need enough responses for wait_for polling and the final refresh
+        mock_trainml._query = AsyncMock(
+            side_effect=[
+                api_response_new,  # wait_for refresh 1
+                api_response_downloading,  # wait_for refresh 2 (status matches, wait_for returns)
+                api_response_downloading,  # connect refresh
+            ]
+        )
+        with patch("trainml.datasets.upload", new_callable=AsyncMock) as mock_upload:
+            await dataset.connect()
+        # After refresh, status should be downloading
+        assert dataset.status == "downloading"
+        mock_upload.assert_called_once()
+
+    @mark.asyncio
+    async def test_dataset_connect_downloading_missing_properties(
+        self, dataset, mock_trainml
+    ):
+        """Test connect() raises error when downloading status missing properties."""
+        dataset._dataset["status"] = "downloading"
+        api_response = dict(
+            dataset_uuid="1",
+            name="first one",
+            status="downloading",
+            # Missing auth_token, hostname, or source_uri
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        with raises(SpecificationError) as exc_info:
+            await dataset.connect()
+        assert "missing required connection properties" in str(exc_info.value.message).lower()
+
+    @mark.asyncio
+    async def test_dataset_connect_exporting_missing_properties(
+        self, dataset, mock_trainml
+    ):
+        """Test connect() raises error when exporting status missing properties."""
+        dataset._dataset["status"] = "exporting"
+        api_response = dict(
+            dataset_uuid="1",
+            name="first one",
+            status="exporting",
+            # Missing auth_token, hostname, or output_uri
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        with raises(SpecificationError) as exc_info:
+            await dataset.connect()
+        assert "missing required connection properties" in str(exc_info.value.message).lower()
+
+    def test_dataset_billed_size_property(self, dataset, mock_trainml):
+        """Test billed_size property access."""
+        dataset._billed_size = 50000
+        assert dataset.billed_size == 50000
+
+    @mark.asyncio
+    async def test_dataset_wait_for_archived_succeeded(
+        self, dataset, mock_trainml
+    ):
         mock_trainml._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Dataset Not Found"))
         )
@@ -435,7 +605,9 @@ class DatasetTests:
         mock_trainml._query.assert_called()
 
     @mark.asyncio
-    async def test_dataset_wait_for_unexpected_api_error(self, dataset, mock_trainml):
+    async def test_dataset_wait_for_unexpected_api_error(
+        self, dataset, mock_trainml
+    ):
         mock_trainml._query = AsyncMock(
             side_effect=ApiError(404, dict(errorMessage="Dataset Not Found"))
         )

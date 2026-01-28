@@ -104,7 +104,10 @@ def create(config, attach, connect, source, name, capacity, path):
     if source == "local":
         volume = config.trainml.run(
             config.trainml.client.volumes.create(
-                name=name, source_type="local", source_uri=path, capacity=capacity
+                name=name,
+                source_type="local",
+                source_uri=path,
+                capacity=capacity,
             )
         )
 

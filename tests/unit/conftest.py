@@ -18,7 +18,10 @@ from trainml.projects import (
 )
 from trainml.projects.datastores import ProjectDatastores, ProjectDatastore
 from trainml.projects.services import ProjectServices, ProjectService
-from trainml.projects.data_connectors import ProjectDataConnectors, ProjectDataConnector
+from trainml.projects.data_connectors import (
+    ProjectDataConnectors,
+    ProjectDataConnector,
+)
 from trainml.projects.credentials import ProjectCredentials, ProjectCredential
 from trainml.projects.secrets import ProjectSecrets, ProjectSecret
 
@@ -1133,7 +1136,9 @@ def mock_trainml(
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
     trainml.checkpoints.list = AsyncMock(return_value=mock_my_checkpoints)
-    trainml.checkpoints.list_public = AsyncMock(return_value=mock_public_checkpoints)
+    trainml.checkpoints.list_public = AsyncMock(
+        return_value=mock_public_checkpoints
+    )
     trainml.models.list = AsyncMock(return_value=mock_models)
     trainml.volumes.list = AsyncMock(return_value=mock_my_volumes)
     trainml.gpu_types.list = AsyncMock(return_value=mock_gpu_types)
@@ -1141,17 +1146,25 @@ def mock_trainml(
     trainml.jobs.list = AsyncMock(return_value=mock_jobs)
     trainml.projects.list = AsyncMock(return_value=mock_projects)
     trainml.projects.datastores = create_autospec(ProjectDatastores)
-    trainml.projects.datastores.list = AsyncMock(return_value=mock_project_datastores)
+    trainml.projects.datastores.list = AsyncMock(
+        return_value=mock_project_datastores
+    )
     trainml.projects.services = create_autospec(ProjectServices)
-    trainml.projects.services.list = AsyncMock(return_value=mock_project_services)
+    trainml.projects.services.list = AsyncMock(
+        return_value=mock_project_services
+    )
     trainml.projects.data_connectors = create_autospec(ProjectDataConnectors)
     trainml.projects.data_connectors.list = AsyncMock(
         return_value=mock_project_data_connectors
     )
     trainml.projects.credentials = create_autospec(ProjectCredentials)
-    trainml.projects.credentials.list = AsyncMock(return_value=mock_project_credentials)
+    trainml.projects.credentials.list = AsyncMock(
+        return_value=mock_project_credentials
+    )
     trainml.projects.secrets = create_autospec(ProjectSecrets)
-    trainml.projects.secrets.list = AsyncMock(return_value=mock_project_secrets)
+    trainml.projects.secrets.list = AsyncMock(
+        return_value=mock_project_secrets
+    )
 
     trainml.cloudbender = create_autospec(Cloudbender)
 
@@ -1164,7 +1177,9 @@ def mock_trainml(
     trainml.cloudbender.devices = create_autospec(Devices)
     trainml.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     trainml.cloudbender.datastores = create_autospec(Datastores)
-    trainml.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
+    trainml.cloudbender.datastores.list = AsyncMock(
+        return_value=mock_datastores
+    )
     trainml.cloudbender.services = create_autospec(Services)
     trainml.cloudbender.services.list = AsyncMock(return_value=mock_services)
     trainml.cloudbender.data_connectors = create_autospec(DataConnectors)

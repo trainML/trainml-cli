@@ -194,7 +194,10 @@ def remove(config, checkpoint, force):
     found = search_by_id_name(checkpoint, checkpoints)
     if None is found:
         if force:
-            config.trainml.run(found.client.checkpoints.remove(checkpoint))
+            config.trainml.run(
+                config.trainml.client.checkpoints.remove(checkpoint)
+            )
+            return
         else:
             raise click.UsageError("Cannot find specified checkpoint.")
 

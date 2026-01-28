@@ -34,6 +34,25 @@ def project_data_connector(mock_trainml):
 
 class ProjectDataConnectorsTests:
     @mark.asyncio
+    async def test_project_data_connectors_get(
+        self, project_data_connectors, mock_trainml
+    ):
+        """Test get method (lines 11-14)."""
+        api_response = {
+            "project_uuid": "proj-id-1",
+            "region_uuid": "reg-id-1",
+            "id": "connector-id-1",
+            "type": "custom",
+            "name": "On-Prem Connection A",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await project_data_connectors.get("connector-id-1", param1="value1")
+        mock_trainml._query.assert_called_once_with(
+            "/project/1/data_connectors/connector-id-1", "GET", dict(param1="value1")
+        )
+        assert result.id == "connector-id-1"
+
+    @mark.asyncio
     async def test_project_data_connectors_refresh(
         self, project_data_connectors, mock_trainml
     ):
@@ -100,3 +119,23 @@ class ProjectDataConnectorTests:
         empty_project_data_connector = specimen.ProjectDataConnector(mock_trainml)
         assert bool(project_data_connector)
         assert not bool(empty_project_data_connector)
+
+    @mark.asyncio
+    async def test_project_data_connector_enable(self, project_data_connector, mock_trainml):
+        """Test enable method (line 72)."""
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await project_data_connector.enable()
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/data_connectors/ds-id-1/enable", "PATCH"
+        )
+
+    @mark.asyncio
+    async def test_project_data_connector_disable(self, project_data_connector, mock_trainml):
+        """Test disable method (line 77)."""
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await project_data_connector.disable()
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/data_connectors/ds-id-1/disable", "PATCH"
+        )

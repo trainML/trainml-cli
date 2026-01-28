@@ -35,6 +35,24 @@ def project_service(mock_trainml):
 
 class ProjectServicesTests:
     @mark.asyncio
+    async def test_project_services_get(self, project_services, mock_trainml):
+        """Test get method (lines 11-14)."""
+        api_response = {
+            "project_uuid": "proj-id-1",
+            "region_uuid": "reg-id-1",
+            "id": "res-id-1",
+            "type": "port",
+            "name": "On-Prem Service A",
+            "hostname": "service-a.local",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await project_services.get("res-id-1", param1="value1")
+        mock_trainml._query.assert_called_once_with(
+            "/project/1/services/res-id-1", "GET", dict(param1="value1")
+        )
+        assert result.id == "res-id-1"
+
+    @mark.asyncio
     async def test_project_services_refresh(self, project_services, mock_trainml):
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -100,3 +118,50 @@ class ProjectServiceTests:
         empty_project_service = specimen.ProjectService(mock_trainml)
         assert bool(project_service)
         assert not bool(empty_project_service)
+
+    @mark.asyncio
+    async def test_project_service_enable(self, project_service, mock_trainml):
+        """Test enable method (line 72)."""
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await project_service.enable()
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/services/res-id-1/enable", "PATCH"
+        )
+
+    @mark.asyncio
+    async def test_project_service_disable(self, project_service, mock_trainml):
+        """Test disable method (line 77)."""
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await project_service.disable()
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/services/res-id-1/disable", "PATCH"
+        )
+
+    @mark.asyncio
+    async def test_project_service_get_service_ca_certificate(self, project_service, mock_trainml):
+        """Test get_service_ca_certificate method (lines 82-87)."""
+        api_response = {"certificate": "ca-cert-data"}
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await project_service.get_service_ca_certificate(param1="value1")
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/services/res-id-1/certificate/ca",
+            "GET",
+            dict(param1="value1"),
+        )
+        assert result == api_response
+
+    @mark.asyncio
+    async def test_project_service_sign_client_certificate(self, project_service, mock_trainml):
+        """Test sign_client_certificate method (lines 90-96)."""
+        api_response = {"certificate": "signed-cert-data"}
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await project_service.sign_client_certificate("csr-data", param1="value1")
+        mock_trainml._query.assert_called_once_with(
+            "/project/proj-id-1/services/res-id-1/certificate/sign",
+            "POST",
+            dict(param1="value1"),
+            dict(csr="csr-data"),
+        )
+        assert result == api_response

@@ -23,6 +23,7 @@ class GetCheckpointTests:
         checkpoint = await checkpoint.wait_for("archived", 60)
 
     async def test_get_checkpoints(self, trainml, checkpoint):
+        _ = checkpoint
         checkpoints = await trainml.checkpoints.list()
         assert len(checkpoints) > 0
 
@@ -55,7 +56,7 @@ class GetCheckpointTests:
 
 @mark.create
 @mark.asyncio
-async def test_checkpoint_wasabi(trainml, capsys):
+async def test_checkpoint_wasabi(trainml):
     checkpoint = await trainml.checkpoints.create(
         name="CLI Automated Wasabi",
         source_type="wasabi",

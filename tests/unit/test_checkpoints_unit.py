@@ -44,7 +44,9 @@ class CheckpointsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await checkpoints.get("1234")
-        mock_trainml._query.assert_called_once_with("/checkpoint/1234", "GET", dict())
+        mock_trainml._query.assert_called_once_with(
+            "/checkpoint/1234", "GET", dict()
+        )
 
     @mark.asyncio
     async def test_list_checkpoints(
@@ -55,7 +57,30 @@ class CheckpointsTests:
         api_response = dict()
         mock_trainml._query = AsyncMock(return_value=api_response)
         await checkpoints.list()
-        mock_trainml._query.assert_called_once_with("/checkpoint", "GET", dict())
+        mock_trainml._query.assert_called_once_with(
+            "/checkpoint", "GET", dict()
+        )
+
+    @mark.asyncio
+    async def test_list_public_checkpoints(
+        self,
+        checkpoints,
+        mock_trainml,
+    ):
+        api_response = [
+            dict(
+                checkpoint_uuid="1",
+                name="public checkpoint",
+                status="ready",
+            )
+        ]
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await checkpoints.list_public()
+        mock_trainml._query.assert_called_once_with(
+            "/checkpoint/public", "GET", dict()
+        )
+        assert len(result) == 1
+        assert isinstance(result[0], specimen.Checkpoint)
 
     @mark.asyncio
     async def test_remove_checkpoint(
@@ -133,9 +158,7 @@ class CheckpointTests:
 
     @mark.asyncio
     async def test_checkpoint_get_log_url(self, checkpoint, mock_trainml):
-        api_response = (
-            "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
-        )
+        api_response = "https://trainml-jobs-dev.s3.us-east-2.amazonaws.com/1/logs/first_one.zip"
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await checkpoint.get_log_url()
         mock_trainml._query.assert_called_once_with(
@@ -171,15 +194,23 @@ class CheckpointTests:
             hostname="example.com",
             source_uri="/path/to/source",
         )
-        
-        with patch("trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock) as mock_refresh:
-            with patch("trainml.checkpoints.upload", new_callable=AsyncMock) as mock_upload:
+
+        with patch(
+            "trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
+            with patch(
+                "trainml.checkpoints.upload", new_callable=AsyncMock
+            ) as mock_upload:
                 await checkpoint.connect()
                 mock_refresh.assert_called_once()
-                mock_upload.assert_called_once_with("example.com", "test-token", "/path/to/source")
+                mock_upload.assert_called_once_with(
+                    "example.com", "test-token", "/path/to/source"
+                )
 
     @mark.asyncio
-    async def test_checkpoint_connect_exporting_status(self, mock_trainml, tmp_path):
+    async def test_checkpoint_connect_exporting_status(
+        self, mock_trainml, tmp_path
+    ):
         output_dir = str(tmp_path / "output")
         checkpoint = specimen.Checkpoint(
             mock_trainml,
@@ -191,15 +222,23 @@ class CheckpointTests:
             hostname="example.com",
             output_uri=output_dir,
         )
-        
-        with patch("trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock) as mock_refresh:
-            with patch("trainml.checkpoints.download", new_callable=AsyncMock) as mock_download:
+
+        with patch(
+            "trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
+            with patch(
+                "trainml.checkpoints.download", new_callable=AsyncMock
+            ) as mock_download:
                 await checkpoint.connect()
                 mock_refresh.assert_called_once()
-                mock_download.assert_called_once_with("example.com", "test-token", output_dir)
+                mock_download.assert_called_once_with(
+                    "example.com", "test-token", output_dir
+                )
 
     @mark.asyncio
-    async def test_checkpoint_connect_new_status_waits_for_downloading(self, mock_trainml):
+    async def test_checkpoint_connect_new_status_waits_for_downloading(
+        self, mock_trainml
+    ):
         checkpoint = specimen.Checkpoint(
             mock_trainml,
             checkpoint_uuid="1",
@@ -207,20 +246,30 @@ class CheckpointTests:
             name="test checkpoint",
             status="new",
         )
-        
-        with patch("trainml.checkpoints.Checkpoint.wait_for", new_callable=AsyncMock) as mock_wait:
-            with patch("trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock) as mock_refresh:
+
+        with patch(
+            "trainml.checkpoints.Checkpoint.wait_for", new_callable=AsyncMock
+        ) as mock_wait:
+            with patch(
+                "trainml.checkpoints.Checkpoint.refresh",
+                new_callable=AsyncMock,
+            ) as mock_refresh:
                 # After refresh, status becomes downloading
                 def update_status():
                     checkpoint._status = "downloading"
-                    checkpoint._checkpoint.update({
-                        "auth_token": "test-token",
-                        "hostname": "example.com",
-                        "source_uri": "/path/to/source",
-                    })
+                    checkpoint._checkpoint.update(
+                        {
+                            "auth_token": "test-token",
+                            "hostname": "example.com",
+                            "source_uri": "/path/to/source",
+                        }
+                    )
+
                 mock_refresh.side_effect = update_status
-                
-                with patch("trainml.checkpoints.upload", new_callable=AsyncMock) as mock_upload:
+
+                with patch(
+                    "trainml.checkpoints.upload", new_callable=AsyncMock
+                ) as mock_upload:
                     await checkpoint.connect()
                     mock_wait.assert_called_once_with("downloading")
                     mock_refresh.assert_called_once()
@@ -235,12 +284,17 @@ class CheckpointTests:
             name="test checkpoint",
             status="ready",
         )
-        
-        with raises(SpecificationError, match="You can only connect to downloading or exporting checkpoints"):
+
+        with raises(
+            SpecificationError,
+            match="You can only connect to downloading or exporting checkpoints",
+        ):
             await checkpoint.connect()
 
     @mark.asyncio
-    async def test_checkpoint_connect_missing_properties_downloading(self, mock_trainml):
+    async def test_checkpoint_connect_missing_properties_downloading(
+        self, mock_trainml
+    ):
         checkpoint = specimen.Checkpoint(
             mock_trainml,
             checkpoint_uuid="1",
@@ -248,13 +302,20 @@ class CheckpointTests:
             name="test checkpoint",
             status="downloading",
         )
-        
-        with patch("trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock):
-            with raises(SpecificationError, match="missing required connection properties"):
+
+        with patch(
+            "trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock
+        ):
+            with raises(
+                SpecificationError,
+                match="missing required connection properties",
+            ):
                 await checkpoint.connect()
 
     @mark.asyncio
-    async def test_checkpoint_connect_missing_properties_exporting(self, mock_trainml):
+    async def test_checkpoint_connect_missing_properties_exporting(
+        self, mock_trainml
+    ):
         checkpoint = specimen.Checkpoint(
             mock_trainml,
             checkpoint_uuid="1",
@@ -262,9 +323,14 @@ class CheckpointTests:
             name="test checkpoint",
             status="exporting",
         )
-        
-        with patch("trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock):
-            with raises(SpecificationError, match="missing required connection properties"):
+
+        with patch(
+            "trainml.checkpoints.Checkpoint.refresh", new_callable=AsyncMock
+        ):
+            with raises(
+                SpecificationError,
+                match="missing required connection properties",
+            ):
                 await checkpoint.connect()
 
     @mark.asyncio
@@ -371,7 +437,9 @@ class CheckpointTests:
         assert response.id == "data-id-1"
 
     @mark.asyncio
-    async def test_checkpoint_wait_for_successful(self, checkpoint, mock_trainml):
+    async def test_checkpoint_wait_for_successful(
+        self, checkpoint, mock_trainml
+    ):
         api_response = {
             "customer_uuid": "cus-id-1",
             "checkpoint_uuid": "data-id-1",
@@ -404,7 +472,9 @@ class CheckpointTests:
         mock_trainml._query.assert_not_called()
 
     @mark.asyncio
-    async def test_checkpoint_wait_for_incorrect_status(self, checkpoint, mock_trainml):
+    async def test_checkpoint_wait_for_incorrect_status(
+        self, checkpoint, mock_trainml
+    ):
         api_response = None
         mock_trainml._query = AsyncMock(return_value=api_response)
         with raises(SpecificationError):
@@ -412,7 +482,9 @@ class CheckpointTests:
         mock_trainml._query.assert_not_called()
 
     @mark.asyncio
-    async def test_checkpoint_wait_for_with_delay(self, checkpoint, mock_trainml):
+    async def test_checkpoint_wait_for_with_delay(
+        self, checkpoint, mock_trainml
+    ):
         api_response_initial = dict(
             checkpoint_uuid="1",
             name="first one",
@@ -468,7 +540,9 @@ class CheckpointTests:
         self, checkpoint, mock_trainml
     ):
         mock_trainml._query = AsyncMock(
-            side_effect=ApiError(404, dict(errorMessage="Checkpoint Not Found"))
+            side_effect=ApiError(
+                404, dict(errorMessage="Checkpoint Not Found")
+            )
         )
         await checkpoint.wait_for("archived")
         mock_trainml._query.assert_called()
@@ -478,8 +552,88 @@ class CheckpointTests:
         self, checkpoint, mock_trainml
     ):
         mock_trainml._query = AsyncMock(
-            side_effect=ApiError(404, dict(errorMessage="Checkpoint Not Found"))
+            side_effect=ApiError(
+                404, dict(errorMessage="Checkpoint Not Found")
+            )
         )
         with raises(ApiError):
             await checkpoint.wait_for("ready")
         mock_trainml._query.assert_called()
+
+    @mark.asyncio
+    async def test_checkpoint_rename(self, checkpoint, mock_trainml):
+        api_response = dict(
+            checkpoint_uuid="1",
+            name="renamed checkpoint",
+            project_uuid="proj-id-1",
+            status="ready",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await checkpoint.rename("renamed checkpoint")
+        mock_trainml._query.assert_called_once_with(
+            "/checkpoint/1",
+            "PATCH",
+            dict(project_uuid="proj-id-1"),
+            dict(name="renamed checkpoint"),
+        )
+        assert result == checkpoint
+        assert checkpoint.name == "renamed checkpoint"
+
+    @mark.asyncio
+    async def test_checkpoint_export(self, checkpoint, mock_trainml):
+        api_response = dict(
+            checkpoint_uuid="1",
+            name="first one",
+            project_uuid="proj-id-1",
+            status="exporting",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await checkpoint.export("aws", "s3://bucket/path", dict(key="value"))
+        mock_trainml._query.assert_called_once_with(
+            "/checkpoint/1/export",
+            "POST",
+            dict(project_uuid="proj-id-1"),
+            dict(
+                output_type="aws",
+                output_uri="s3://bucket/path",
+                output_options=dict(key="value"),
+            ),
+        )
+        assert result == checkpoint
+        assert checkpoint.status == "exporting"
+
+    @mark.asyncio
+    async def test_checkpoint_export_default_options(self, checkpoint, mock_trainml):
+        api_response = dict(
+            checkpoint_uuid="1",
+            name="first one",
+            project_uuid="proj-id-1",
+            status="exporting",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await checkpoint.export("aws", "s3://bucket/path")
+        mock_trainml._query.assert_called_once_with(
+            "/checkpoint/1/export",
+            "POST",
+            dict(project_uuid="proj-id-1"),
+            dict(
+                output_type="aws",
+                output_uri="s3://bucket/path",
+                output_options=dict(),
+            ),
+        )
+        assert result == checkpoint
+
+    @mark.asyncio
+    async def test_checkpoint_wait_for_timeout_validation(
+        self, checkpoint, mock_trainml
+    ):
+        with raises(SpecificationError) as exc_info:
+            await checkpoint.wait_for("ready", timeout=25 * 60 * 60)  # > 24 hours
+        assert "timeout" in str(exc_info.value.attribute).lower()
+        assert "less than" in str(exc_info.value.message).lower()
+
+    def test_checkpoint_billed_size_property(self, checkpoint, mock_trainml):
+        """Test billed_size property access."""
+        checkpoint._billed_size = 50000
+        assert checkpoint.billed_size == 50000

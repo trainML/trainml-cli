@@ -38,6 +38,42 @@ def project_member(mock_trainml):
 
 class ProjectMembersTests:
     @mark.asyncio
+    async def test_project_members_add(self, project_members, mock_trainml):
+        """Test add method (lines 18-31)."""
+        api_response = {
+            "project_uuid": "proj-id-1",
+            "email": "newuser@gmail.com",
+            "owner": False,
+            "job": "all",
+            "dataset": "read",
+            "model": "all",
+            "checkpoint": "read",
+            "volume": "all",
+        }
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        result = await project_members.add(
+            email="newuser@gmail.com",
+            job="all",
+            dataset="read",
+            model="all",
+            checkpoint="read",
+            volume="all",
+            param1="value1",
+        )
+        expected_payload = dict(
+            email="newuser@gmail.com",
+            job="all",
+            dataset="read",
+            model="all",
+            checkpoint="read",
+            volume="all",
+        )
+        mock_trainml._query.assert_called_once_with(
+            "/project/1/access", "POST", dict(param1="value1"), expected_payload
+        )
+        assert result.email == "newuser@gmail.com"
+
+    @mark.asyncio
     async def test_project_members_list(self, project_members, mock_trainml):
         api_response = [
             {
@@ -71,6 +107,16 @@ class ProjectMembersTests:
             "/project/1/access", "GET", dict()
         )
         assert len(resp) == 2
+
+    @mark.asyncio
+    async def test_project_members_remove(self, project_members, mock_trainml):
+        """Test remove method (line 35)."""
+        api_response = dict()
+        mock_trainml._query = AsyncMock(return_value=api_response)
+        await project_members.remove("user@gmail.com", param1="value1")
+        mock_trainml._query.assert_called_once_with(
+            "/project/1/access", "DELETE", dict(param1="value1", email="user@gmail.com")
+        )
 
 
 class ProjectMemberTests:

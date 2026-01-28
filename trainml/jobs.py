@@ -77,7 +77,8 @@ class Jobs(object):
             model=model,
             endpoint=endpoint,
             source_job_uuid=kwargs.get("source_job_uuid"),
-            project_uuid=kwargs.get("project_uuid") or self.trainml.active_project,
+            project_uuid=kwargs.get("project_uuid")
+            or self.trainml.active_project,
         )
         payload = {
             k: v
@@ -102,7 +103,9 @@ class Jobs(object):
         return job
 
     async def remove(self, id, **kwargs):
-        await self.trainml._query(f"/job/{id}", "DELETE", dict(**kwargs, force=True))
+        await self.trainml._query(
+            f"/job/{id}", "DELETE", dict(**kwargs, force=True)
+        )
 
 
 class Job:
@@ -317,7 +320,7 @@ class Job:
             "waiting for data/model download",
         ]:
             return self.url
-        
+
         # Check for invalid statuses
         if self.status in [
             "failed",
@@ -331,9 +334,13 @@ class Job:
                 "status",
                 f"You can only connect to active jobs.",
             )
-        
+
         # Only allow specific statuses for connect
-        if self.status not in ["waiting for data/model download", "uploading", "running"]:
+        if self.status not in [
+            "waiting for data/model download",
+            "uploading",
+            "running",
+        ]:
             if self.status == "new":
                 await self.wait_for("waiting for data/model download")
             else:
@@ -341,89 +348,105 @@ class Job:
                     "status",
                     f"You can only connect to jobs in 'waiting for data/model download', 'uploading', or 'running' status.",
                 )
-        
+
         # Refresh to get latest job data
         await self.refresh()
-        
+
         # Re-check status after refresh (status may have changed if attach() is running in parallel)
-        if self.status not in ["waiting for data/model download", "uploading", "running"]:
+        if self.status not in [
+            "waiting for data/model download",
+            "uploading",
+            "running",
+        ]:
             raise SpecificationError(
                 "status",
                 f"Job status changed to '{self.status}'. You can only connect to jobs in 'waiting for data/model download', 'uploading', or 'running' status.",
             )
-        
+
         if self.status == "waiting for data/model download":
             # Upload model and/or data if local
             model = self._job.get("model", {})
             data = self._job.get("data", {})
-            
+
             model_local = model.get("source_type") == "local"
             data_local = data.get("input_type") == "local"
-            
+
             if not model_local and not data_local:
                 raise SpecificationError(
                     "status",
                     f"Job has no local model or data to upload. Model source_type: {model.get('source_type')}, Data input_type: {data.get('input_type')}",
                 )
-            
+
             upload_tasks = []
-            
+
             if model_local:
                 model_auth_token = model.get("auth_token")
                 model_hostname = model.get("hostname")
                 model_source_uri = model.get("source_uri")
-                
-                if not model_auth_token or not model_hostname or not model_source_uri:
+
+                if (
+                    not model_auth_token
+                    or not model_hostname
+                    or not model_source_uri
+                ):
                     raise SpecificationError(
                         "status",
                         f"Job model missing required connection properties (auth_token, hostname, source_uri).",
                     )
-                
-                upload_tasks.append(upload(model_hostname, model_auth_token, model_source_uri))
-            
+
+                upload_tasks.append(
+                    upload(model_hostname, model_auth_token, model_source_uri)
+                )
+
             if data_local:
                 data_auth_token = data.get("input_auth_token")
                 data_hostname = data.get("input_hostname")
                 data_input_uri = data.get("input_uri")
-                
-                if not data_auth_token or not data_hostname or not data_input_uri:
+
+                if (
+                    not data_auth_token
+                    or not data_hostname
+                    or not data_input_uri
+                ):
                     raise SpecificationError(
                         "status",
                         f"Job data missing required connection properties (input_auth_token, input_hostname, input_uri).",
                     )
-                
-                upload_tasks.append(upload(data_hostname, data_auth_token, data_input_uri))
-            
+
+                upload_tasks.append(
+                    upload(data_hostname, data_auth_token, data_input_uri)
+                )
+
             # Upload both in parallel if both are local
             if upload_tasks:
                 await asyncio.gather(*upload_tasks)
-        
+
         elif self.status in ["uploading", "running"]:
             # Download output if local
             data = self._job.get("data", {})
-            
+
             if data.get("output_type") != "local":
                 raise SpecificationError(
                     "status",
                     f"Job output_type is not 'local', cannot download output.",
                 )
-            
+
             output_uri = data.get("output_uri")
             if not output_uri:
                 raise SpecificationError(
                     "status",
                     f"Job data missing output_uri for local output download.",
                 )
-            
+
             # Track which workers we've already started downloading
             downloading_workers = set()
             download_tasks = []
-            
+
             # Poll until all workers are finished
             while True:
                 # Refresh job to get latest worker statuses
                 await self.refresh()
-                
+
                 # Get fresh workers list
                 workers = self._job.get("workers", [])
                 if not workers:
@@ -431,60 +454,86 @@ class Job:
                         "status",
                         f"Job has no workers.",
                     )
-                
+
                 # Check if job is finished
                 if self.status in ["finished", "canceled", "failed"]:
                     break
-                
+
                 # Check all workers for uploading status
                 for worker in workers:
-                    worker_id = worker.get("job_worker_uuid") or worker.get("id")
+                    worker_id = worker.get("job_worker_uuid") or worker.get(
+                        "id"
+                    )
                     worker_status = worker.get("status")
-                    
+
                     # Start download for any worker that enters uploading status
-                    if worker_status == "uploading" and worker_id not in downloading_workers:
+                    if (
+                        worker_status == "uploading"
+                        and worker_id not in downloading_workers
+                    ):
                         output_auth_token = worker.get("output_auth_token")
                         output_hostname = worker.get("output_hostname")
-                        
+
                         if not output_auth_token or not output_hostname:
                             logging.warning(
                                 f"Worker {worker_id} in uploading status missing output_auth_token or output_hostname, skipping."
                             )
                             continue
-                        
+
                         downloading_workers.add(worker_id)
                         # Create and start download task (runs in parallel)
-                        logging.info(f"Starting download for worker {worker_id} from {output_hostname} to {output_uri}")
+                        logging.info(
+                            f"Starting download for worker {worker_id} from {output_hostname} to {output_uri}"
+                        )
                         try:
-                            download_task = asyncio.create_task(download(output_hostname, output_auth_token, output_uri))
+                            download_task = asyncio.create_task(
+                                download(
+                                    output_hostname,
+                                    output_auth_token,
+                                    output_uri,
+                                )
+                            )
                             download_tasks.append(download_task)
-                            logging.debug(f"Download task created for worker {worker_id}, task: {download_task}")
+                            logging.debug(
+                                f"Download task created for worker {worker_id}, task: {download_task}"
+                            )
                         except Exception as e:
-                            logging.error(f"Failed to create download task for worker {worker_id}: {e}", exc_info=True)
+                            logging.error(
+                                f"Failed to create download task for worker {worker_id}: {e}",
+                                exc_info=True,
+                            )
                             raise
-                
+
                 # Check if any download tasks have completed or failed
                 if download_tasks:
-                    completed_tasks = [task for task in download_tasks if task.done()]
+                    completed_tasks = [
+                        task for task in download_tasks if task.done()
+                    ]
                     for task in completed_tasks:
                         try:
                             await task  # This will raise if the task failed
-                            logging.info(f"Download task completed successfully")
+                            logging.info(
+                                f"Download task completed successfully"
+                            )
                         except Exception as e:
-                            logging.error(f"Download task failed: {e}", exc_info=True)
+                            logging.error(
+                                f"Download task failed: {e}", exc_info=True
+                            )
                             raise
                     # Remove completed tasks
-                    download_tasks = [task for task in download_tasks if not task.done()]
-                
+                    download_tasks = [
+                        task for task in download_tasks if not task.done()
+                    ]
+
                 # Check if all workers are finished
                 all_finished = all(
                     worker.get("status") in ["finished", "removed"]
                     for worker in workers
                 )
-                
+
                 if all_finished:
                     break
-                
+
                 # If we have active download tasks, wait a bit for them to make progress
                 # but don't wait the full 30 seconds - check more frequently
                 if download_tasks:
@@ -492,10 +541,12 @@ class Job:
                 else:
                     # Wait 30 seconds before next poll if no downloads in progress
                     await asyncio.sleep(30)
-            
+
             # Wait for all download tasks to complete
             if download_tasks:
-                logging.info(f"Waiting for {len(download_tasks)} download task(s) to complete")
+                logging.info(
+                    f"Waiting for {len(download_tasks)} download task(s) to complete"
+                )
                 await asyncio.gather(*download_tasks)
                 logging.info("All downloads completed")
 
@@ -515,7 +566,8 @@ class Job:
 
     def _get_msg_handler(self, msg_handler):
         worker_numbers = {
-            w.get("job_worker_uuid"): ind + 1 for ind, w in enumerate(self._workers)
+            w.get("job_worker_uuid"): ind + 1
+            for ind, w in enumerate(self._workers)
         }
         worker_numbers["data_worker"] = 0
 
@@ -525,7 +577,9 @@ class Job:
                 if msg_handler:
                     msg_handler(data)
                 else:
-                    timestamp = datetime.fromtimestamp(int(data.get("time")) / 1000)
+                    timestamp = datetime.fromtimestamp(
+                        int(data.get("time")) / 1000
+                    )
                     if len(self._workers) > 1:
                         print(
                             f"{timestamp.strftime('%m/%d/%Y, %H:%M:%S')}: Worker {data.get('worker_number')} - {data.get('msg').rstrip()}"
@@ -538,7 +592,10 @@ class Job:
         return handler
 
     async def attach(self, msg_handler=None):
-        if self.type == "notebook" and self.status != "waiting for data/model download":
+        if (
+            self.type == "notebook"
+            and self.status != "waiting for data/model download"
+        ):
             raise SpecificationError(
                 "type",
                 "Notebooks cannot be attached to after model download is complete.  Use open() instead.",
@@ -555,7 +612,9 @@ class Job:
     async def copy(self, name, **kwargs):
         logging.debug(f"copy request - name: {name} ; kwargs: {kwargs}")
         if self.type != "notebook":
-            raise SpecificationError("job", "Only notebook job types can be copied")
+            raise SpecificationError(
+                "job", "Only notebook job types can be copied"
+            )
 
         job = await self.trainml.jobs.create(
             name,
@@ -616,7 +675,9 @@ class Job:
 
         POLL_INTERVAL_MIN = 5
         POLL_INTERVAL_MAX = 60
-        POLL_INTERVAL = max(min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN)
+        POLL_INTERVAL = max(
+            min(timeout / 60, POLL_INTERVAL_MAX), POLL_INTERVAL_MIN
+        )
         retry_count = math.ceil(timeout / POLL_INTERVAL)
         count = 0
         while count < retry_count:
@@ -647,11 +708,7 @@ class Job:
                 or (
                     status
                     == "running"  ## this status could be too short for polling could miss it
-                    and self.status
-                    in [
-                        "uploading",
-                        "finished"
-                    ]
+                    and self.status in ["uploading", "finished"]
                 )
             ):
                 return self

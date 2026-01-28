@@ -33,10 +33,10 @@ def test_auth_from_envs(mock_open, mock_requests_get, mock_boto3_client):
         "userPoolId": "default_pool_id",
     }
     mock_requests_get.return_value = mock_response
-    
+
     # Mock boto3 client
     mock_boto3_client.return_value = MagicMock()
-    
+
     auth = specimen.Auth(config_dir=os.path.expanduser("~/.trainml"))
     assert auth.__dict__.get("username") == "user-id"
     assert auth.__dict__.get("password") == "key"

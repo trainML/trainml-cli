@@ -33,13 +33,17 @@ class TrainML(object):
             os.environ.get("TRAINML_CONFIG_DIR") or "~/.trainml"
         )
         try:
-            with open(f"{CONFIG_DIR}/environment.json", "r",encoding="utf-8") as file:
+            with open(
+                f"{CONFIG_DIR}/environment.json", "r", encoding="utf-8"
+            ) as file:
                 env_str = file.read().replace("\n", "")
             env = json.loads(env_str)
         except OSError:
             env = dict()
         try:
-            with open(f"{CONFIG_DIR}/config.json", "r",encoding="utf-8") as file:
+            with open(
+                f"{CONFIG_DIR}/config.json", "r", encoding="utf-8"
+            ) as file:
                 config_str = file.read().replace("\n", "")
             config = json.loads(config_str)
         except OSError:
@@ -90,7 +94,16 @@ class TrainML(object):
     def project(self) -> str:
         return self.active_project
 
-    async def _query(self, path, method, params=None, data=None, headers=None,max_retries=3, backoff_factor=0.5):
+    async def _query(
+        self,
+        path,
+        method,
+        params=None,
+        data=None,
+        headers=None,
+        max_retries=3,
+        backoff_factor=0.5,
+    ):
         try:
             tokens = self.auth.get_tokens()
         except TrainMLException as e:
@@ -118,7 +131,9 @@ class TrainML(object):
         )
         if params:
             if not isinstance(params, dict):
-                raise TrainMLException("Query parameters must be a valid dictionary")
+                raise TrainMLException(
+                    "Query parameters must be a valid dictionary"
+                )
             params = {
                 k: (str(v).lower() if isinstance(v, bool) else v)
                 for k, v in params.items()
@@ -152,27 +167,44 @@ class TrainML(object):
                         params=params,
                     ) as resp:
                         if (resp.status // 100) in [4, 5]:
-                            if resp.status == 502 and attempt < max_retries - 1:
-                                wait_time = (2 ** attempt) * backoff_factor * (random.random() + 0.5)
+                            if (
+                                resp.status == 502
+                                and attempt < max_retries - 1
+                            ):
+                                wait_time = (
+                                    (2**attempt)
+                                    * backoff_factor
+                                    * (random.random() + 0.5)
+                                )
                                 await asyncio.sleep(wait_time)
                                 continue
                             else:
                                 what = await resp.read()
-                                content_type = resp.headers.get("content-type", "")
+                                content_type = resp.headers.get(
+                                    "content-type", ""
+                                )
                                 resp.close()
                                 if content_type == "application/json":
-                                    raise ApiError(resp.status, json.loads(what.decode("utf8")))
+                                    raise ApiError(
+                                        resp.status,
+                                        json.loads(what.decode("utf8")),
+                                    )
                                 else:
-                                    raise ApiError(resp.status, {"message": what.decode("utf8")})
+                                    raise ApiError(
+                                        resp.status,
+                                        {"message": what.decode("utf8")},
+                                    )
                         results = await resp.json()
                         return results
             except aiohttp.ClientResponseError as e:
                 if e.status == 502 and attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * backoff_factor * (random.random() + 0.5)
+                    wait_time = (
+                        (2**attempt) * backoff_factor * (random.random() + 0.5)
+                    )
                     await asyncio.sleep(wait_time)
                     continue
                 else:
-                    raise  ApiError(e.status, f"Error {e.message}")
+                    raise ApiError(e.status, f"Error {e.message}")
 
         raise TrainMLException("Unexpected API failure")
 
@@ -284,11 +316,15 @@ class TrainML(object):
                     logging.debug(f"Websocket Disconnected.  Done? {done}")
                 except Exception as e:
                     connection_tries += 1
-                    logging.debug(f"Connection error: {traceback.format_exc()}")
+                    logging.debug(
+                        f"Connection error: {traceback.format_exc()}"
+                    )
                     if connection_tries == 5:
                         raise ApiError(
                             500,
-                            {"message": f"Connection error: {traceback.format_exc()}"},
+                            {
+                                "message": f"Connection error: {traceback.format_exc()}"
+                            },
                         )
 
     def set_active_project(self, project_uuid):

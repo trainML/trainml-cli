@@ -618,7 +618,7 @@ class Auth(object):
         if access_verify:
             access_token = tokens["AuthenticationResult"]["AccessToken"]
             self.access_token = access_token
-        
+
         self.refresh_token = refresh_token
         self.expires = (
             id_verify.get("exp") - 300

@@ -8,6 +8,7 @@ from aiohttp import WSMessage, WSMsgType
 import trainml.cloudbender.nodes as specimen
 from trainml.exceptions import (
     ApiError,
+    NodeError,
     SpecificationError,
     TrainMLException,
 )
@@ -200,3 +201,114 @@ class nodeTests:
             None,
             dict(command="report"),
         )
+
+    @mark.asyncio
+    async def test_node_wait_for_already_at_status(self, node):
+        """Test wait_for returns immediately if already at target status."""
+        node._status = "active"
+        result = await node.wait_for("active")
+        assert result is None
+
+    @mark.asyncio
+    async def test_node_wait_for_invalid_status(self, node):
+        """Test wait_for raises error for invalid status."""
+        with raises(SpecificationError) as exc_info:
+            await node.wait_for("invalid_status")
+        assert "Invalid wait_for status" in str(exc_info.value.message)
+
+    @mark.asyncio
+    async def test_node_wait_for_timeout_validation(self, node):
+        """Test wait_for validates timeout (line 172)."""
+        node._status = "new"  # Set to different status so timeout check runs
+        with raises(SpecificationError) as exc_info:
+            await node.wait_for("active", timeout=25 * 60 * 60)
+        assert "timeout must be less than" in str(exc_info.value.message)
+
+    @mark.asyncio
+    async def test_node_wait_for_success(self, node, mock_trainml):
+        """Test wait_for succeeds when status matches."""
+        node._status = "new"
+        api_response_new = dict(
+            provider_uuid="1",
+            region_uuid="a",
+            rig_uuid="x",
+            status="new",
+        )
+        api_response_active = dict(
+            provider_uuid="1",
+            region_uuid="a",
+            rig_uuid="x",
+            status="active",
+        )
+        mock_trainml._query = AsyncMock(
+            side_effect=[api_response_new, api_response_active]
+        )
+        with patch("trainml.cloudbender.nodes.asyncio.sleep", new_callable=AsyncMock):
+            result = await node.wait_for("active", timeout=10)
+        assert result == node
+        assert node.status == "active"
+
+    @mark.asyncio
+    async def test_node_wait_for_archived_404(self, node, mock_trainml):
+        """Test wait_for handles 404 for archived status."""
+        node._status = "active"
+        api_error = ApiError(404, {"errorMessage": "Not found"})
+        mock_trainml._query = AsyncMock(side_effect=api_error)
+        with patch("trainml.cloudbender.nodes.asyncio.sleep", new_callable=AsyncMock):
+            await node.wait_for("archived", timeout=10)
+
+    @mark.asyncio
+    async def test_node_wait_for_error_status(self, node, mock_trainml):
+        """Test wait_for raises error for errored/failed status."""
+        node._status = "new"
+        api_response_errored = dict(
+            provider_uuid="1",
+            region_uuid="a",
+            rig_uuid="x",
+            status="errored",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response_errored)
+        with patch("trainml.cloudbender.nodes.asyncio.sleep", new_callable=AsyncMock):
+            with raises(NodeError):
+                await node.wait_for("active", timeout=10)
+
+    @mark.asyncio
+    async def test_node_wait_for_timeout(self, node, mock_trainml):
+        """Test wait_for raises timeout exception."""
+        node._status = "new"
+        api_response_new = dict(
+            provider_uuid="1",
+            region_uuid="a",
+            rig_uuid="x",
+            status="new",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response_new)
+        with patch("trainml.cloudbender.nodes.asyncio.sleep", new_callable=AsyncMock):
+            with raises(TrainMLException) as exc_info:
+                await node.wait_for("active", timeout=0.1)
+        assert "Timeout waiting for" in str(exc_info.value.message)
+
+    @mark.asyncio
+    async def test_node_wait_for_api_error_non_404(self, node, mock_trainml):
+        """Test wait_for raises ApiError when not 404 for archived (line 189)."""
+        node._status = "active"
+        api_error = ApiError(500, {"errorMessage": "Server Error"})
+        mock_trainml._query = AsyncMock(side_effect=api_error)
+        with patch("trainml.cloudbender.nodes.asyncio.sleep", new_callable=AsyncMock):
+            with raises(ApiError):
+                await node.wait_for("archived", timeout=10)
+
+    @mark.asyncio
+    async def test_node_wait_for_failed_status(self, node, mock_trainml):
+        """Test wait_for raises error for failed status (line 191)."""
+        node._status = "new"
+        api_response_failed = dict(
+            provider_uuid="1",
+            region_uuid="a",
+            rig_uuid="x",
+            status="failed",
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response_failed)
+        with patch("trainml.cloudbender.nodes.asyncio.sleep", new_callable=AsyncMock):
+            with raises(NodeError):
+                await node.wait_for("active", timeout=10)
