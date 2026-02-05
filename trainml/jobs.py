@@ -321,10 +321,29 @@ class Job:
         ]:
             return self.url
 
-        # Check for invalid statuses
+        # Refresh to get latest job data first, so we can check worker statuses
+        await self.refresh()
+
+        # Check worker statuses - if any worker is uploading, allow connection
+        # This handles the case where job status might be "finished" but workers are still uploading
+        workers = self._job.get("workers", [])
+        has_uploading_workers = any(
+            worker.get("status") == "uploading" for worker in workers
+        ) if workers else False
+
+        # Log worker statuses for debugging
+        if workers:
+            worker_statuses = [
+                f"Worker {i+1}: {worker.get('status')}"
+                for i, worker in enumerate(workers)
+            ]
+            logging.debug(
+                f"Job status: {self.status}, Worker statuses: {', '.join(worker_statuses)}, Has uploading workers: {has_uploading_workers}"
+            )
+
+        # Check for invalid statuses (but allow "finished" if workers are still uploading)
         if self.status in [
             "failed",
-            "finished",
             "canceled",
             "archived",
             "removed",
@@ -335,33 +354,33 @@ class Job:
                 f"You can only connect to active jobs.",
             )
 
+        # Allow "finished" status if there are workers still uploading
+        # This handles reconnection scenarios where some workers are done but others are still uploading
+        if self.status == "finished":
+            if not has_uploading_workers:
+                raise SpecificationError(
+                    "status",
+                    f"You can only connect to active jobs.",
+                )
+            logging.info(
+                f"Job status is 'finished' but has {sum(1 for w in workers if w.get('status') == 'uploading')} worker(s) still uploading. Allowing connection to download remaining workers."
+            )
+            # If we have uploading workers, fall through to download logic
+
         # Only allow specific statuses for connect
         if self.status not in [
             "waiting for data/model download",
             "uploading",
             "running",
+            "finished",  # Allow finished if workers are still uploading
         ]:
             if self.status == "new":
                 await self.wait_for("waiting for data/model download")
             else:
                 raise SpecificationError(
                     "status",
-                    f"You can only connect to jobs in 'waiting for data/model download', 'uploading', or 'running' status.",
+                    f"You can only connect to jobs in 'waiting for data/model download', 'uploading', 'running', or 'finished' (with uploading workers) status.",
                 )
-
-        # Refresh to get latest job data
-        await self.refresh()
-
-        # Re-check status after refresh (status may have changed if attach() is running in parallel)
-        if self.status not in [
-            "waiting for data/model download",
-            "uploading",
-            "running",
-        ]:
-            raise SpecificationError(
-                "status",
-                f"Job status changed to '{self.status}'. You can only connect to jobs in 'waiting for data/model download', 'uploading', or 'running' status.",
-            )
 
         if self.status == "waiting for data/model download":
             # Upload model and/or data if local
@@ -421,7 +440,7 @@ class Job:
             if upload_tasks:
                 await asyncio.gather(*upload_tasks)
 
-        elif self.status in ["uploading", "running"]:
+        elif self.status in ["uploading", "running", "finished"]:
             # Download output if local
             data = self._job.get("data", {})
 
@@ -455,8 +474,15 @@ class Job:
                         f"Job has no workers.",
                     )
 
-                # Check if job is finished
-                if self.status in ["finished", "canceled", "failed"]:
+                # Check if job is in a terminal state AND all workers are finished
+                # Allow "finished" status if workers are still uploading
+                all_workers_finished = all(
+                    worker.get("status") in ["finished", "removed"]
+                    for worker in workers
+                )
+                if self.status in ["canceled", "failed"]:
+                    break
+                if self.status == "finished" and all_workers_finished:
                     break
 
                 # Check all workers for uploading status
@@ -467,6 +493,7 @@ class Job:
                     worker_status = worker.get("status")
 
                     # Start download for any worker that enters uploading status
+                    # This handles both new connections and reconnections where some workers are already uploading
                     if (
                         worker_status == "uploading"
                         and worker_id not in downloading_workers
@@ -478,6 +505,8 @@ class Job:
                             logging.warning(
                                 f"Worker {worker_id} in uploading status missing output_auth_token or output_hostname, skipping."
                             )
+                            # Mark as downloading to avoid retrying
+                            downloading_workers.add(worker_id)
                             continue
 
                         downloading_workers.add(worker_id)

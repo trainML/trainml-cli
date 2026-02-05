@@ -1,3 +1,4 @@
+import asyncio
 import click
 from webbrowser import open as browse
 from trainml.cli import cli, pass_config, search_by_id_name
@@ -28,6 +29,96 @@ def attach(config, job):
     config.trainml.run(found.attach())
 
 
+async def _connect_job(job, attach, config):
+    """
+    Async helper function to handle job connection with proper
+    handling of local input/output types and attach task management.
+    """
+    # Get job properties
+    model = job._job.get("model", {})
+    data = job._job.get("data", {})
+    model_local = model.get("source_type") == "local"
+    data_local = data.get("input_type") == "local"
+    output_local = data.get("output_type") == "local"
+    early_statuses = [
+        "new",
+        "waiting for data/model download",
+        "waiting for GPUs",
+        "waiting for resources",
+    ]
+
+    # Check if we need to wait for data/model download
+    # Only wait if status is early AND (data or model is local)
+    needs_upload_wait = job.status in early_statuses and (
+        model_local or data_local
+    )
+
+    if needs_upload_wait:
+        # Wait for job to reach data/model download status
+        await job.wait_for("waiting for data/model download", 3600)
+        await job.refresh()
+
+    # Start attach task early if requested
+    attach_task = None
+    if attach:
+        attach_task = asyncio.create_task(job.attach())
+
+    # Run first connect (upload if needed)
+    await job.connect()
+
+    # For notebook jobs, handle opening
+    if job.type == "notebook":
+        # Refresh to get latest status after connect
+        await job.refresh()
+
+        if job.status in early_statuses:
+            if attach_task:
+                await attach_task
+            click.echo("Launching...", file=config.stdout)
+            browse(job.notebook_url)
+            return
+        elif job.status not in [
+            "starting",
+            "running",
+            "reinitializing",
+            "copying",
+        ]:
+            if attach_task:
+                attach_task.cancel()
+            raise click.UsageError("Notebook job not running.")
+        else:
+            await job.wait_for("running")
+            if attach_task:
+                await attach_task
+            click.echo("Launching...", file=config.stdout)
+            browse(job.notebook_url)
+            return
+
+    # For non-notebook jobs, check if we need second connect (download)
+    # Refresh to get latest status after first connect
+    await job.refresh()
+
+    # Run second connect if output_type is local
+    # (as per user's requirement: "if the output_type is 'local'")
+    if output_local:
+        # Always wait for running status before second connect
+        # (as shown in user's example)
+        await job.wait_for("running", 3600)
+        await job.refresh()
+
+        # Create second connect task (download)
+        connect_task = asyncio.create_task(job.connect())
+
+        # Gather both attach and second connect tasks
+        if attach_task:
+            await asyncio.gather(attach_task, connect_task)
+        else:
+            await connect_task
+    elif attach_task:
+        # Just wait for attach if no second connect needed
+        await attach_task
+
+
 @job.command()
 @click.option(
     "--attach/--no-attach",
@@ -49,34 +140,7 @@ def connect(config, job, attach):
     if None is found:
         raise click.UsageError("Cannot find specified job.")
 
-    if found.type != "notebook":
-        if attach:
-            config.trainml.run(found.connect(), found.attach())
-        else:
-            config.trainml.run(found.connect())
-    else:
-        if found.status in [
-            "new",
-            "waiting for data/model download",
-            "waiting for GPUs",
-        ]:
-            if attach:
-                config.trainml.run(found.connect(), found.attach())
-                click.echo("Launching...", file=config.stdout)
-                browse(found.notebook_url)
-            else:
-                config.trainml.run(found.connect())
-        elif found.status not in [
-            "starting",
-            "running",
-            "reinitializing",
-            "copying",
-        ]:
-            raise click.UsageError("Notebook job not running.")
-        else:
-            config.trainml.run(found.wait_for("running"))
-            click.echo("Launching...", file=config.stdout)
-            browse(found.notebook_url)
+    config.trainml.run(_connect_job(found, attach, config))
 
 
 @job.command()

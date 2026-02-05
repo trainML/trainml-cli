@@ -1,5 +1,6 @@
 import os
 import re
+import math
 import asyncio
 import aiohttp
 import aiofiles
@@ -28,6 +29,8 @@ RETRY_STATUSES = {
 # Additional retries for DNS/connection errors (ClientConnectorError)
 DNS_MAX_RETRIES = 7  # More retries for DNS resolution issues
 DNS_INITIAL_DELAY = 1  # Initial delay in seconds before first DNS retry
+# Ping warmup timeout: calculate retries so last retry is this many seconds after first try
+PING_WARMUP_TIMEOUT = 8 * 60  # 8 minutes in seconds
 
 
 def normalize_endpoint(endpoint):
@@ -56,6 +59,38 @@ def normalize_endpoint(endpoint):
     return endpoint
 
 
+def calculate_ping_retries(timeout_seconds, backoff_base):
+    """
+    Calculate the number of retries needed for ping warmup to reach timeout.
+
+    With exponential backoff, if we have n retries, the total wait time is:
+    backoff_base^1 + backoff_base^2 + ... + backoff_base^(n-1) = (backoff_base^n - backoff_base) / (backoff_base - 1)
+
+    For backoff_base = 2, this simplifies to: 2^n - 2
+
+    Args:
+        timeout_seconds: Total timeout in seconds
+        backoff_base: Exponential backoff base
+
+    Returns:
+        Number of retries needed to reach or exceed the timeout
+    """
+    if backoff_base == 2:
+        # Simplified calculation for base 2
+        # 2^n - 2 >= timeout_seconds
+        # 2^n >= timeout_seconds + 2
+        # n >= log2(timeout_seconds + 2)
+        n = math.ceil(math.log2(timeout_seconds + 2))
+    else:
+        # General case: (backoff_base^n - backoff_base) / (backoff_base - 1) >= timeout_seconds
+        # backoff_base^n >= timeout_seconds * (backoff_base - 1) + backoff_base
+        # n >= log_base(timeout_seconds * (backoff_base - 1) + backoff_base)
+        target = timeout_seconds * (backoff_base - 1) + backoff_base
+        n = math.ceil(math.log(target, backoff_base))
+
+    return max(1, int(n))
+
+
 async def ping_endpoint(
     endpoint, auth_token, max_retries=MAX_RETRIES, retry_backoff=RETRY_BACKOFF
 ):
@@ -68,10 +103,13 @@ async def ping_endpoint(
     Creates a fresh TCPConnector for each attempt to force fresh DNS resolution
     and avoid stale DNS cache issues.
 
+    For ping warmup, calculates retries dynamically to ensure the last retry
+    occurs PING_WARMUP_TIMEOUT seconds after the first try.
+
     Args:
         endpoint: Server endpoint URL
         auth_token: Authentication token
-        max_retries: Maximum number of retry attempts
+        max_retries: Maximum number of retry attempts (ignored for ping warmup)
         retry_backoff: Exponential backoff base
 
     Raises:
@@ -80,7 +118,18 @@ async def ping_endpoint(
     """
     endpoint = normalize_endpoint(endpoint)
     attempt = 1
-    effective_max_retries = max_retries
+    # Calculate retries for ping warmup to reach PING_WARMUP_TIMEOUT
+    # Allow max_retries to override when explicitly provided (for testing)
+    if max_retries == MAX_RETRIES:
+        # Use default, calculate retries for ping warmup
+        ping_max_retries = calculate_ping_retries(
+            PING_WARMUP_TIMEOUT, retry_backoff
+        )
+        effective_max_retries = ping_max_retries
+    else:
+        # Use explicitly provided max_retries (for testing)
+        effective_max_retries = max_retries
+        ping_max_retries = max_retries  # For DNS error handling below
 
     while attempt <= effective_max_retries:
         # Create a fresh connector for each attempt to force DNS re-resolution
@@ -122,8 +171,9 @@ async def ping_endpoint(
             )
         except ClientConnectorError as e:
             # DNS resolution errors need more retries and initial delay
-            if effective_max_retries == max_retries:
-                effective_max_retries = max(max_retries, DNS_MAX_RETRIES)
+            # Use the higher of DNS_MAX_RETRIES or calculated ping retries
+            if effective_max_retries == ping_max_retries:
+                effective_max_retries = max(ping_max_retries, DNS_MAX_RETRIES)
 
             if attempt < effective_max_retries:
                 # Use initial delay for first retry, then exponential backoff
@@ -419,8 +469,11 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                             error_text = await response.text()
                         except Exception:
                             error_text = f"Unable to read response body (status: {response.status})"
-                        raise ConnectionError(
-                            f"Failed to get server info (status {response.status}): {error_text}"
+                        raise ClientResponseError(
+                            request_info=response.request_info,
+                            history=response.history,
+                            status=response.status,
+                            message=error_text,
                         )
                     return await response.json()
 
@@ -444,7 +497,14 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                     "Warning: /info endpoint not available, defaulting to TAR stream mode"
                 )
             else:
-                # For other errors, re-raise
+                # For other errors, convert ClientResponseError to ConnectionError
+                # to maintain backward compatibility
+                if isinstance(e, ClientResponseError):
+                    error_msg = getattr(e, "message", str(e))
+                    raise ConnectionError(
+                        f"Failed to get server info (status {e.status}): {error_msg}"
+                    )
+                # For ConnectionError, re-raise as-is
                 raise
 
         # Download the archive
