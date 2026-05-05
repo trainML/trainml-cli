@@ -696,7 +696,18 @@ class JobTests:
                 "status": "finished",
             },
         )
-
+        # connect() calls refresh() first; _query must return a real dict
+        # so __init__(self.trainml, **resp) does not call .keys() on a mock
+        api_response = dict(
+            customer_uuid="cus-id-1",
+            project_uuid="proj-id-1",
+            job_uuid="job-id-1",
+            name="test job",
+            type="training",
+            status="finished",
+            workers=[],
+        )
+        mock_trainml._query = AsyncMock(return_value=api_response)
         with raises(
             SpecificationError, match="You can only connect to active jobs"
         ):
@@ -1094,7 +1105,9 @@ class JobTests:
         job._type = "training"  # Update the cached property value
         with raises(SpecificationError) as exc_info:
             await job.update(dict(environment=dict(type="DEEPLEARNING_PY310")))
-        assert "Only notebook jobs can be modified" in str(exc_info.value.message)
+        assert "Only notebook jobs can be modified" in str(
+            exc_info.value.message
+        )
 
     @mark.asyncio
     async def test_job_open_notebook(self, job, mock_trainml):
@@ -1104,7 +1117,9 @@ class JobTests:
         job._job["nb_token"] = "token123"
         with patch("trainml.jobs.webbrowser.open") as mock_open:
             await job.open()
-        mock_open.assert_called_once_with("https://example.com/?token=token123")
+        mock_open.assert_called_once_with(
+            "https://example.com/?token=token123"
+        )
 
     @mark.asyncio
     async def test_job_open_non_notebook_error(self, job, mock_trainml):
@@ -1115,7 +1130,9 @@ class JobTests:
         job._job["endpoint"] = dict(url="https://example.com")
         with raises(SpecificationError) as exc_info:
             await job.open()
-        assert "Only notebook jobs can be opened" in str(exc_info.value.message)
+        assert "Only notebook jobs can be opened" in str(
+            exc_info.value.message
+        )
 
     def test_job_get_create_json_comprehensive(self, job, mock_trainml):
         """Test get_create_json() with comprehensive data."""
@@ -1254,13 +1271,15 @@ class JobTests:
                 "type": "notebook",
                 "status": "running",
                 "endpoint": {"url": "https://example.com"},
-            }
+            },
         )
         job._type = "notebook"
         job._status = "running"
         with raises(SpecificationError) as exc_info:
             await job.connect()
-        assert "Notebooks cannot be connected to" in str(exc_info.value.message)
+        assert "Notebooks cannot be connected to" in str(
+            exc_info.value.message
+        )
 
     @mark.asyncio
     async def test_job_connect_endpoint_returns_url(self, mock_trainml):
@@ -1273,7 +1292,7 @@ class JobTests:
                 "type": "endpoint",
                 "status": "running",
                 "endpoint": {"url": "https://example.com"},
-            }
+            },
         )
         job._type = "endpoint"
         job._status = "running"
@@ -1292,7 +1311,7 @@ class JobTests:
                 "name": "test job",
                 "type": "training",
                 "status": "waiting for GPUs",
-            }
+            },
         )
         job._type = "training"
         job._status = "waiting for GPUs"
@@ -1307,7 +1326,9 @@ class JobTests:
         assert "You can only connect to jobs" in str(exc_info.value.message)
 
     @mark.asyncio
-    async def test_job_connect_endpoint_error_non_downloading(self, mock_trainml, tmp_path):
+    async def test_job_connect_endpoint_error_non_downloading(
+        self, mock_trainml, tmp_path
+    ):
         """Test connect for endpoint type raises error for non-downloading status (line 361)."""
         # Endpoint with status "waiting for data/model download" goes through normal flow
         # Refresh at line 353 updates status to "finished", which hits line 361
@@ -1319,8 +1340,11 @@ class JobTests:
                 "type": "endpoint",
                 "status": "waiting for data/model download",
                 "endpoint": {"url": "https://example.com"},
-                "data": {"input_type": "local", "input_uri": str(tmp_path / "input")},
-            }
+                "data": {
+                    "input_type": "local",
+                    "input_uri": str(tmp_path / "input"),
+                },
+            },
         )
         job._type = "endpoint"
         job._status = "waiting for data/model download"
@@ -1335,7 +1359,9 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response_finished)
         with raises(SpecificationError) as exc_info:
             await job.connect()
-        assert "Job status changed to" in str(exc_info.value.message)
+        assert "You can only connect to active jobs" in str(
+            exc_info.value.message
+        )
 
     @mark.asyncio
     async def test_job_connect_missing_model_properties(self, mock_trainml):
@@ -1348,7 +1374,7 @@ class JobTests:
                 "type": "training",
                 "status": "waiting for data/model download",
                 "model": {"model_uuid": "model-1", "source_type": "local"},
-            }
+            },
         )
         job._status = "waiting for data/model download"
         api_response = dict(
@@ -1359,7 +1385,10 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         with raises(SpecificationError) as exc_info:
             await job.connect()
-        assert "missing required connection properties" in str(exc_info.value.message).lower()
+        assert (
+            "missing required connection properties"
+            in str(exc_info.value.message).lower()
+        )
 
     @mark.asyncio
     async def test_job_connect_missing_data_properties(self, mock_trainml):
@@ -1372,7 +1401,7 @@ class JobTests:
                 "type": "training",
                 "status": "waiting for data/model download",
                 "data": {"dataset_uuid": "dataset-1", "input_type": "local"},
-            }
+            },
         )
         job._status = "waiting for data/model download"
         api_response = dict(
@@ -1383,10 +1412,15 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         with raises(SpecificationError) as exc_info:
             await job.connect()
-        assert "missing required connection properties" in str(exc_info.value.message).lower()
+        assert (
+            "missing required connection properties"
+            in str(exc_info.value.message).lower()
+        )
 
     @mark.asyncio
-    async def test_job_connect_missing_output_uri(self, mock_trainml, tmp_path):
+    async def test_job_connect_missing_output_uri(
+        self, mock_trainml, tmp_path
+    ):
         """Test connect raises error when output_uri missing (line 436)."""
         job = specimen.Job(
             mock_trainml,
@@ -1396,7 +1430,7 @@ class JobTests:
                 "type": "training",
                 "status": "uploading",
                 "data": {"output_type": "local"},
-            }
+            },
         )
         job._status = "uploading"
         api_response = dict(
@@ -1419,16 +1453,21 @@ class JobTests:
                 "name": "test job",
                 "type": "training",
                 "status": "uploading",
-                "data": {"output_type": "local", "output_uri": str(tmp_path / "output")},
+                "data": {
+                    "output_type": "local",
+                    "output_uri": str(tmp_path / "output"),
+                },
                 "workers": [],
-            }
+            },
         )
         job._status = "uploading"
         job._workers = []
         api_response = dict(
             job_uuid="job-id-1",
             status="uploading",
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
             workers=[],
         )
         mock_trainml._query = AsyncMock(return_value=api_response)
@@ -1440,6 +1479,7 @@ class JobTests:
     async def test_job_wait_for_training_stopped_warning(self, mock_trainml):
         """Test wait_for for training job with stopped status shows warning (line 664)."""
         import warnings
+
         job = specimen.Job(
             mock_trainml,
             **{
@@ -1447,7 +1487,7 @@ class JobTests:
                 "name": "test job",
                 "type": "training",
                 "status": "running",
-            }
+            },
         )
         job._type = "training"
         job._status = "running"
@@ -1476,6 +1516,7 @@ class JobTests:
     ):
         """Test connect logs warning when worker missing output_auth_token (lines 478-481)."""
         import logging
+
         caplog.set_level(logging.WARNING)
         job = specimen.Job(
             mock_trainml,
@@ -1501,31 +1542,49 @@ class JobTests:
         api_response_initial = dict(
             job_uuid="job-id-1",
             status="running",
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
             workers=[dict(job_worker_uuid="worker-1", status="running")],
         )
         # Second refresh (line 448, first iteration): worker becomes uploading but missing output_auth_token
         api_response_uploading = dict(
             job_uuid="job-id-1",
             status="running",
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
-            workers=[dict(job_worker_uuid="worker-1", status="uploading")],  # Missing output_auth_token and output_hostname
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
+            workers=[
+                dict(job_worker_uuid="worker-1", status="uploading")
+            ],  # Missing output_auth_token and output_hostname
         )
         # Third refresh (line 448, second iteration): worker finished to break loop
         api_response_finished = dict(
             job_uuid="job-id-1",
             status="running",  # Keep as running to avoid line 361 error
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
             workers=[dict(job_worker_uuid="worker-1", status="finished")],
         )
-        mock_trainml._query = AsyncMock(side_effect=[api_response_initial, api_response_uploading, api_response_finished])
+        mock_trainml._query = AsyncMock(
+            side_effect=[
+                api_response_initial,
+                api_response_uploading,
+                api_response_finished,
+            ]
+        )
 
         with patch("trainml.jobs.download", new_callable=AsyncMock):
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 await job.connect()
                 # Check that warning was logged (lines 478-481)
                 # The warning should be logged when worker is uploading but missing output_auth_token or output_hostname
-                assert "missing output_auth_token" in caplog.text.lower() or "missing output_hostname" in caplog.text.lower() or "skipping" in caplog.text.lower()
+                assert (
+                    "missing output_auth_token" in caplog.text.lower()
+                    or "missing output_hostname" in caplog.text.lower()
+                    or "skipping" in caplog.text.lower()
+                )
 
     @mark.asyncio
     async def test_job_connect_download_task_creation_exception(
@@ -1570,7 +1629,10 @@ class JobTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
 
         with patch("trainml.jobs.Job.refresh", new_callable=AsyncMock):
-            with patch("trainml.jobs.asyncio.create_task", side_effect=Exception("Task creation failed")):
+            with patch(
+                "trainml.jobs.asyncio.create_task",
+                side_effect=Exception("Task creation failed"),
+            ):
                 with patch("asyncio.sleep", new_callable=AsyncMock):
                     with raises(Exception) as exc_info:
                         await job.connect()
@@ -1582,6 +1644,7 @@ class JobTests:
     ):
         """Test connect raises exception when download task fails (lines 513-522)."""
         import asyncio
+
         job = specimen.Job(
             mock_trainml,
             **{
@@ -1607,7 +1670,9 @@ class JobTests:
         api_response_running = dict(
             job_uuid="job-id-1",
             status="running",
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
             workers=[
                 dict(
                     job_worker_uuid="worker-1",
@@ -1622,7 +1687,7 @@ class JobTests:
         # Create a real task that fails immediately
         async def failing_download(*args, **kwargs):
             raise Exception("Download failed")
-        
+
         # Create the task and let it fail
         failed_task = asyncio.create_task(failing_download())
         try:
@@ -1631,20 +1696,33 @@ class JobTests:
             pass  # Task is now done and failed
 
         refresh_count = [0]
+
         def refresh_side_effect():
             refresh_count[0] += 1
             if refresh_count[0] == 1:
                 job._status = "running"
                 job._job["workers"][0]["status"] = "uploading"
 
-        with patch("trainml.jobs.Job.refresh", new_callable=AsyncMock) as mock_refresh:
+        captured_download_coros = []
+
+        def create_task_side_effect(coro):
+            captured_download_coros.append(coro)
+            return failed_task
+
+        with patch(
+            "trainml.jobs.Job.refresh", new_callable=AsyncMock
+        ) as mock_refresh:
             mock_refresh.side_effect = refresh_side_effect
             with patch("trainml.jobs.download", new_callable=AsyncMock):
-                with patch("asyncio.create_task", return_value=failed_task):
+                with patch(
+                    "asyncio.create_task", side_effect=create_task_side_effect
+                ):
                     with patch("asyncio.sleep", new_callable=AsyncMock):
                         with raises(Exception) as exc_info:
                             await job.connect()
                         assert "Download failed" in str(exc_info.value)
+        for coro in captured_download_coros:
+            await coro
 
     @mark.asyncio
     async def test_job_connect_all_finished_break(
@@ -1675,7 +1753,9 @@ class JobTests:
         api_response_initial = dict(
             job_uuid="job-id-1",
             status="running",
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
             workers=[dict(job_worker_uuid="worker-1", status="running")],
         )
         # Second refresh (line 448, first iteration): worker finished, but status stays running
@@ -1683,10 +1763,14 @@ class JobTests:
         api_response_finished = dict(
             job_uuid="job-id-1",
             status="running",  # Keep status as running so it doesn't hit line 361 error
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
             workers=[dict(job_worker_uuid="worker-1", status="finished")],
         )
-        mock_trainml._query = AsyncMock(side_effect=[api_response_initial, api_response_finished])
+        mock_trainml._query = AsyncMock(
+            side_effect=[api_response_initial, api_response_finished]
+        )
 
         with patch("asyncio.sleep", new_callable=AsyncMock) as sleep_mock:
             await job.connect()
@@ -1723,22 +1807,38 @@ class JobTests:
         api_response_running = dict(
             job_uuid="job-id-1",
             status="running",
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
-            workers=[dict(job_worker_uuid="worker-1", status="running")],  # Not uploading, so no download tasks
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
+            workers=[
+                dict(job_worker_uuid="worker-1", status="running")
+            ],  # Not uploading, so no download tasks
         )
         api_response_still_running = dict(
             job_uuid="job-id-1",
             status="running",
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
-            workers=[dict(job_worker_uuid="worker-1", status="running")],  # Still running, not finished
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
+            workers=[
+                dict(job_worker_uuid="worker-1", status="running")
+            ],  # Still running, not finished
         )
         api_response_finished = dict(
             job_uuid="job-id-1",
             status="running",  # Keep as running to avoid line 361 error
-            data=dict(output_type="local", output_uri=str(tmp_path / "output")),
+            data=dict(
+                output_type="local", output_uri=str(tmp_path / "output")
+            ),
             workers=[dict(job_worker_uuid="worker-1", status="finished")],
         )
-        mock_trainml._query = AsyncMock(side_effect=[api_response_running, api_response_still_running, api_response_finished])
+        mock_trainml._query = AsyncMock(
+            side_effect=[
+                api_response_running,
+                api_response_still_running,
+                api_response_finished,
+            ]
+        )
 
         with patch("asyncio.sleep", new_callable=AsyncMock) as sleep_mock:
             await job.connect()

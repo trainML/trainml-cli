@@ -25,7 +25,7 @@ async def job(trainml):
     job = await trainml.jobs.create(
         name="CLI Automated Tests - Job Lifecycle",
         type="notebook",
-        gpu_types=["gtx1060"],
+        gpu_types=["rtx2070s"],
         gpu_count=1,
         disk_size=11,
         data=dict(datasets=[dict(id="CIFAR-10", public=True)]),
@@ -154,7 +154,7 @@ class JobAPIResourceValidationTests:
                 name="Invalid GPU Type",
                 type="training",
                 gpu_types=["k80"],
-                disk_size=10,
+                disk_size=10,workers=["sleep 1"]
             )
         assert "Invalid Request - GPU Type k80 Invalid" in error.value.message
 
@@ -164,7 +164,7 @@ class JobAPIResourceValidationTests:
                 name="Invalid Disk Size",
                 type="training",
                 gpu_types=["rtx3090"],
-                disk_size=1,
+                disk_size=1,workers=["sleep 1"]
             )
         assert (
             "Invalid Request - Disk Size must be between 10 and 2000"
@@ -178,6 +178,7 @@ class JobAPIResourceValidationTests:
                 type="training",
                 gpu_types=["cpu", "rtx3090"],
                 disk_size=10,
+                workers=["sleep 1"]
             )
         assert (
             "Invalid Request - CPU Only may be not be combined with other GPU Types"
@@ -190,7 +191,7 @@ class JobAPIResourceValidationTests:
                 name="Missing CPU Count",
                 type="training",
                 gpu_types=["cpu"],
-                disk_size=10,
+                disk_size=10,workers=["sleep 1"]
             )
         assert (
             "Invalid Request - cpu_count required for CPU only jobs"
@@ -204,7 +205,7 @@ class JobAPIResourceValidationTests:
                 type="training",
                 gpu_types=["cpu"],
                 cpu_count=1,
-                disk_size=10,
+                disk_size=10,workers=["sleep 1"]
             )
         assert (
             "Invalid Request - CPU Count must be a multiple of 4"
@@ -219,7 +220,7 @@ class JobAPIResourceValidationTests:
                 gpu_types=["cpu"],
                 gpu_count=1,
                 cpu_count=4,
-                disk_size=10,
+                disk_size=10,workers=["sleep 1"]
             )
         assert (
             "Invalid Request - gpu_count not valid for CPU only jobs"
@@ -233,7 +234,7 @@ class JobAPIResourceValidationTests:
                 type="notebook",
                 gpu_types=["rtx3090"],
                 cpu_count=4,
-                disk_size=10,
+                disk_size=10,workers=["sleep 1"]
             )
         assert (
             "Invalid Request - CPU Count must be at least 8 for gpu types rtx3090"
@@ -248,7 +249,7 @@ class JobAPIResourceValidationTests:
                 gpu_types=["rtx2080ti"],
                 gpu_count=2,
                 cpu_count=4,
-                disk_size=10,
+                disk_size=10
             )
         assert (
             "Invalid Request - CPU Count must be at least 8 for gpu types rtx2080ti and gpu_count 2"
@@ -263,7 +264,7 @@ class JobAPIResourceValidationTests:
                 gpu_types=["rtx2080ti", "rtx3090"],
                 gpu_count=2,
                 cpu_count=8,
-                disk_size=10,
+                disk_size=10,workers=["sleep 1"]
             )
         assert (
             "Invalid Request - CPU Count must be at least 16 for gpu types rtx2080ti,rtx3090 and gpu_count 2"
@@ -427,7 +428,7 @@ class JobIOTests:
         job = await trainml.jobs.create(
             name="CLI Automated Tests - Local Output",
             type="training",
-            gpu_types=["gtx1060"],
+            gpu_types=["rtx2070s"],
             disk_size=10,
             workers=["python $ML_MODEL_PATH/tensorflow/main.py"],
             environment=dict(
@@ -491,7 +492,7 @@ class JobIOTests:
         job = await trainml.jobs.create(
             "CLI Automated Tests - Training With trainML Model Output",
             type="training",
-            gpu_types=["gtx1060"],
+            gpu_types=["rtx2070s"],
             gpu_count=1,
             cpu_count=8,
             disk_size=10,
@@ -540,7 +541,7 @@ class JobTypeTests:
         job = await trainml.jobs.create(
             "CLI Automated Tests - Endpoint",
             type="endpoint",
-            gpu_type="GTX 1060",
+            gpu_type="RTX 2070 Super",
             gpu_count=1,
             disk_size=10,
             model=dict(
@@ -599,7 +600,7 @@ class JobTypeTests:
         job = await trainml.jobs.create(
             name="CLI Automated Tests - Custom Container",
             type="training",
-            gpu_types=["gtx1060", "rtx3090", "rtx2080ti"],
+            gpu_types=["rtx2070s", "rtx3090", "rtx2080ti"],
             gpu_count=1,
             disk_size=10,
             model=dict(
@@ -699,7 +700,7 @@ class JobFeatureTests:
         job = await trainml.jobs.create(
             name="CLI Automated Tests - Inference Job",
             type="inference",
-            gpu_type="GTX 1060",
+            gpu_type="RTX 2070 Super",
             gpu_count=1,
             disk_size=10,
             workers=[

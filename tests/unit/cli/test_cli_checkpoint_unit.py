@@ -226,15 +226,16 @@ def test_create_no_connect(runner, tmp_path):
 
 def test_list_public(runner, mock_my_checkpoints):
     """Test list_public command (lines 152-171)."""
-    with patch("trainml.cli.TrainML", new=AsyncMock) as mock_trainml:
-        mock_trainml.checkpoints = AsyncMock()
-        mock_trainml.checkpoints.list_public = AsyncMock(
+    with patch("trainml.cli.TrainML", new=Mock()) as mock_trainml_cls:
+        instance = Mock()
+        instance.checkpoints.list_public = AsyncMock(
             return_value=mock_my_checkpoints
         )
+        mock_trainml_cls.return_value = instance
 
         result = runner.invoke(specimen, ["list-public"])
         assert result.exit_code == 0
-        mock_trainml.checkpoints.list_public.assert_called_once()
+        instance.checkpoints.list_public.assert_called_once()
 
 
 def test_remove_success(runner, mock_my_checkpoints):

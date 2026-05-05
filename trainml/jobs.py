@@ -327,9 +327,11 @@ class Job:
         # Check worker statuses - if any worker is uploading, allow connection
         # This handles the case where job status might be "finished" but workers are still uploading
         workers = self._job.get("workers", [])
-        has_uploading_workers = any(
-            worker.get("status") == "uploading" for worker in workers
-        ) if workers else False
+        has_uploading_workers = (
+            any(worker.get("status") == "uploading" for worker in workers)
+            if workers
+            else False
+        )
 
         # Log worker statuses for debugging
         if workers:

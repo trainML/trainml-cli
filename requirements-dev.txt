@@ -1,6 +1,6 @@
 pytest
 pylint 
-pytest-asyncio 
+pytest-asyncio>=0.23,<1
 pytest-cov
 pytest-xdist
 toml

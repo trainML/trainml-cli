@@ -26,6 +26,19 @@ from trainml.exceptions import ConnectionError, TrainMLException
 pytestmark = [mark.sdk, mark.unit]
 
 
+class _AsyncContextManager:
+    """Async context manager returning the given value from __aenter__."""
+
+    def __init__(self, return_value):
+        self._return_value = return_value
+
+    async def __aenter__(self):
+        return self._return_value
+
+    async def __aexit__(self, *args):
+        return None
+
+
 class NormalizeEndpointTests:
     def test_normalize_endpoint_with_https(self):
         result = specimen.normalize_endpoint("https://example.com")
@@ -104,6 +117,23 @@ class RetryRequestTests:
                     history=(),
                     status=504,
                     message="Gateway Timeout",
+                ),
+                "success",
+            ]
+        )
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await specimen.retry_request(func, max_retries=3)
+        assert result == "success"
+
+    @mark.asyncio
+    async def test_retry_request_retry_on_522(self):
+        func = AsyncMock(
+            side_effect=[
+                ClientResponseError(
+                    request_info=Mock(),
+                    history=(),
+                    status=522,
+                    message="Connection timed out",
                 ),
                 "success",
             ]
@@ -675,14 +705,12 @@ class UploadChunkTests:
     @mark.asyncio
     async def test_upload_chunk_error_status(self):
         session = AsyncMock()
-        response = AsyncMock()
+        response = Mock()
         response.status = 400
         response.text = AsyncMock(return_value="Bad Request")
         response.request_info = Mock()
         response.history = ()
-        session.put = AsyncMock(return_value=response.__aenter__())
-        response.__aenter__ = AsyncMock(return_value=response)
-        response.__aexit__ = AsyncMock(return_value=None)
+        session.put = Mock(return_value=_AsyncContextManager(response))
 
         with patch("trainml.utils.transfer.retry_request") as mock_retry:
             mock_retry.side_effect = ConnectionError(
@@ -990,11 +1018,8 @@ class UploadTests:
 
                 with patch("aiohttp.ClientSession") as mock_session:
                     mock_session_instance = AsyncMock()
-                    mock_session.return_value.__aenter__ = AsyncMock(
-                        return_value=mock_session_instance
-                    )
-                    mock_session.return_value.__aexit__ = AsyncMock(
-                        return_value=None
+                    mock_session.return_value = _AsyncContextManager(
+                        mock_session_instance
                     )
                     with patch(
                         "trainml.utils.transfer.ping_endpoint",
@@ -3526,41 +3551,30 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
+                mock_session.return_value = _AsyncContextManager(
+                    mock_session_instance
                 )
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     # Handle /ping endpoint for ping_endpoint
                     if "/ping" in url:
-                        mock_resp = AsyncMock()
+                        mock_resp = Mock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
-                        mock_resp.__aexit__ = AsyncMock(return_value=None)
-                        return mock_resp
+                        return _AsyncContextManager(mock_resp)
                     # Handle /info endpoint
                     elif "/info" in url:
-                        mock_resp = AsyncMock()
+                        mock_resp = Mock()
                         mock_resp.status = 200
                         mock_resp.json = AsyncMock(
                             return_value={"archive": True}
                         )
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
-                        mock_resp.__aexit__ = AsyncMock(return_value=None)
-                        return mock_resp
+                        return _AsyncContextManager(mock_resp)
                     else:
                         # For /download endpoint, return awaitable that resolves to response
                         async def get_download_response():
-                            mock_resp = AsyncMock()
+                            mock_resp = Mock()
                             mock_resp.status = 200
                             mock_resp.headers = {
                                 "Content-Type": "application/zip",

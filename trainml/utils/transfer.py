@@ -1,11 +1,14 @@
 import os
 import re
+import sys
 import math
+import time
 import asyncio
 import aiohttp
 import aiofiles
 import hashlib
 import logging
+import uuid
 from aiohttp.client_exceptions import (
     ClientResponseError,
     ClientConnectorError,
@@ -25,12 +28,62 @@ RETRY_STATUSES = {
     502,
     503,
     504,
+    522,  # Cloudflare: Connection timed out
 }  # Server errors to retry during upload/download
 # Additional retries for DNS/connection errors (ClientConnectorError)
 DNS_MAX_RETRIES = 7  # More retries for DNS resolution issues
 DNS_INITIAL_DELAY = 1  # Initial delay in seconds before first DNS retry
 # Ping warmup timeout: calculate retries so last retry is this many seconds after first try
 PING_WARMUP_TIMEOUT = 8 * 60  # 8 minutes in seconds
+PROGRESS_THROTTLE_SEC = 0.3  # Min interval between progress bar updates
+
+
+def _format_size(n):
+    """
+    Format byte count as human-readable string (e.g. '1.2 MB', '500 B').
+
+    Uses 1024 for KB/MB/GB.
+    """
+    if n < 1024:
+        return f"{n} B"
+    if n < 1024 * 1024:
+        return f"{n / 1024:.1f} KB"
+    if n < 1024 * 1024 * 1024:
+        return f"{n / (1024 * 1024):.1f} MB"
+    return f"{n / (1024 * 1024 * 1024):.1f} GB"
+
+
+def _write_progress(
+    current,
+    total=None,
+    desc="Uploading",
+    last=False,
+    show_progress=True,
+):
+    """
+    Write a single-line progress update to stdout (when TTY and show_progress).
+
+    Uses \\r to overwrite the line. If last is True, prints a newline after.
+    """
+    if not (show_progress and sys.stdout.isatty()):
+        if last:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+        return
+    if total is not None and total > 0:
+        pct = min(100, int(100 * current / total))
+        bar_width = 30
+        filled = int(bar_width * current / total) if total else 0
+        filled = min(filled, bar_width)
+        bar = "[" + "#" * filled + "-" * (bar_width - filled) + "]"
+        line = f"{desc}: {bar} {pct}% {_format_size(current)} / {_format_size(total)}"
+    else:
+        line = f"{desc}: {_format_size(current)}"
+    sys.stdout.write("\r" + line)
+    sys.stdout.flush()
+    if last:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
 
 def normalize_endpoint(endpoint):
@@ -283,6 +336,7 @@ async def upload_chunk(
     total_size,
     data,
     offset,
+    upload_id="default",
 ):
     """Uploads a single chunk with retry logic."""
     start = offset
@@ -290,6 +344,7 @@ async def upload_chunk(
     headers = {
         "Content-Range": f"bytes {start}-{end}/{total_size}",
         "Authorization": f"Bearer {auth_token}",
+        "Upload-Id": upload_id,
     }
 
     async def _upload():
@@ -297,12 +352,26 @@ async def upload_chunk(
             f"{endpoint}/upload",
             headers=headers,
             data=data,
-            timeout=30,
         ) as response:
             if response.status == 200:
+                try:
+                    payload = await response.json()
+                except Exception:
+                    payload = {}
                 await response.release()
-                return response
+                expected_offset = payload.get("expected_offset")
+                if isinstance(expected_offset, int):
+                    return expected_offset
+                return end + 1
             elif response.status in RETRY_STATUSES:
+                text = await response.text()
+                raise ClientResponseError(
+                    request_info=response.request_info,
+                    history=response.history,
+                    status=response.status,
+                    message=text,
+                )
+            elif response.status == 409:
                 text = await response.text()
                 raise ClientResponseError(
                     request_info=response.request_info,
@@ -316,10 +385,33 @@ async def upload_chunk(
                     f"Chunk {start}-{end} failed with status {response.status}: {text}"
                 )
 
-    await retry_request(_upload)
+    return await retry_request(_upload)
+
+async def get_upload_status(session, endpoint, auth_token, upload_id="default"):
+    async def _status():
+        async with session.get(
+            f"{endpoint}/upload/status",
+            params={"upload_id": upload_id},
+            headers={"Authorization": f"Bearer {auth_token}"},
+        ) as response:
+            if response.status != 200:
+                text = await response.text()
+                raise ClientResponseError(
+                    request_info=response.request_info,
+                    history=response.history,
+                    status=response.status,
+                    message=text,
+                )
+            return await response.json()
+
+    data = await retry_request(_status)
+    expected_offset = data.get("expected_offset")
+    if not isinstance(expected_offset, int) or expected_offset < 0:
+        raise ConnectionError("Invalid upload status response from server")
+    return expected_offset
 
 
-async def upload(endpoint, auth_token, path):
+async def upload(endpoint, auth_token, path, show_progress=True):
     """
     Upload a local file or directory as a TAR stream to the server.
 
@@ -327,6 +419,7 @@ async def upload(endpoint, auth_token, path):
         endpoint: Server endpoint URL
         auth_token: Authentication token
         path: Local file or directory path to upload
+        show_progress: If True and stdout is a TTY, show progress bar (default True)
 
     Raises:
         ValueError: If path doesn't exist or is invalid
@@ -371,33 +464,106 @@ async def upload(endpoint, auth_token, path):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    # We need to know the total size for progress, but tar doesn't tell us
-    # So we'll estimate or track bytes uploaded
+    # Approximate total for progress: known only for a single file (tar adds header)
+    total_size_approx = os.path.getsize(path) if os.path.isfile(path) else None
     sha512 = hashlib.sha512()
     offset = 0
-    semaphore = asyncio.Semaphore(PARALLEL_UPLOADS)
+    last_progress_time = 0.0
+    upload_id = str(uuid.uuid4())
 
-    async with aiohttp.ClientSession() as session:
-        async with semaphore:
-            while True:
+    timeout = aiohttp.ClientTimeout(
+        total=None,
+        sock_connect=30,
+        sock_read=10 * 60,
+    )
+
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        buffered_chunk = None
+        buffered_start = 0
+
+        while True:
+            if buffered_chunk is None:
                 chunk = await process.stdout.read(CHUNK_SIZE)
                 if not chunk:
                     break  # End of stream
-
+                buffered_chunk = chunk
+                buffered_start = offset
                 sha512.update(chunk)
-                chunk_offset = offset
-                offset += len(chunk)
 
-                # For total_size, we'll use a large number since we don't know the actual size
-                # The server will handle the Content-Range correctly
-                await upload_chunk(
+            end = buffered_start + len(buffered_chunk) - 1
+            now = time.perf_counter()
+            if now - last_progress_time >= PROGRESS_THROTTLE_SEC:
+                _write_progress(
+                    buffered_start,
+                    total=total_size_approx,
+                    desc=desc,
+                    show_progress=show_progress,
+                )
+                last_progress_time = now
+
+            try:
+                server_expected = await upload_chunk(
                     session,
                     endpoint,
                     auth_token,
-                    offset,  # Use current offset as total (will be updated)
-                    chunk,
-                    chunk_offset,
+                    buffered_start + len(buffered_chunk),
+                    buffered_chunk,
+                    buffered_start,
+                    upload_id,
                 )
+                if not isinstance(server_expected, int):
+                    server_expected = end + 1
+                if server_expected != end + 1:
+                    raise ConnectionError(
+                        f"Server expected_offset mismatch: expected {end + 1}, got {server_expected}"
+                    )
+                offset = end + 1
+                buffered_chunk = None
+            except ClientResponseError as e:
+                if e.status not in RETRY_STATUSES and e.status != 409:
+                    raise
+                server_offset = await get_upload_status(
+                    session, endpoint, auth_token, upload_id
+                )
+                if server_offset == buffered_start:
+                    continue
+                if server_offset == end + 1:
+                    offset = server_offset
+                    buffered_chunk = None
+                    continue
+                raise ConnectionError(
+                    f"Upload offset desync (client {buffered_start}-{end}, server expected {server_offset}). "
+                    "Cannot safely resume tar stream."
+                )
+            except (
+                ServerDisconnectedError,
+                ClientConnectorError,
+                ClientOSError,
+                ServerTimeoutError,
+                ClientPayloadError,
+                asyncio.TimeoutError,
+            ):
+                server_offset = await get_upload_status(
+                    session, endpoint, auth_token, upload_id
+                )
+                if server_offset == buffered_start:
+                    continue
+                if server_offset == end + 1:
+                    offset = server_offset
+                    buffered_chunk = None
+                    continue
+                raise ConnectionError(
+                    f"Upload offset desync (client {buffered_start}-{end}, server expected {server_offset}). "
+                    "Cannot safely resume tar stream."
+                )
+
+        _write_progress(
+            offset,
+            total=total_size_approx,
+            desc=desc,
+            last=True,
+            show_progress=show_progress,
+        )
 
         # Wait for process to finish
         await process.wait()
@@ -413,7 +579,10 @@ async def upload(endpoint, auth_token, path):
         async def _finalize():
             async with session.post(
                 f"{endpoint}/finalize",
-                headers={"Authorization": f"Bearer {auth_token}"},
+                headers={
+                    "Authorization": f"Bearer {auth_token}",
+                    "Upload-Id": upload_id,
+                },
                 json={"hash": file_hash},
             ) as response:
                 if response.status != 200:
@@ -425,7 +594,9 @@ async def upload(endpoint, auth_token, path):
         logging.debug(f"Upload finalized: {data}")
 
 
-async def download(endpoint, auth_token, target_directory, file_name=None):
+async def download(
+    endpoint, auth_token, target_directory, file_name=None, show_progress=True
+):
     """
     Download a directory archive from the server and extract it.
 
@@ -435,6 +606,7 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
         target_directory: Directory to extract files to (or save zip file)
         file_name: Optional filename override for zip archive (if ARCHIVE=true).
                    If not provided, filename is extracted from Content-Disposition header.
+        show_progress: If True and stdout is a TTY, show progress bar (default True)
 
     Raises:
         ConnectionError: If download fails or endpoint ping fails
@@ -550,6 +722,13 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
             logging.debug(f"Response Content-Length: {content_length} bytes")
         logging.debug(f"Response Content-Type: {content_type}")
 
+        total_download_size = None
+        if content_length:
+            try:
+                total_download_size = int(content_length)
+            except (TypeError, ValueError):
+                pass
+
         try:
             if use_archive:
                 # Save as ZIP file
@@ -585,6 +764,7 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                 output_path = os.path.join(target_directory, file_name)
 
                 total_bytes = 0
+                last_progress_time = 0.0
                 async with aiofiles.open(output_path, "wb") as f:
                     # Stream the response content in chunks
                     async for chunk in response.content.iter_chunked(
@@ -592,6 +772,23 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                     ):
                         await f.write(chunk)
                         total_bytes += len(chunk)
+                        now = time.perf_counter()
+                        if now - last_progress_time >= PROGRESS_THROTTLE_SEC:
+                            _write_progress(
+                                total_bytes,
+                                total=total_download_size,
+                                desc="Downloading",
+                                show_progress=show_progress,
+                            )
+                            last_progress_time = now
+
+                _write_progress(
+                    total_bytes,
+                    total=total_download_size,
+                    desc="Downloading",
+                    last=True,
+                    show_progress=show_progress,
+                )
 
                 if total_bytes == 0:
                     raise ConnectionError(
@@ -613,10 +810,30 @@ async def download(endpoint, auth_token, target_directory, file_name=None):
                     stderr=asyncio.subprocess.PIPE,
                 )
 
+                total_bytes = 0
+                last_progress_time = 0.0
                 # Stream response to tar process
                 async for chunk in response.content.iter_chunked(CHUNK_SIZE):
                     extract_process.stdin.write(chunk)
                     await extract_process.stdin.drain()
+                    total_bytes += len(chunk)
+                    now = time.perf_counter()
+                    if now - last_progress_time >= PROGRESS_THROTTLE_SEC:
+                        _write_progress(
+                            total_bytes,
+                            total=None,
+                            desc="Downloading",
+                            show_progress=show_progress,
+                        )
+                        last_progress_time = now
+
+                _write_progress(
+                    total_bytes,
+                    total=None,
+                    desc="Downloading",
+                    last=True,
+                    show_progress=show_progress,
+                )
 
                 extract_process.stdin.close()
                 await extract_process.wait()

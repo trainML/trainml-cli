@@ -14,7 +14,7 @@ async def gpu_types(trainml):
 @fixture(scope="module")
 async def gpu_type(gpu_types):
     gpu_type = next(
-        (gpu_type for gpu_type in gpu_types if gpu_type.name == "GTX 1060"),
+        (gpu_type for gpu_type in gpu_types if gpu_type.name == "RTX 3090"),
         None,
     )
     yield gpu_type
