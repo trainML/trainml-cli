@@ -21,15 +21,17 @@ class ProjectSecrets(object):
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Project Secret {name}")
         resp = await self.trainml._query(
-            f"/project/{self.project_id}/secret/{name}", "PUT", None, payload
+            f"/project/{self.project_id}/secrets/{name}", "PUT", None, payload
         )
         secret = ProjectSecret(self.trainml, **resp)
-        logging.info(f"Created Project Secret {name} in project {self.project_id}")
+        logging.info(
+            f"Created Project Secret {name} in project {self.project_id}"
+        )
         return secret
 
     async def remove(self, name, **kwargs):
         await self.trainml._query(
-            f"/project/{self.project_id}/secret/{name}", "DELETE", kwargs
+            f"/project/{self.project_id}/secrets/{name}", "DELETE", kwargs
         )
 
 

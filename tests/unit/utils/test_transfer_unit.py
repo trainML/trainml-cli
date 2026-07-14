@@ -582,29 +582,37 @@ class PingEndpointTests:
 class UploadChunkTests:
     @mark.asyncio
     async def test_upload_chunk_success(self):
-        # Mock session.put to return an async context manager
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.release = AsyncMock()
-        mock_response.request_info = Mock()
-        mock_response.history = ()
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=None)
+        """upload_chunk awaits json and release on HTTP 200."""
+        class OkResponse:
+            """Minimal stand-in for aiohttp ClientResponse."""
 
+            status = 200
+            request_info = Mock()
+            history = ()
+
+            def __init__(self):
+                self.release_calls = 0
+
+            async def json(self):
+                return {}
+
+            async def release(self):
+                self.release_calls += 1
+                return None
+
+            async def text(self):
+                return ""
+
+        response = OkResponse()
         session = AsyncMock()
-        # session.put() should return the response directly (not a coroutine)
-        session.put = Mock(return_value=mock_response)
+        session.put = Mock(return_value=_AsyncContextManager(response))
 
-        # Mock retry_request to actually call and await the function passed to it
-        # The function (_upload) does: async with session.put() as response: ...
         async def mock_retry(func, *args, **kwargs):
-            # func is _upload, which does async with session.put() as response:
             return await func(*args, **kwargs)
 
         with patch(
-            "trainml.utils.transfer.retry_request", new_callable=AsyncMock
-        ) as mock_retry_patch:
-            mock_retry_patch.side_effect = mock_retry
+            "trainml.utils.transfer.retry_request", side_effect=mock_retry
+        ):
             await specimen.upload_chunk(
                 session,
                 "https://example.com",
@@ -613,36 +621,39 @@ class UploadChunkTests:
                 b"data",
                 0,
             )
-            mock_response.release.assert_called_once()
+        assert response.release_calls == 1
 
     @mark.asyncio
     async def test_upload_chunk_content_range_header(self):
+        """upload_chunk sets Content-Range and Authorization on session.put."""
+        class OkResponse:
+            status = 200
+            request_info = Mock()
+            history = ()
+
+            def __init__(self):
+                self.release_calls = 0
+
+            async def json(self):
+                return {}
+
+            async def release(self):
+                self.release_calls += 1
+                return None
+
+            async def text(self):
+                return ""
+
+        response = OkResponse()
         session = AsyncMock()
-        response = AsyncMock()
-        response.status = 200
-        response.release = AsyncMock()
-        response.request_info = Mock()
-        response.history = ()
-        session.put = AsyncMock(return_value=response.__aenter__())
-        response.__aenter__ = AsyncMock(return_value=response)
-        response.__aexit__ = AsyncMock(return_value=None)
+        session.put = Mock(return_value=_AsyncContextManager(response))
 
-        # Mock the response that _upload returns
-        mock_response_context = AsyncMock()
-        mock_response_context.status = 200
-        mock_response_context.release = AsyncMock()
-        mock_response_context.request_info = Mock()
-        mock_response_context.history = ()
-        mock_response_context.__aenter__ = AsyncMock(
-            return_value=mock_response_context
-        )
-        mock_response_context.__aexit__ = AsyncMock(return_value=None)
+        async def mock_retry(func, *args, **kwargs):
+            return await func(*args, **kwargs)
 
-        async def _upload(*args, **kwargs):
-            return mock_response_context
-
-        with patch("trainml.utils.transfer.retry_request") as mock_retry:
-            mock_retry.side_effect = _upload
+        with patch(
+            "trainml.utils.transfer.retry_request", side_effect=mock_retry
+        ):
             await specimen.upload_chunk(
                 session,
                 "https://example.com",
@@ -651,22 +662,21 @@ class UploadChunkTests:
                 b"data",
                 10,
             )
-            # Verify headers were set correctly by checking session.put was called
-            # Note: session.put is called inside _upload, but we're mocking retry_request
-            # So we verify the function completed successfully
-            assert True  # Test passes if no exception
+        session.put.assert_called_once()
+        _url, call_kw = session.put.call_args
+        assert call_kw["headers"]["Content-Range"] == "bytes 10-13/100"
+        assert "Bearer token" in call_kw["headers"]["Authorization"]
+        assert response.release_calls == 1
 
     @mark.asyncio
     async def test_upload_chunk_retry_status(self):
         session = AsyncMock()
-        response = AsyncMock()
+        response = Mock()
         response.status = 502
         response.text = AsyncMock(return_value="Bad Gateway")
         response.request_info = Mock()
         response.history = ()
-        session.put = AsyncMock(return_value=response.__aenter__())
-        response.__aenter__ = AsyncMock(return_value=response)
-        response.__aexit__ = AsyncMock(return_value=None)
+        session.put = Mock(return_value=_AsyncContextManager(response))
 
         with patch("trainml.utils.transfer.retry_request") as mock_retry:
 
@@ -731,31 +741,13 @@ class UploadChunkTests:
         """Test upload_chunk retry status (lines 106-113) - direct execution"""
         session = AsyncMock()
 
-        # Create a response with retry status (502)
-        mock_response = AsyncMock()
+        mock_response = Mock()
         mock_response.status = 502
         mock_response.text = AsyncMock(return_value="Bad Gateway")
         mock_response.request_info = Mock()
         mock_response.history = ()
-        mock_response.release = AsyncMock()
 
-        # Make session.put return an async context manager
-        class AwaitableContextManager:
-            def __init__(self, return_value):
-                self.return_value = return_value
-
-            def __await__(self):
-                yield
-                return self
-
-            async def __aenter__(self):
-                return self.return_value
-
-            async def __aexit__(self, *args):
-                return None
-
-        mock_put_context = AwaitableContextManager(mock_response)
-        session.put = Mock(return_value=mock_put_context)
+        session.put = Mock(return_value=_AsyncContextManager(mock_response))
 
         # Mock retry_request to actually call the function passed to it
         async def mock_retry(func, *args, **kwargs):
@@ -779,31 +771,13 @@ class UploadChunkTests:
         """Test upload_chunk error status (lines 114-118) - direct execution"""
         session = AsyncMock()
 
-        # Create a response with non-retry error status (400)
-        mock_response = AsyncMock()
+        mock_response = Mock()
         mock_response.status = 400
         mock_response.text = AsyncMock(return_value="Bad Request")
         mock_response.request_info = Mock()
         mock_response.history = ()
-        mock_response.release = AsyncMock()
 
-        # Make session.put return an async context manager
-        class AwaitableContextManager:
-            def __init__(self, return_value):
-                self.return_value = return_value
-
-            def __await__(self):
-                yield
-                return self
-
-            async def __aenter__(self):
-                return self.return_value
-
-            async def __aexit__(self, *args):
-                return None
-
-        mock_put_context = AwaitableContextManager(mock_response)
-        session.put = Mock(return_value=mock_put_context)
+        session.put = Mock(return_value=_AsyncContextManager(mock_response))
 
         # Mock retry_request to actually call the function passed to it
         async def mock_retry(func, *args, **kwargs):
@@ -3411,8 +3385,44 @@ class DownloadTests:
     async def test_download_info_endpoint_non_200_status(self):
         """Test download info endpoint non-200 status with error reading body"""
         with tempfile.TemporaryDirectory() as tmpdir:
+
+            class _FakeInfoResponse:
+                """Minimal async context manager mimicking aiohttp response."""
+
+                status = 500
+                request_info = Mock()
+                history = ()
+
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, exc_type, exc, tb):
+                    return None
+
+                async def text(self):
+                    raise Exception("Read error")
+
+            async def _mock_retry(_func, *_args, **_kwargs):
+                resp = _FakeInfoResponse()
+                async with resp:
+                    if resp.status != 200:
+                        try:
+                            error_text = await resp.text()
+                        except Exception:
+                            error_text = (
+                                f"Unable to read response body "
+                                f"(status: {resp.status})"
+                            )
+                        raise ConnectionError(
+                            f"Failed to get server info (status {resp.status}): "
+                            f"{error_text}"
+                        )
+
+            async def _noop_ping(*_args, **_kwargs):
+                return None
+
             with patch("aiohttp.ClientSession") as mock_session:
-                mock_session_instance = AsyncMock()
+                mock_session_instance = MagicMock()
                 mock_session.return_value.__aenter__ = AsyncMock(
                     return_value=mock_session_instance
                 )
@@ -3420,34 +3430,13 @@ class DownloadTests:
                     return_value=None
                 )
 
-                # Mock /info endpoint returning 500 with error reading body
-                async def _get_info(*args, **kwargs):
-                    mock_resp = AsyncMock()
-                    mock_resp.status = 500
-                    mock_resp.text = AsyncMock(
-                        side_effect=Exception("Read error")
-                    )
-                    mock_resp.request_info = Mock()
-                    mock_resp.history = ()
-                    mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
-                    mock_resp.__aexit__ = AsyncMock(return_value=None)
-                    async with mock_resp:
-                        if mock_resp.status != 200:
-                            try:
-                                error_text = await mock_resp.text()
-                            except Exception:
-                                error_text = f"Unable to read response body (status: {mock_resp.status})"
-                            raise ConnectionError(
-                                f"Failed to get server info (status {mock_resp.status}): {error_text}"
-                            )
-
                 with patch(
                     "trainml.utils.transfer.retry_request",
-                    side_effect=_get_info,
+                    side_effect=_mock_retry,
                 ):
                     with patch(
                         "trainml.utils.transfer.ping_endpoint",
-                        new_callable=AsyncMock,
+                        _noop_ping,
                     ):
                         with raises(
                             ConnectionError, match="Failed to get server info"
@@ -3873,7 +3862,7 @@ class DownloadTests:
                 mock_info_response = AsyncMock()
                 mock_info_response.status = 500
                 mock_info_response.text = AsyncMock(
-                    side_effect=Exception("Read error")
+                    side_effect=ClientPayloadError("Read error")
                 )
                 mock_info_response.request_info = Mock()
                 mock_info_response.history = ()
@@ -4129,16 +4118,17 @@ class DownloadTests:
                 mock_download_response.status = 200
                 mock_download_response.headers = {
                     "Content-Type": "application/zip",
-                    "Content-Disposition": "attachment; filename=test-file.zip",
+                    "Content-Disposition": (
+                        "attachment; filename=test-file.zip"
+                    ),
                 }
 
-                async def chunk_iter():
+                async def chunk_iter(size):
                     yield b"zip data"
                     yield b""
 
-                mock_download_response.content.iter_chunked = (
-                    lambda size: chunk_iter()
-                )
+                mock_download_response.content = Mock()
+                mock_download_response.content.iter_chunked = chunk_iter
                 mock_download_response.close = Mock()
                 mock_download_response.request_info = Mock()
                 mock_download_response.history = ()
@@ -4208,16 +4198,15 @@ class DownloadTests:
                                 pattern, string, *args, **kwargs
                             )
 
-                        mock_file_context = AsyncMock()
-                        mock_file_context.__aenter__ = AsyncMock(
-                            return_value=AsyncMock()
-                        )
-                        mock_file_context.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
-                        mock_file_context.__aenter__.return_value.write = (
-                            AsyncMock()
-                        )
+                        file_writes = []
+
+                        class FakeAioFile:
+                            """Async file handle stub for aiofiles.open."""
+
+                            async def write(self, chunk):
+                                file_writes.append(chunk)
+
+                        fake_file = FakeAioFile()
 
                         mock_finalize_response = AsyncMock()
                         mock_finalize_response.status = 200
@@ -4263,12 +4252,11 @@ class DownloadTests:
                             ):
                                 with patch(
                                     "aiofiles.open",
-                                    return_value=mock_file_context,
+                                    return_value=_AsyncContextManager(
+                                        fake_file
+                                    ),
                                 ):
                                     await specimen.download(
                                         "example.com", "token", tmpdir
                                     )
-                                    # Verify the file was written (filename parsing worked)
-                                    assert (
-                                        mock_file_context.__aenter__.return_value.write.called
-                                    )
+                                    assert file_writes

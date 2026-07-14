@@ -57,7 +57,7 @@ class ProjectSecretsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await project_secrets.remove("secret_value")
         mock_trainml._query.assert_called_once_with(
-            "/project/1/secret/secret_value", "DELETE", dict()
+            "/project/1/secrets/secret_value", "DELETE", dict()
         )
 
     @mark.asyncio
@@ -69,7 +69,7 @@ class ProjectSecretsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await project_secrets.put(**requested_config)
         mock_trainml._query.assert_called_once_with(
-            "/project/1/secret/secret_value", "PUT", None, expected_payload
+            "/project/1/secrets/secret_value", "PUT", None, expected_payload
         )
         assert response.name == "secret_value"
 

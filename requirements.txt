@@ -1,6 +1,0 @@
-aiohttp
-aiofiles
-boto3
-Click>8
-python-jose[cryptography]
-requests

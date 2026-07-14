@@ -462,7 +462,7 @@ class AWSSRP(object):
                 tokens.get("ChallengeName")
                 == self.NEW_PASSWORD_REQUIRED_CHALLENGE
             ):
-                raise Exception("Change password before authenticating")
+                raise TrainMLException("Change password before authenticating")
 
             return tokens
         else:
@@ -510,14 +510,17 @@ class AWSSRP(object):
 class Auth(object):
     def __init__(self, config_dir, domain_suffix="proximl.ai", **kwargs):
         try:
-            with open(f"{config_dir}/environment.json", "r") as file:
+            with open(
+                f"{config_dir}/environment.json", "r", encoding="utf-8"
+            ) as file:
                 env_str = file.read().replace("\n", "")
             env = json.loads(env_str)
-        except:
-            env = dict()
+        except (OSError, json.JSONDecodeError):
+            env = {}
 
         auth_defaults = requests.get(
-            "https://app.{}/.well-known/auth-config.json".format(domain_suffix)
+            "https://app.{}/.well-known/auth-config.json".format(domain_suffix),
+            timeout=30,
         ).json()
 
         self.region = (
@@ -540,11 +543,13 @@ class Auth(object):
         )
 
         try:
-            with open(f"{config_dir}/credentials.json", "r") as file:
+            with open(
+                f"{config_dir}/credentials.json", "r", encoding="utf-8"
+            ) as file:
                 key_str = file.read().replace("\n", "")
             keys = json.loads(key_str)
-        except:
-            keys = dict()
+        except (OSError, json.JSONDecodeError):
+            keys = {}
 
         self.username = (
             kwargs.get("user")
@@ -568,7 +573,8 @@ class Auth(object):
         pool_jwk = requests.get(
             "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
                 self.region, self.pool_id
-            )
+            ),
+            timeout=30,
         ).json()
         return pool_jwk
 
@@ -577,7 +583,7 @@ class Auth(object):
         key = list(filter(lambda x: x.get("kid") == kid, keys))
         return key[0]
 
-    def verify_token(self, token, id_name):
+    def verify_token(self, token, _id_name):
         kid = jwt.get_unverified_header(token).get("kid")
         unverified_claims = jwt.get_unverified_claims(token)
         hmac_key = self.get_key(kid)
@@ -589,7 +595,7 @@ class Auth(object):
                 audience=unverified_claims.get("aud"),
                 issuer=unverified_claims.get("iss"),
             )
-        except Exception:
+        except jwt.JWTError:
             return False
         return verified
 
@@ -606,7 +612,7 @@ class Auth(object):
         id_verify = self.verify_token(
             tokens["AuthenticationResult"]["IdToken"], "id_token"
         )
-        logging.debug(f"ID Token Verification: {id_verify}")
+        logging.debug("ID Token Verification: %s", id_verify)
         if id_verify:
             id_token = tokens["AuthenticationResult"]["IdToken"]
             self.id_token = id_token
@@ -614,7 +620,7 @@ class Auth(object):
         access_verify = self.verify_token(
             tokens["AuthenticationResult"]["AccessToken"], "access_token"
         )
-        logging.debug(f"Access Token Verification: {access_verify}")
+        logging.debug("Access Token Verification: %s", access_verify)
         if access_verify:
             access_token = tokens["AuthenticationResult"]["AccessToken"]
             self.access_token = access_token
@@ -625,13 +631,13 @@ class Auth(object):
         )  ## prevent just about to expire tokens from being used
 
     def get_tokens(self):
-        logging.debug(f"Token expires: {self.expires}")
-        logging.debug(f"Token is expired: {self.expires < time.time()}")
+        logging.debug("Token expires: %s", self.expires)
+        logging.debug("Token is expired: %s", self.expires < time.time())
         if not self.id_token:
             self.get_new_tokens()
         elif self.expires < time.time():
             self.get_new_tokens()
-        logging.debug(f"New token expires: {self.expires}")
+        logging.debug("New token expires: %s", self.expires)
 
         return dict(
             id_token=self.id_token,

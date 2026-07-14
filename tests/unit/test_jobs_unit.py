@@ -1,3 +1,4 @@
+import asyncio
 import re
 import logging
 import json
@@ -585,21 +586,24 @@ class JobTests:
                 job._workers = job._job.get("workers")
             return job
 
+        download_calls = []
+
+        async def mock_download(hostname, token, out_uri):
+            download_calls.append((hostname, token, out_uri))
+
+        real_sleep = asyncio.sleep
+
         with patch.object(job, "refresh", side_effect=mock_refresh):
-            with patch(
-                "trainml.jobs.download", new_callable=AsyncMock
-            ) as mock_download:
+            with patch("trainml.jobs.download", mock_download):
                 # Mock sleep - allow loop to continue
                 async def sleep_side_effect(delay):
-                    # After sleep, next refresh will mark as finished
-                    pass
+                    await real_sleep(0)
 
                 with patch("asyncio.sleep", side_effect=sleep_side_effect):
                     await job.connect()
                     # Download should be called once for the uploading worker
-                    # The download task is created in the first loop iteration, then we wait for it
-                    assert mock_download.call_count == 1
-                    mock_download.assert_called_with(
+                    assert len(download_calls) == 1
+                    assert download_calls[0] == (
                         "worker-host.com",
                         "worker-token",
                         str(tmp_path / "output"),
@@ -660,28 +664,33 @@ class JobTests:
 
             mock_refresh.side_effect = refresh_side_effect
 
-            with patch(
-                "trainml.jobs.download", new_callable=AsyncMock
-            ) as mock_download:
-                sleep_mock = AsyncMock()
-                with patch("asyncio.sleep", sleep_mock):
+            download_calls = []
+
+            async def mock_download(hostname, token, out_uri):
+                download_calls.append((hostname, token, out_uri))
+
+            sleep_calls = []
+            real_sleep = asyncio.sleep
+
+            async def sleep_side_effect(delay):
+                sleep_calls.append(delay)
+                await real_sleep(0)
+
+            with patch("trainml.jobs.download", mock_download):
+                with patch("asyncio.sleep", side_effect=sleep_side_effect):
                     await job.connect()
-                    # Should have called download twice (once per worker)
-                    assert mock_download.call_count == 2
-                    # Should have slept between polls (at least once before both workers finish)
-                    assert sleep_mock.call_count >= 1
-                    # Verify both downloads were called with correct parameters
-                    calls = mock_download.call_args_list
-                    assert any(
-                        call[0]
-                        == ("host-1.com", "token-1", str(tmp_path / "output"))
-                        for call in calls
-                    )
-                    assert any(
-                        call[0]
-                        == ("host-2.com", "token-2", str(tmp_path / "output"))
-                        for call in calls
-                    )
+                    assert len(download_calls) == 2
+                    assert sleep_calls
+                    assert (
+                        "host-1.com",
+                        "token-1",
+                        str(tmp_path / "output"),
+                    ) in download_calls
+                    assert (
+                        "host-2.com",
+                        "token-2",
+                        str(tmp_path / "output"),
+                    ) in download_calls
 
     @mark.asyncio
     async def test_job_connect_invalid_status(self, mock_trainml):
@@ -1575,8 +1584,16 @@ class JobTests:
             ]
         )
 
-        with patch("trainml.jobs.download", new_callable=AsyncMock):
-            with patch("asyncio.sleep", new_callable=AsyncMock):
+        async def mock_download(*_a, **_k):
+            return None
+
+        real_sleep = asyncio.sleep
+
+        async def instant_sleep(*_a, **_k):
+            await real_sleep(0)
+
+        with patch("trainml.jobs.download", mock_download):
+            with patch("asyncio.sleep", instant_sleep):
                 await job.connect()
                 # Check that warning was logged (lines 478-481)
                 # The warning should be logged when worker is uploading but missing output_auth_token or output_hostname
@@ -1643,7 +1660,7 @@ class JobTests:
         self, mock_trainml, tmp_path
     ):
         """Test connect raises exception when download task fails (lines 513-522)."""
-        import asyncio
+        import trainml.jobs as jobs_mod
 
         job = specimen.Job(
             mock_trainml,
@@ -1684,16 +1701,17 @@ class JobTests:
         )
         mock_trainml._query = AsyncMock(return_value=api_response_running)
 
-        # Create a real task that fails immediately
         async def failing_download(*args, **kwargs):
             raise Exception("Download failed")
 
-        # Create the task and let it fail
-        failed_task = asyncio.create_task(failing_download())
-        try:
-            await failed_task
-        except Exception:
-            pass  # Task is now done and failed
+        real_asyncio_sleep = jobs_mod.asyncio.sleep
+
+        async def instant_sleep(*_a, **_kw):
+            # Yield so download tasks scheduled via create_task can run before
+            # connect checks task.done() in the same loop iteration.
+            await real_asyncio_sleep(0)
+
+        real_create_task = jobs_mod.asyncio.create_task
 
         refresh_count = [0]
 
@@ -1703,26 +1721,23 @@ class JobTests:
                 job._status = "running"
                 job._job["workers"][0]["status"] = "uploading"
 
-        captured_download_coros = []
-
         def create_task_side_effect(coro):
-            captured_download_coros.append(coro)
-            return failed_task
+            return real_create_task(coro)
 
         with patch(
             "trainml.jobs.Job.refresh", new_callable=AsyncMock
         ) as mock_refresh:
             mock_refresh.side_effect = refresh_side_effect
-            with patch("trainml.jobs.download", new_callable=AsyncMock):
-                with patch(
-                    "asyncio.create_task", side_effect=create_task_side_effect
+            with patch("trainml.jobs.download", failing_download):
+                with patch.object(
+                    jobs_mod.asyncio,
+                    "create_task",
+                    side_effect=create_task_side_effect,
                 ):
-                    with patch("asyncio.sleep", new_callable=AsyncMock):
+                    with patch("asyncio.sleep", instant_sleep):
                         with raises(Exception) as exc_info:
                             await job.connect()
                         assert "Download failed" in str(exc_info.value)
-        for coro in captured_download_coros:
-            await coro
 
     @mark.asyncio
     async def test_job_connect_all_finished_break(
@@ -1772,12 +1787,19 @@ class JobTests:
             side_effect=[api_response_initial, api_response_finished]
         )
 
-        with patch("asyncio.sleep", new_callable=AsyncMock) as sleep_mock:
+        sleep_calls = []
+        real_sleep = asyncio.sleep
+
+        async def sleep_side_effect(delay):
+            sleep_calls.append(delay)
+            await real_sleep(0)
+
+        with patch("asyncio.sleep", side_effect=sleep_side_effect):
             await job.connect()
             # Should break when all_finished is True (line 535)
             # The break happens in the while loop when all workers are finished
             # Since all workers finished immediately after first refresh, sleep should not be called
-            assert sleep_mock.call_count == 0
+            assert sleep_calls == []
 
     @mark.asyncio
     async def test_job_connect_sleep_30_no_download_tasks(

@@ -1,8 +1,0 @@
-pytest
-pylint 
-pytest-asyncio>=0.23,<1
-pytest-cov
-pytest-xdist
-toml
-twine
-wheel

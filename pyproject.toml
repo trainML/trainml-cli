@@ -1,10 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trainml"
+dynamic = ["version"]
+description = "trainML client SDK and command line utilities"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "trainML", email = "support@trainml.ai" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "aiohttp>=3.14.1",
+    "boto3>=1.43.25",
+    "click>8",
+    "python-jose[cryptography]>=3.5.0",
+    "requests>=2.34.2",
+]
+
+[project.scripts]
+trainml = "trainml.cli:cli"
+
+[tool.setuptools.dynamic]
+version = { attr = "trainml.__version__" }
+
+[tool.setuptools.packages.find]
+exclude = ["tests*"]
+
+[tool.setuptools]
+include-package-data = true
+
 [tool.pytest.ini_options]
 addopts = "--cov-report term-missing --cov=trainml -n 4 --dist=loadgroup"
 python_files = "test_*"
 python_classes = "*Tests"
 python_functions = "test_*"
 asyncio_mode = "auto"
-# Session loop matches session-scoped async fixtures (e.g. integration cloudbender).
 asyncio_default_fixture_loop_scope = "session"
 testpaths = ["tests"]
 markers = [
@@ -33,3 +70,18 @@ markers = [
     "sdk: All tests of the SDK",
     "cli: All test of the cli",
 ]
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1",
+    "pylint>=4.0.5",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=0.23,<1",
+    "pytest-cov>=7.1.0",
+    "pytest-xdist>=3.8.0",
+    "toml>=0.10.2",
+    "twine>=6.2.0",
+    "wheel>=0.47.0",
+]
+[tool.pylint.main]
+ignore-paths = [".venv/", "venv/", "__pycache__/", ".git/", "build/", "dist/"]

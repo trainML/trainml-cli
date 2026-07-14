@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import sys
@@ -18,7 +19,8 @@ from aiohttp.client_exceptions import (
     ClientPayloadError,
     InvalidURL,
 )
-from trainml.exceptions import ConnectionError, TrainMLException
+from trainml.exceptions import ConnectionError as TrainMLConnectionError
+from trainml.exceptions import TrainMLException
 
 MAX_RETRIES = 5
 RETRY_BACKOFF = 2  # Exponential backoff base (2^attempt)
@@ -166,7 +168,7 @@ async def ping_endpoint(
         retry_backoff: Exponential backoff base
 
     Raises:
-        ConnectionError: If ping never returns 200 after max retries
+        TrainMLConnectionError: If ping never returns 200 after max retries
         ClientConnectorError: If DNS/connection errors persist after max retries
     """
     endpoint = normalize_endpoint(endpoint)
@@ -198,7 +200,7 @@ async def ping_endpoint(
                 ) as response:
                     if response.status == 200:
                         logging.debug(
-                            f"Endpoint {endpoint} is ready (ping successful)"
+                            "Endpoint %s is ready (ping successful)", endpoint
                         )
                         return
                     # For any non-200 status, retry
@@ -213,15 +215,19 @@ async def ping_endpoint(
             # Retry on any HTTP error status
             if attempt < effective_max_retries:
                 logging.debug(
-                    f"Ping attempt {attempt}/{effective_max_retries} failed with status {e.status}: {str(e)}"
+                    "Ping attempt %s/%s failed with status %s: %s",
+                    attempt,
+                    effective_max_retries,
+                    e.status,
+                    e,
                 )
                 await asyncio.sleep(retry_backoff**attempt)
                 attempt += 1
                 continue
-            raise ConnectionError(
+            raise TrainMLConnectionError(
                 f"Endpoint {endpoint} ping failed after {effective_max_retries} attempts. "
                 f"Last error: HTTP {e.status} - {str(e)}"
-            )
+            ) from e
         except ClientConnectorError as e:
             # DNS resolution errors need more retries and initial delay
             # Use the higher of DNS_MAX_RETRIES or calculated ping retries
@@ -235,14 +241,17 @@ async def ping_endpoint(
                 else:
                     delay = retry_backoff ** (attempt - 1)
                 logging.debug(
-                    f"Ping attempt {attempt}/{effective_max_retries} failed due to DNS/connection error: {str(e)}"
+                    "Ping attempt %s/%s failed due to DNS/connection error: %s",
+                    attempt,
+                    effective_max_retries,
+                    e,
                 )
                 await asyncio.sleep(delay)
                 attempt += 1
                 continue
-            raise ConnectionError(
+            raise TrainMLConnectionError(
                 f"Endpoint {endpoint} ping failed after {effective_max_retries} attempts due to DNS/connection error: {str(e)}"
-            )
+            ) from e
         except (
             ServerDisconnectedError,
             ClientOSError,
@@ -252,21 +261,24 @@ async def ping_endpoint(
         ) as e:
             if attempt < effective_max_retries:
                 logging.debug(
-                    f"Ping attempt {attempt}/{effective_max_retries} failed: {str(e)}"
+                    "Ping attempt %s/%s failed: %s",
+                    attempt,
+                    effective_max_retries,
+                    e,
                 )
                 await asyncio.sleep(retry_backoff**attempt)
                 attempt += 1
                 continue
-            raise ConnectionError(
+            raise TrainMLConnectionError(
                 f"Endpoint {endpoint} ping failed after {effective_max_retries} attempts: {str(e)}"
-            )
+            ) from e
         finally:
             # Ensure connector is closed to free resources and clear DNS cache
             # This forces fresh DNS resolution on the next attempt
             if connector is not None:
                 try:
                     await connector.close()
-                except Exception:
+                except OSError:
                     # Ignore errors during cleanup
                     pass
 
@@ -289,7 +301,11 @@ async def retry_request(
         except ClientResponseError as e:
             if e.status in RETRY_STATUSES and attempt < max_retries:
                 logging.debug(
-                    f"Retry {attempt}/{max_retries} due to {e.status}: {str(e)}"
+                    "Retry %s/%s due to %s: %s",
+                    attempt,
+                    max_retries,
+                    e.status,
+                    e,
                 )
                 await asyncio.sleep(retry_backoff**attempt)
                 attempt += 1
@@ -308,7 +324,10 @@ async def retry_request(
                 else:
                     delay = retry_backoff ** (attempt - 1)
                 logging.debug(
-                    f"Retry {attempt}/{effective_max_retries} due to DNS/connection error: {str(e)}"
+                    "Retry %s/%s due to DNS/connection error: %s",
+                    attempt,
+                    effective_max_retries,
+                    e,
                 )
                 await asyncio.sleep(delay)
                 attempt += 1
@@ -322,7 +341,7 @@ async def retry_request(
             asyncio.TimeoutError,
         ) as e:
             if attempt < max_retries:
-                logging.debug(f"Retry {attempt}/{max_retries} due to {str(e)}")
+                logging.debug("Retry %s/%s due to %s", attempt, max_retries, e)
                 await asyncio.sleep(retry_backoff**attempt)
                 attempt += 1
                 continue
@@ -356,7 +375,7 @@ async def upload_chunk(
             if response.status == 200:
                 try:
                     payload = await response.json()
-                except Exception:
+                except (aiohttp.ContentTypeError, json.JSONDecodeError):
                     payload = {}
                 await response.release()
                 expected_offset = payload.get("expected_offset")
@@ -381,13 +400,16 @@ async def upload_chunk(
                 )
             else:
                 text = await response.text()
-                raise ConnectionError(
+                raise TrainMLConnectionError(
                     f"Chunk {start}-{end} failed with status {response.status}: {text}"
                 )
 
     return await retry_request(_upload)
 
-async def get_upload_status(session, endpoint, auth_token, upload_id="default"):
+
+async def get_upload_status(
+    session, endpoint, auth_token, upload_id="default"
+):
     async def _status():
         async with session.get(
             f"{endpoint}/upload/status",
@@ -407,7 +429,9 @@ async def get_upload_status(session, endpoint, auth_token, upload_id="default"):
     data = await retry_request(_status)
     expected_offset = data.get("expected_offset")
     if not isinstance(expected_offset, int) or expected_offset < 0:
-        raise ConnectionError("Invalid upload status response from server")
+        raise TrainMLConnectionError(
+            "Invalid upload status response from server"
+        )
     return expected_offset
 
 
@@ -423,7 +447,7 @@ async def upload(endpoint, auth_token, path, show_progress=True):
 
     Raises:
         ValueError: If path doesn't exist or is invalid
-        ConnectionError: If upload fails or endpoint ping fails
+        TrainMLConnectionError: If upload fails or endpoint ping fails
         TrainMLException: For other errors
     """
     # Normalize endpoint URL to ensure it has a protocol
@@ -514,7 +538,7 @@ async def upload(endpoint, auth_token, path, show_progress=True):
                 if not isinstance(server_expected, int):
                     server_expected = end + 1
                 if server_expected != end + 1:
-                    raise ConnectionError(
+                    raise TrainMLConnectionError(
                         f"Server expected_offset mismatch: expected {end + 1}, got {server_expected}"
                     )
                 offset = end + 1
@@ -531,10 +555,10 @@ async def upload(endpoint, auth_token, path, show_progress=True):
                     offset = server_offset
                     buffered_chunk = None
                     continue
-                raise ConnectionError(
+                raise TrainMLConnectionError(
                     f"Upload offset desync (client {buffered_start}-{end}, server expected {server_offset}). "
                     "Cannot safely resume tar stream."
-                )
+                ) from e
             except (
                 ServerDisconnectedError,
                 ClientConnectorError,
@@ -542,7 +566,7 @@ async def upload(endpoint, auth_token, path, show_progress=True):
                 ServerTimeoutError,
                 ClientPayloadError,
                 asyncio.TimeoutError,
-            ):
+            ) as exc:
                 server_offset = await get_upload_status(
                     session, endpoint, auth_token, upload_id
                 )
@@ -552,10 +576,10 @@ async def upload(endpoint, auth_token, path, show_progress=True):
                     offset = server_offset
                     buffered_chunk = None
                     continue
-                raise ConnectionError(
+                raise TrainMLConnectionError(
                     f"Upload offset desync (client {buffered_start}-{end}, server expected {server_offset}). "
                     "Cannot safely resume tar stream."
-                )
+                ) from exc
 
         _write_progress(
             offset,
@@ -587,11 +611,11 @@ async def upload(endpoint, auth_token, path, show_progress=True):
             ) as response:
                 if response.status != 200:
                     text = await response.text()
-                    raise ConnectionError(f"Finalize failed: {text}")
+                    raise TrainMLConnectionError(f"Finalize failed: {text}")
                 return await response.json()
 
         data = await retry_request(_finalize)
-        logging.debug(f"Upload finalized: {data}")
+        logging.debug("Upload finalized: %s", data)
 
 
 async def download(
@@ -609,7 +633,7 @@ async def download(
         show_progress: If True and stdout is a TTY, show progress bar (default True)
 
     Raises:
-        ConnectionError: If download fails or endpoint ping fails
+        TrainMLConnectionError: If download fails or endpoint ping fails
         TrainMLException: For other errors
     """
     # Normalize endpoint URL to ensure it has a protocol
@@ -639,8 +663,11 @@ async def download(
                     if response.status != 200:
                         try:
                             error_text = await response.text()
-                        except Exception:
-                            error_text = f"Unable to read response body (status: {response.status})"
+                        except (aiohttp.ClientError, UnicodeDecodeError):
+                            error_text = (
+                                f"Unable to read response body "
+                                f"(status: {response.status})"
+                            )
                         raise ClientResponseError(
                             request_info=response.request_info,
                             history=response.history,
@@ -652,15 +679,15 @@ async def download(
             info = await retry_request(_get_info)
             use_archive = info.get("archive", False)
         except InvalidURL as e:
-            raise ConnectionError(
+            raise TrainMLConnectionError(
                 f"Invalid endpoint URL: {endpoint}. "
                 f"Please ensure the URL includes a protocol (http:// or https://). "
                 f"Error: {str(e)}"
-            )
-        except (ConnectionError, ClientResponseError) as e:
+            ) from e
+        except (TrainMLConnectionError, ClientResponseError) as e:
             # If /info endpoint is not available (404) or other error,
             # default to TAR stream mode and continue
-            if isinstance(e, ConnectionError) and "404" in str(e):
+            if isinstance(e, TrainMLConnectionError) and "404" in str(e):
                 logging.debug(
                     "Warning: /info endpoint not available, defaulting to TAR stream mode"
                 )
@@ -669,14 +696,14 @@ async def download(
                     "Warning: /info endpoint not available, defaulting to TAR stream mode"
                 )
             else:
-                # For other errors, convert ClientResponseError to ConnectionError
+                # For other errors, convert ClientResponseError to TrainMLConnectionError
                 # to maintain backward compatibility
                 if isinstance(e, ClientResponseError):
                     error_msg = getattr(e, "message", str(e))
-                    raise ConnectionError(
+                    raise TrainMLConnectionError(
                         f"Failed to get server info (status {e.status}): {error_msg}"
-                    )
-                # For ConnectionError, re-raise as-is
+                    ) from e
+                # For TrainMLConnectionError, re-raise as-is
                 raise
 
         # Download the archive
@@ -719,8 +746,8 @@ async def download(
 
         # Debug: Log response info
         if content_length:
-            logging.debug(f"Response Content-Length: {content_length} bytes")
-        logging.debug(f"Response Content-Type: {content_type}")
+            logging.debug("Response Content-Length: %s bytes", content_length)
+        logging.debug("Response Content-Type: %s", content_type)
 
         total_download_size = None
         if content_length:
@@ -791,13 +818,13 @@ async def download(
                 )
 
                 if total_bytes == 0:
-                    raise ConnectionError(
+                    raise TrainMLConnectionError(
                         "Downloaded file is empty (0 bytes). "
                         "The server may not have any files to download, or there was an error streaming the response."
                     )
 
                 logging.info(
-                    f"Archive saved to: {output_path} ({total_bytes} bytes)"
+                    "Archive saved to: %s (%s bytes)", output_path, total_bytes
                 )
             else:
                 # Extract TAR stream directly
@@ -844,7 +871,7 @@ async def download(
                         f"tar extraction failed: {stderr.decode() if stderr else 'Unknown error'}"
                     )
 
-                logging.info(f"Files extracted to: {target_directory}")
+                logging.info("Files extracted to: %s", target_directory)
         finally:
             response.close()
 
@@ -857,8 +884,8 @@ async def download(
             ) as response:
                 if response.status != 200:
                     text = await response.text()
-                    raise ConnectionError(f"Finalize failed: {text}")
+                    raise TrainMLConnectionError(f"Finalize failed: {text}")
                 return await response.json()
 
         data = await retry_request(_finalize)
-        logging.debug(f"Download finalized: {data}")
+        logging.debug("Download finalized: %s", data)

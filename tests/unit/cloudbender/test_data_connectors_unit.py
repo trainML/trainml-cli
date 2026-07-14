@@ -43,9 +43,10 @@ class RegionsTests:
         mock_trainml,
     ):
         api_response = dict()
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        await data_connectors.get("1234", "5687", "91011")
-        mock_trainml._query.assert_called_once_with(
+        query_mock = AsyncMock(return_value=api_response)
+        with patch.object(mock_trainml, "_query", query_mock):
+            await data_connectors.get("1234", "5687", "91011")
+        query_mock.assert_called_once_with(
             "/provider/1234/region/5687/data_connector/91011", "GET", {}
         )
 
@@ -55,12 +56,17 @@ class RegionsTests:
         data_connectors,
         mock_trainml,
     ):
-        api_response = dict()
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        await data_connectors.list("1234", "5687")
-        mock_trainml._query.assert_called_once_with(
-            "/provider/1234/region/5687/data_connector", "GET", {}
-        )
+        recorded = []
+
+        async def fake_query(path, method, params=None, **_kwargs):
+            recorded.append((path, method, params))
+            return []
+
+        with patch.object(mock_trainml, "_query", fake_query):
+            await data_connectors.list("1234", "5687")
+        assert recorded == [
+            ("/provider/1234/region/5687/data_connector", "GET", {}),
+        ]
 
     @mark.asyncio
     async def test_remove_data_connector(
@@ -69,9 +75,10 @@ class RegionsTests:
         mock_trainml,
     ):
         api_response = dict()
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        await data_connectors.remove("1234", "4567", "8910")
-        mock_trainml._query.assert_called_once_with(
+        query_mock = AsyncMock(return_value=api_response)
+        with patch.object(mock_trainml, "_query", query_mock):
+            await data_connectors.remove("1234", "4567", "8910")
+        query_mock.assert_called_once_with(
             "/provider/1234/region/4567/data_connector/8910", "DELETE", {}
         )
 
@@ -105,9 +112,10 @@ class RegionsTests:
             "createdAt": "2020-12-31T23:59:59.000Z",
         }
 
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        response = await data_connectors.create(**requested_config)
-        mock_trainml._query.assert_called_once_with(
+        query_mock = AsyncMock(return_value=api_response)
+        with patch.object(mock_trainml, "_query", query_mock):
+            response = await data_connectors.create(**requested_config)
+        query_mock.assert_called_once_with(
             "/provider/provider-id-1/region/region-id-1/data_connector",
             "POST",
             None,
@@ -148,9 +156,10 @@ class DataConnectorTests:
     @mark.asyncio
     async def test_data_connector_remove(self, data_connector, mock_trainml):
         api_response = dict()
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        await data_connector.remove()
-        mock_trainml._query.assert_called_once_with(
+        query_mock = AsyncMock(return_value=api_response)
+        with patch.object(mock_trainml, "_query", query_mock):
+            await data_connector.remove()
+        query_mock.assert_called_once_with(
             "/provider/1/region/a/data_connector/x", "DELETE"
         )
 
@@ -167,9 +176,10 @@ class DataConnectorTests:
             "protocol": "tcp",
             "createdAt": "2020-12-31T23:59:59.000Z",
         }
-        mock_trainml._query = AsyncMock(return_value=api_response)
-        response = await data_connector.refresh()
-        mock_trainml._query.assert_called_once_with(
+        query_mock = AsyncMock(return_value=api_response)
+        with patch.object(mock_trainml, "_query", query_mock):
+            response = await data_connector.refresh()
+        query_mock.assert_called_once_with(
             f"/provider/1/region/a/data_connector/x", "GET"
         )
         assert data_connector.id == "connector-id-1"

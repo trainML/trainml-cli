@@ -51,7 +51,7 @@ class ProjectCredentialsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         await project_credentials.remove("aws")
         mock_trainml._query.assert_called_once_with(
-            "/project/1/credential/aws", "DELETE", dict()
+            "/project/1/credentials/aws", "DELETE", dict()
         )
 
     @mark.asyncio
@@ -67,7 +67,7 @@ class ProjectCredentialsTests:
         mock_trainml._query = AsyncMock(return_value=api_response)
         response = await project_credentials.put(**requested_config)
         mock_trainml._query.assert_called_once_with(
-            "/project/1/credential/aws", "PUT", None, expected_payload
+            "/project/1/credentials/aws", "PUT", None, expected_payload
         )
         assert response.type == "aws"
 

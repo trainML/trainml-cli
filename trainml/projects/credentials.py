@@ -13,7 +13,9 @@ class ProjectCredentials(object):
         resp = await self.trainml._query(
             f"/project/{self.project_id}/credentials", "GET", kwargs
         )
-        credentials = [ProjectCredential(self.trainml, **service) for service in resp]
+        credentials = [
+            ProjectCredential(self.trainml, **service) for service in resp
+        ]
         return credentials
 
     async def put(self, type, key_id, secret, tenant=None, **kwargs):
@@ -21,16 +23,21 @@ class ProjectCredentials(object):
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Project Credential {type}")
         resp = await self.trainml._query(
-            f"/project/{self.project_id}/credential/{type}", "PUT", None, payload
+            f"/project/{self.project_id}/credentials/{type}",
+            "PUT",
+            None,
+            payload,
         )
         credential = ProjectCredential(self.trainml, **resp)
-        logging.info(f"Created Project Credential {type} in project {self.project_id}")
+        logging.info(
+            f"Created Project Credential {type} in project {self.project_id}"
+        )
 
         return credential
 
     async def remove(self, type, **kwargs):
         await self.trainml._query(
-            f"/project/{self.project_id}/credential/{type}", "DELETE", kwargs
+            f"/project/{self.project_id}/credentials/{type}", "DELETE", kwargs
         )
 
 
