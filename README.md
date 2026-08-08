@@ -22,6 +22,8 @@ You must have a valid [trainML account](https://app.trainml.ai). On the [account
 
 > Creating resources on the trainML platform requires a non-zero credit balance. To purchase credits or sign-up for automatic credit top-ups, visit the [billing page](https://app.trainml.ai/account/billing).
 
+> Creating model with the SDK require Docker installed and running in the machine you use the SDK.
+
 ### Methods
 
 #### Credentials File
