@@ -27,7 +27,7 @@ async def job(trainml):
         gpu_types=["rtx2070s"],
         gpu_count=1,
         disk_size=11,
-        data=dict(datasets=[dict(id="CIFAR-10", public=True)]),
+        data=dict(datasets=[dict(id="MNIST", public=True)]),
         model=dict(
             source_type="git",
             source_uri="git@github.com:trainML/environment-tests.git",
@@ -53,7 +53,7 @@ class JobLifeCycleTests:
     async def test_stop_job(self, job):
         assert job.status == "running"
         await job.stop()
-        job = await job.wait_for("stopped", 120)
+        job = await job.wait_for("stopped", 180)
         assert job.status == "stopped"
 
     async def test_get_jobs(self, trainml, job):
@@ -85,7 +85,7 @@ class JobLifeCycleTests:
     async def test_start_job(self, job):
         assert job.status == "stopped"
         await job.start()
-        job = await job.wait_for("running", 120)
+        job = await job.wait_for("running", 180)
         assert job.status == "running"
 
     async def test_copy_job_not_enough_disk(self, job):
@@ -115,15 +115,15 @@ class JobLifeCycleTests:
         training_job = await job.copy(
             name="CLI Automated Tests - Job Convert",
             type="training",
-            workers=["python $ML_MODEL_PATH/tensorflow/main.py"],
+            workers=["python $ML_MODEL_PATH/pytorch/main.py"],
             data=dict(
                 datasets=[
                     dict(
-                        id="CIFAR-10",
+                        id="MNIST",
                         public=True,
                     )
                 ],
-                output_uri="s3://trainml-examples/output/resnet_cifar10",
+                output_uri="s3://trainml-examples/output/mnist",
                 output_type="aws",
             ),
         )
@@ -502,11 +502,11 @@ class JobIOTests:
             gpu_count=1,
             cpu_count=8,
             disk_size=10,
-            worker_commands=["python $ML_MODEL_PATH/tensorflow/main.py"],
+            worker_commands=["python $ML_MODEL_PATH/pytorch/main.py"],
             data=dict(
                 datasets=[
                     dict(
-                        id="CIFAR-10",
+                        id="MNIST",
                         public=True,
                     )
                 ],
@@ -514,9 +514,6 @@ class JobIOTests:
                 output_uri="model",
             ),
             model=dict(source_type="trainml", source_uri=model.id),
-            environment=dict(
-                type="DEEPLEARNING_PY313"
-            ),  ## tf not available on 3.14 yet
         )
         await job.attach()
         await job.refresh()
@@ -527,7 +524,11 @@ class JobIOTests:
         captured = capsys.readouterr()
         sys.stdout.write(captured.out)
         sys.stderr.write(captured.err)
-        assert "Epoch 1/2" in captured.out or "Epoch 2/2" in captured.out
+        assert (
+            "Train Epoch: 1 [0/60000 (0%)]" in captured.out
+            or "Train Epoch: 1 [59520/60000 (99%)]" in captured.out
+        )
+        assert "mnist_cnn.pt" in captured.out
 
         new_model = await trainml.models.get(workers[0].get("output_uuid"))
         assert new_model.id

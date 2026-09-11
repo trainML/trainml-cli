@@ -9,23 +9,39 @@ from cryptography.hazmat.primitives import serialization, hashes
 
 pytestmark = [mark.sdk, mark.integration, mark.cloudbender, mark.regions]
 
+
 def get_csr(service_id):
     private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=4096
+        public_exponent=65537, key_size=4096
     )
-    csr = x509.CertificateSigningRequestBuilder().subject_name(x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "proxiML"),
-        x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, service_id),
-        x509.NameAttribute(NameOID.COMMON_NAME, "test-client"),  # Client identity
-    ])).add_extension(
-        x509.ExtendedKeyUsage([
-            ExtendedKeyUsageOID.CLIENT_AUTH  # Client authentication usage
-        ]),
-        critical=True
-    ).sign(private_key, hashes.SHA256())
+    csr = (
+        x509.CertificateSigningRequestBuilder()
+        .subject_name(
+            x509.Name(
+                [
+                    x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+                    x509.NameAttribute(NameOID.ORGANIZATION_NAME, "proxiML"),
+                    x509.NameAttribute(
+                        NameOID.ORGANIZATIONAL_UNIT_NAME, service_id
+                    ),
+                    x509.NameAttribute(
+                        NameOID.COMMON_NAME, "test-client"
+                    ),  # Client identity
+                ]
+            )
+        )
+        .add_extension(
+            x509.ExtendedKeyUsage(
+                [
+                    ExtendedKeyUsageOID.CLIENT_AUTH  # Client authentication usage
+                ]
+            ),
+            critical=True,
+        )
+        .sign(private_key, hashes.SHA256())
+    )
     return csr.public_bytes(serialization.Encoding.PEM).decode("utf-8")
+
 
 @mark.create
 @mark.asyncio
@@ -36,7 +52,7 @@ class GetServiceTests:
         service = await trainml.cloudbender.services.create(
             provider_uuid=region.provider_uuid,
             region_uuid=region.id,
-            name="CLI Automated Service",
+            name="CLI-Automated-Service",
             type="tcp",
             port="8989",
             public=False,
@@ -46,12 +62,16 @@ class GetServiceTests:
         await service.remove()
         await service.wait_for("archived")
 
-    async def test_get_services(self, trainml, region,service):
-        services = await trainml.cloudbender.services.list(provider_uuid=region.provider_uuid, region_uuid=region.id)
+    async def test_get_services(self, trainml, region, service):
+        services = await trainml.cloudbender.services.list(
+            provider_uuid=region.provider_uuid, region_uuid=region.id
+        )
         assert len(services) > 0
 
     async def test_get_service(self, trainml, provider, region, service):
-        response = await trainml.cloudbender.services.get(provider.id, region.id, service.id)
+        response = await trainml.cloudbender.services.get(
+            provider.id, region.id, service.id
+        )
         assert response.id == service.id
 
     async def test_service_properties(self, region, service):
