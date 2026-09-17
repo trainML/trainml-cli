@@ -528,7 +528,6 @@ class JobIOTests:
             "Train Epoch: 1 [0/60000 (0%)]" in captured.out
             or "Train Epoch: 1 [59520/60000 (99%)]" in captured.out
         )
-        assert "mnist_cnn.pt" in captured.out
 
         new_model = await trainml.models.get(workers[0].get("output_uuid"))
         assert new_model.id

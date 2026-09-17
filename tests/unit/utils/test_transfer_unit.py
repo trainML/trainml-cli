@@ -1,5 +1,6 @@
 import os
 import re
+import socket
 import asyncio
 import tempfile
 from unittest.mock import (
@@ -8,11 +9,13 @@ from unittest.mock import (
     patch,
     mock_open,
     MagicMock,
+    call,
 )
 from pytest import mark, fixture, raises
 from aiohttp import ClientResponseError, ClientSession
 from aiohttp.client_exceptions import (
     ClientConnectorError,
+    ClientConnectorDNSError,
     ClientPayloadError,
     ServerTimeoutError,
     ServerDisconnectedError,
@@ -222,6 +225,81 @@ class RetryRequestTests:
         sleep_mock.assert_called_with(2)
 
 
+class IsDnsNameNotKnownTests:
+    """Tests for _is_dns_name_not_known NXDOMAIN detection."""
+
+    @mark.parametrize(
+        "os_error,expected",
+        [
+            (
+                socket.gaierror(
+                    socket.EAI_NONAME,
+                    "nodename nor servname provided, or not known",
+                ),
+                True,
+            ),
+            (OSError(99, "Name or service not known"), True),
+            (OSError(99, "getaddrinfo failed"), True),
+            (OSError("dns"), False),
+            (
+                socket.gaierror(
+                    socket.EAI_AGAIN,
+                    "Temporary failure in name resolution",
+                ),
+                False,
+            ),
+        ],
+        ids=[
+            "eai_noname",
+            "linux_message",
+            "windows_getaddrinfo",
+            "generic_dns",
+            "eai_again",
+        ],
+    )
+    def test_is_dns_name_not_known_matches_nxdomain(
+        self, os_error, expected
+    ):
+        """Detect NXDOMAIN via errno or common resolver messages."""
+        error = ClientConnectorError(
+            connection_key=Mock(), os_error=os_error
+        )
+        assert specimen._is_dns_name_not_known(error) is expected
+
+    def test_client_connector_dns_error_is_name_not_known(self):
+        """aiohttp wraps NXDOMAIN as ClientConnectorDNSError."""
+        conn_key = Mock()
+        conn_key.host = "host"
+        conn_key.port = 443
+        conn_key.ssl = True
+        error = ClientConnectorDNSError(
+            conn_key, OSError(None, "DNS lookup failed")
+        )
+        assert specimen._is_dns_name_not_known(error) is True
+
+
+class PingConnectorRetryDelayTests:
+    """Tests for ping connector retry delay selection."""
+
+    def test_client_connector_dns_error_uses_negative_cache_ttl(self):
+        conn_key = Mock()
+        conn_key.host = "host"
+        conn_key.port = 443
+        conn_key.ssl = True
+        error = ClientConnectorDNSError(
+            conn_key, OSError(None, "DNS lookup failed")
+        )
+        delay = specimen._ping_connector_retry_delay(error, 1, 2)
+        assert delay == specimen.DNS_NEGATIVE_CACHE_TTL
+
+    def test_generic_connector_error_uses_initial_delay(self):
+        error = ClientConnectorError(
+            connection_key=Mock(), os_error=OSError("dns")
+        )
+        delay = specimen._ping_connector_retry_delay(error, 1, 2)
+        assert delay == specimen.DNS_INITIAL_DELAY
+
+
 class PingEndpointTests:
     """Tests for ping_endpoint (lines 72-140 in transfer.py)."""
 
@@ -417,6 +495,150 @@ class PingEndpointTests:
             assert sleep_mock.call_count == 2
             sleep_mock.assert_any_call(specimen.DNS_INITIAL_DELAY)
             sleep_mock.assert_any_call(2)
+
+    def _nxdomain_error(self):
+        """Build the ClientConnectorDNSError aiohttp raises on NXDOMAIN."""
+        conn_key = Mock()
+        conn_key.host = "host"
+        conn_key.port = 443
+        conn_key.ssl = True
+        return ClientConnectorDNSError(
+            conn_key,
+            socket.gaierror(
+                socket.EAI_NONAME,
+                "nodename nor servname provided, or not known",
+            ),
+        )
+
+    @mark.asyncio
+    async def test_ping_endpoint_nxdomain_uses_negative_cache_ttl(self):
+        """First NXDOMAIN retry waits the negative-cache TTL, not 1s."""
+        call_count = [0]
+
+        def session_get(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise self._nxdomain_error()
+            mock_resp = AsyncMock()
+            mock_resp.status = 200
+            mock_resp.request_info = Mock()
+            mock_resp.history = ()
+            mock_resp.text = AsyncMock(return_value="")
+            mock_resp_ctx = AsyncMock()
+            mock_resp_ctx.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_resp_ctx.__aexit__ = AsyncMock(return_value=None)
+            return mock_resp_ctx
+
+        with patch(
+            "trainml.utils.transfer.aiohttp.ClientSession"
+        ) as mock_session_class:
+            mock_session_instance = AsyncMock()
+            mock_session_instance.get = Mock(side_effect=session_get)
+            mock_session_ctx = AsyncMock()
+            mock_session_ctx.__aenter__ = AsyncMock(
+                return_value=mock_session_instance
+            )
+            mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+            mock_session_class.return_value = mock_session_ctx
+            sleep_mock = AsyncMock()
+            with patch("asyncio.sleep", sleep_mock):
+                await specimen.ping_endpoint(
+                    "https://host", "token", max_retries=2
+                )
+            assert call_count[0] == 2
+            sleep_mock.assert_called_once_with(
+                specimen.DNS_NEGATIVE_CACHE_TTL
+            )
+
+    @mark.asyncio
+    async def test_ping_endpoint_nxdomain_constant_ttl_delay(self):
+        """Multiple NXDOMAIN retries all wait the negative-cache TTL."""
+        call_count = [0]
+
+        def session_get(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] < 3:
+                raise self._nxdomain_error()
+            mock_resp = AsyncMock()
+            mock_resp.status = 200
+            mock_resp.request_info = Mock()
+            mock_resp.history = ()
+            mock_resp.text = AsyncMock(return_value="")
+            mock_resp_ctx = AsyncMock()
+            mock_resp_ctx.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_resp_ctx.__aexit__ = AsyncMock(return_value=None)
+            return mock_resp_ctx
+
+        with patch(
+            "trainml.utils.transfer.aiohttp.ClientSession"
+        ) as mock_session_class:
+            mock_session_instance = AsyncMock()
+            mock_session_instance.get = Mock(side_effect=session_get)
+            mock_session_ctx = AsyncMock()
+            mock_session_ctx.__aenter__ = AsyncMock(
+                return_value=mock_session_instance
+            )
+            mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+            mock_session_class.return_value = mock_session_ctx
+            sleep_mock = AsyncMock()
+            with patch("asyncio.sleep", sleep_mock):
+                await specimen.ping_endpoint(
+                    "https://host", "token", max_retries=5
+                )
+            assert call_count[0] == 3
+            assert sleep_mock.call_count == 2
+            sleep_mock.assert_has_calls(
+                [
+                    call(specimen.DNS_NEGATIVE_CACHE_TTL),
+                    call(specimen.DNS_NEGATIVE_CACHE_TTL),
+                ]
+            )
+
+    @mark.asyncio
+    async def test_ping_endpoint_connector_dns_error_uses_ttl(self):
+        """ClientConnectorDNSError always waits the negative-cache TTL."""
+        call_count = [0]
+
+        def session_get(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                conn_key = Mock()
+                conn_key.host = "host"
+                conn_key.port = 443
+                conn_key.ssl = True
+                raise ClientConnectorDNSError(
+                    conn_key, OSError(None, "Domain name not found")
+                )
+            mock_resp = AsyncMock()
+            mock_resp.status = 200
+            mock_resp.request_info = Mock()
+            mock_resp.history = ()
+            mock_resp.text = AsyncMock(return_value="")
+            mock_resp_ctx = AsyncMock()
+            mock_resp_ctx.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_resp_ctx.__aexit__ = AsyncMock(return_value=None)
+            return mock_resp_ctx
+
+        with patch(
+            "trainml.utils.transfer.aiohttp.ClientSession"
+        ) as mock_session_class:
+            mock_session_instance = AsyncMock()
+            mock_session_instance.get = Mock(side_effect=session_get)
+            mock_session_ctx = AsyncMock()
+            mock_session_ctx.__aenter__ = AsyncMock(
+                return_value=mock_session_instance
+            )
+            mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+            mock_session_class.return_value = mock_session_ctx
+            sleep_mock = AsyncMock()
+            with patch("asyncio.sleep", sleep_mock):
+                await specimen.ping_endpoint(
+                    "https://host", "token", max_retries=2
+                )
+            assert call_count[0] == 2
+            sleep_mock.assert_called_once_with(
+                specimen.DNS_NEGATIVE_CACHE_TTL
+            )
 
     @mark.asyncio
     async def test_ping_endpoint_other_error_retry_then_success(self):

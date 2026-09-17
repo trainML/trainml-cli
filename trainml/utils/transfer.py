@@ -4,6 +4,7 @@ import re
 import sys
 import math
 import time
+import socket
 import asyncio
 import aiohttp
 import aiofiles
@@ -13,6 +14,7 @@ import uuid
 from aiohttp.client_exceptions import (
     ClientResponseError,
     ClientConnectorError,
+    ClientConnectorDNSError,
     ServerTimeoutError,
     ServerDisconnectedError,
     ClientOSError,
@@ -35,6 +37,8 @@ RETRY_STATUSES = {
 # Additional retries for DNS/connection errors (ClientConnectorError)
 DNS_MAX_RETRIES = 7  # More retries for DNS resolution issues
 DNS_INITIAL_DELAY = 1  # Initial delay in seconds before first DNS retry
+# Wait out OS NXDOMAIN negative-cache TTL before retrying name-not-known
+DNS_NEGATIVE_CACHE_TTL = 60
 # Ping warmup timeout: calculate retries so last retry is this many seconds after first try
 PING_WARMUP_TIMEOUT = 8 * 60  # 8 minutes in seconds
 PROGRESS_THROTTLE_SEC = 0.3  # Min interval between progress bar updates
@@ -146,6 +150,51 @@ def calculate_ping_retries(timeout_seconds, backoff_base):
     return max(1, int(n))
 
 
+def _is_dns_name_not_known(error):
+    """
+    Return True if a connector error is NXDOMAIN / name not known.
+
+    OS resolvers cache negative DNS answers for the record TTL (~60s).
+    Frequent retries refresh that cache, so these failures need a longer
+    backoff than other connection errors.
+
+    Args:
+        error: ClientConnectorError (or subclass) from aiohttp
+
+    Returns:
+        True if the error indicates the hostname does not exist
+    """
+    if isinstance(error, ClientConnectorDNSError):
+        return True
+    name_not_known_errnos = {socket.EAI_NONAME}
+    eai_nodata = getattr(socket, "EAI_NODATA", None)
+    if eai_nodata is not None:
+        name_not_known_errnos.add(eai_nodata)
+
+    os_error = getattr(error, "os_error", None)
+    if os_error is not None:
+        errno = getattr(os_error, "errno", None)
+        if errno in name_not_known_errnos:
+            return True
+    message = str(error).lower()
+    return (
+        "not known" in message
+        or "nodename nor servname" in message
+        or "getaddrinfo failed" in message
+    )
+
+
+def _ping_connector_retry_delay(error, attempt, retry_backoff):
+    """Return sleep seconds before retrying a ping connector failure."""
+    if isinstance(error, ClientConnectorDNSError) or _is_dns_name_not_known(
+        error
+    ):
+        return DNS_NEGATIVE_CACHE_TTL
+    if attempt == 1:
+        return DNS_INITIAL_DELAY
+    return retry_backoff ** (attempt - 1)
+
+
 async def ping_endpoint(
     endpoint, auth_token, max_retries=MAX_RETRIES, retry_backoff=RETRY_BACKOFF
 ):
@@ -154,9 +203,12 @@ async def ping_endpoint(
 
     Retries on all errors (404, 500, DNS errors, etc.) with exponential backoff
     until a 200 response is received. This handles startup timing issues.
+    NXDOMAIN / name-not-known failures wait DNS_NEGATIVE_CACHE_TTL seconds
+    instead, so retries outlast the OS negative-cache TTL.
 
-    Creates a fresh TCPConnector for each attempt to force fresh DNS resolution
-    and avoid stale DNS cache issues.
+    Creates a fresh TCPConnector for each attempt. aiohttp raises
+    ClientConnectorDNSError for NXDOMAIN; that type is handled before
+    generic ClientConnectorError so retries wait DNS_NEGATIVE_CACHE_TTL.
 
     For ping warmup, calculates retries dynamically to ensure the last retry
     occurs PING_WARMUP_TIMEOUT seconds after the first try.
@@ -187,8 +239,7 @@ async def ping_endpoint(
         ping_max_retries = max_retries  # For DNS error handling below
 
     while attempt <= effective_max_retries:
-        # Create a fresh connector for each attempt to force DNS re-resolution
-        # This helps avoid stale DNS cache issues
+        # Fresh connector per attempt (aiohttp DNS cache only)
         connector = None
         try:
             connector = aiohttp.TCPConnector(limit=1, limit_per_host=1)
@@ -228,18 +279,37 @@ async def ping_endpoint(
                 f"Endpoint {endpoint} ping failed after {effective_max_retries} attempts. "
                 f"Last error: HTTP {e.status} - {str(e)}"
             ) from e
+        except ClientConnectorDNSError as e:
+            # aiohttp wraps getaddrinfo NXDOMAIN as this type. Wait out
+            # the mDNSResponder / OS negative-cache TTL before retrying.
+            if effective_max_retries == ping_max_retries:
+                effective_max_retries = max(ping_max_retries, DNS_MAX_RETRIES)
+            if attempt < effective_max_retries:
+                delay = DNS_NEGATIVE_CACHE_TTL
+                logging.info(
+                    "Ping attempt %s/%s failed due to DNS name error: %s; "
+                    "waiting %s seconds",
+                    attempt,
+                    effective_max_retries,
+                    e,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+                attempt += 1
+                continue
+            raise TrainMLConnectionError(
+                f"Endpoint {endpoint} ping failed after {effective_max_retries} attempts due to DNS/connection error: {str(e)}"
+            ) from e
         except ClientConnectorError as e:
-            # DNS resolution errors need more retries and initial delay
-            # Use the higher of DNS_MAX_RETRIES or calculated ping retries
+            # Connection refused / reset: short backoff. NXDOMAIN that
+            # was not wrapped as ClientConnectorDNSError still uses TTL.
             if effective_max_retries == ping_max_retries:
                 effective_max_retries = max(ping_max_retries, DNS_MAX_RETRIES)
 
             if attempt < effective_max_retries:
-                # Use initial delay for first retry, then exponential backoff
-                if attempt == 1:
-                    delay = DNS_INITIAL_DELAY
-                else:
-                    delay = retry_backoff ** (attempt - 1)
+                delay = _ping_connector_retry_delay(
+                    e, attempt, retry_backoff
+                )
                 logging.debug(
                     "Ping attempt %s/%s failed due to DNS/connection error: %s",
                     attempt,
@@ -273,13 +343,10 @@ async def ping_endpoint(
                 f"Endpoint {endpoint} ping failed after {effective_max_retries} attempts: {str(e)}"
             ) from e
         finally:
-            # Ensure connector is closed to free resources and clear DNS cache
-            # This forces fresh DNS resolution on the next attempt
             if connector is not None:
                 try:
                     await connector.close()
                 except OSError:
-                    # Ignore errors during cleanup
                     pass
 
 
