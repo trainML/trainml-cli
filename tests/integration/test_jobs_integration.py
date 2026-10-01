@@ -555,7 +555,8 @@ class JobTypeTests:
             disk_size=10,
             model=dict(
                 source_type="git",
-                source_uri="https://github.com/trainML/simple-tensorflow-classifier.git",
+                source_uri="https://github.com/proxiML/simple-pytorch-classifier.git",
+                checkpoints=[dict(id="vgg16-imagenet", public=True)],
             ),
             endpoint=dict(
                 routes=[

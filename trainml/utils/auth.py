@@ -190,7 +190,7 @@ import json
 import requests
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 import os
@@ -410,7 +410,7 @@ class AWSSRP(object):
         timestamp = re.sub(
             r" 0(\d) ",
             r" \1 ",
-            datetime.utcnow().strftime("%a %b %d %H:%M:%S UTC %Y"),
+            datetime.now(timezone.utc).strftime("%a %b %d %H:%M:%S UTC %Y"),
         )
         hkdf = self.get_password_authentication_key(
             user_id_for_srp, self.password, hex_to_long(srp_b_hex), salt_hex

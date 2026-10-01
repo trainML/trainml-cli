@@ -198,9 +198,7 @@ class RetryRequestTests:
 
     @mark.asyncio
     async def test_retry_request_client_os_error(self):
-        func = AsyncMock(
-            side_effect=ClientOSError(Mock(), OSError("OS error"))
-        )
+        func = AsyncMock(side_effect=ClientOSError(Mock(), OSError("OS error")))
         with patch("asyncio.sleep", new_callable=AsyncMock):
             with raises(ClientOSError):
                 await specimen.retry_request(func, max_retries=2)
@@ -257,13 +255,9 @@ class IsDnsNameNotKnownTests:
             "eai_again",
         ],
     )
-    def test_is_dns_name_not_known_matches_nxdomain(
-        self, os_error, expected
-    ):
+    def test_is_dns_name_not_known_matches_nxdomain(self, os_error, expected):
         """Detect NXDOMAIN via errno or common resolver messages."""
-        error = ClientConnectorError(
-            connection_key=Mock(), os_error=os_error
-        )
+        error = ClientConnectorError(connection_key=Mock(), os_error=os_error)
         assert specimen._is_dns_name_not_known(error) is expected
 
     def test_client_connector_dns_error_is_name_not_known(self):
@@ -272,30 +266,24 @@ class IsDnsNameNotKnownTests:
         conn_key.host = "host"
         conn_key.port = 443
         conn_key.ssl = True
-        error = ClientConnectorDNSError(
-            conn_key, OSError(None, "DNS lookup failed")
-        )
+        error = ClientConnectorDNSError(conn_key, OSError(None, "DNS lookup failed"))
         assert specimen._is_dns_name_not_known(error) is True
 
 
 class PingConnectorRetryDelayTests:
     """Tests for ping connector retry delay selection."""
 
-    def test_client_connector_dns_error_uses_negative_cache_ttl(self):
+    def test_client_connector_dns_error_uses_name_error_delay(self):
         conn_key = Mock()
         conn_key.host = "host"
         conn_key.port = 443
         conn_key.ssl = True
-        error = ClientConnectorDNSError(
-            conn_key, OSError(None, "DNS lookup failed")
-        )
+        error = ClientConnectorDNSError(conn_key, OSError(None, "DNS lookup failed"))
         delay = specimen._ping_connector_retry_delay(error, 1, 2)
-        assert delay == specimen.DNS_NEGATIVE_CACHE_TTL
+        assert delay == specimen.DNS_NAME_ERROR_RETRY_DELAY
 
     def test_generic_connector_error_uses_initial_delay(self):
-        error = ClientConnectorError(
-            connection_key=Mock(), os_error=OSError("dns")
-        )
+        error = ClientConnectorError(connection_key=Mock(), os_error=OSError("dns"))
         delay = specimen._ping_connector_retry_delay(error, 1, 2)
         assert delay == specimen.DNS_INITIAL_DELAY
 
@@ -318,9 +306,7 @@ class PingEndpointTests:
         mock_session_instance.get = Mock(return_value=mock_resp_ctx)
 
         mock_session_ctx = AsyncMock()
-        mock_session_ctx.__aenter__ = AsyncMock(
-            return_value=mock_session_instance
-        )
+        mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
         mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
         return mock_session_ctx
 
@@ -358,15 +344,11 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=get_ctx)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             with patch("asyncio.sleep", new_callable=AsyncMock):
-                await specimen.ping_endpoint(
-                    "https://host", "token", max_retries=3
-                )
+                await specimen.ping_endpoint("https://host", "token", max_retries=3)
         assert call_count[0] == 2
 
     @mark.asyncio
@@ -377,12 +359,8 @@ class PingEndpointTests:
         ) as mock_session_class:
             mock_session_class.return_value = mock_session_ctx
             with patch("asyncio.sleep", new_callable=AsyncMock):
-                with raises(
-                    ConnectionError, match="ping failed after 2 attempts"
-                ):
-                    await specimen.ping_endpoint(
-                        "https://host", "token", max_retries=2
-                    )
+                with raises(ConnectionError, match="ping failed after 1 attempts"):
+                    await specimen.ping_endpoint("https://host", "token", max_retries=2)
 
     @mark.asyncio
     async def test_ping_endpoint_connector_error_dns_retries_then_success(
@@ -412,16 +390,12 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=session_get)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             sleep_mock = AsyncMock()
             with patch("asyncio.sleep", sleep_mock):
-                await specimen.ping_endpoint(
-                    "https://host", "token", max_retries=2
-                )
+                await specimen.ping_endpoint("https://host", "token", max_retries=2)
             assert call_count[0] == 2
             sleep_mock.assert_called_once_with(specimen.DNS_INITIAL_DELAY)
 
@@ -437,9 +411,7 @@ class PingEndpointTests:
                 )
             )
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             sleep_mock = AsyncMock()
@@ -448,9 +420,7 @@ class PingEndpointTests:
                     ConnectionError,
                     match="ping failed after .* attempts due to DNS/connection",
                 ):
-                    await specimen.ping_endpoint(
-                        "https://host", "token", max_retries=2
-                    )
+                    await specimen.ping_endpoint("https://host", "token", max_retries=2)
             assert sleep_mock.call_count >= 1
 
     @mark.asyncio
@@ -481,9 +451,7 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=session_get)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             sleep_mock = AsyncMock()
@@ -499,7 +467,8 @@ class PingEndpointTests:
     def _nxdomain_error(self):
         """Build the ClientConnectorDNSError aiohttp raises on NXDOMAIN."""
         conn_key = Mock()
-        conn_key.host = "host"
+        # connection_key always carries the exact FQDN tried
+        conn_key.host = "abc-123-input.proximl.cloud"
         conn_key.port = 443
         conn_key.ssl = True
         return ClientConnectorDNSError(
@@ -511,8 +480,8 @@ class PingEndpointTests:
         )
 
     @mark.asyncio
-    async def test_ping_endpoint_nxdomain_uses_negative_cache_ttl(self):
-        """First NXDOMAIN retry waits the negative-cache TTL, not 1s."""
+    async def test_ping_endpoint_nxdomain_fixed_cadence_then_success(self):
+        """First NXDOMAIN retry waits the fixed 1-minute cadence."""
         call_count = [0]
 
         def session_get(*args, **kwargs):
@@ -535,24 +504,24 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=session_get)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             sleep_mock = AsyncMock()
-            with patch("asyncio.sleep", sleep_mock):
-                await specimen.ping_endpoint(
-                    "https://host", "token", max_retries=2
-                )
+            with (
+                patch(
+                    "trainml.utils.transfer._aiodns_available",
+                    return_value=False,
+                ),
+                patch("asyncio.sleep", sleep_mock),
+            ):
+                await specimen.ping_endpoint("https://host", "token", max_retries=2)
             assert call_count[0] == 2
-            sleep_mock.assert_called_once_with(
-                specimen.DNS_NEGATIVE_CACHE_TTL
-            )
+            sleep_mock.assert_called_once_with(specimen.DNS_NAME_ERROR_RETRY_DELAY)
 
     @mark.asyncio
-    async def test_ping_endpoint_nxdomain_constant_ttl_delay(self):
-        """Multiple NXDOMAIN retries all wait the negative-cache TTL."""
+    async def test_ping_endpoint_nxdomain_all_retries_fixed_cadence(self):
+        """Multiple NXDOMAIN retries all wait the same fixed cadence."""
         call_count = [0]
 
         def session_get(*args, **kwargs):
@@ -575,28 +544,30 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=session_get)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             sleep_mock = AsyncMock()
-            with patch("asyncio.sleep", sleep_mock):
-                await specimen.ping_endpoint(
-                    "https://host", "token", max_retries=5
-                )
+            with (
+                patch(
+                    "trainml.utils.transfer._aiodns_available",
+                    return_value=False,
+                ),
+                patch("asyncio.sleep", sleep_mock),
+            ):
+                await specimen.ping_endpoint("https://host", "token", max_retries=5)
             assert call_count[0] == 3
             assert sleep_mock.call_count == 2
             sleep_mock.assert_has_calls(
                 [
-                    call(specimen.DNS_NEGATIVE_CACHE_TTL),
-                    call(specimen.DNS_NEGATIVE_CACHE_TTL),
+                    call(specimen.DNS_NAME_ERROR_RETRY_DELAY),
+                    call(specimen.DNS_NAME_ERROR_RETRY_DELAY),
                 ]
             )
 
     @mark.asyncio
-    async def test_ping_endpoint_connector_dns_error_uses_ttl(self):
-        """ClientConnectorDNSError always waits the negative-cache TTL."""
+    async def test_ping_endpoint_connector_dns_error_fixed_cadence(self):
+        """ClientConnectorDNSError waits the fixed cadence."""
         call_count = [0]
 
         def session_get(*args, **kwargs):
@@ -625,20 +596,20 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=session_get)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             sleep_mock = AsyncMock()
-            with patch("asyncio.sleep", sleep_mock):
-                await specimen.ping_endpoint(
-                    "https://host", "token", max_retries=2
-                )
+            with (
+                patch(
+                    "trainml.utils.transfer._aiodns_available",
+                    return_value=False,
+                ),
+                patch("asyncio.sleep", sleep_mock),
+            ):
+                await specimen.ping_endpoint("https://host", "token", max_retries=2)
             assert call_count[0] == 2
-            sleep_mock.assert_called_once_with(
-                specimen.DNS_NEGATIVE_CACHE_TTL
-            )
+            sleep_mock.assert_called_once_with(specimen.DNS_NAME_ERROR_RETRY_DELAY)
 
     @mark.asyncio
     async def test_ping_endpoint_other_error_retry_then_success(self):
@@ -664,15 +635,11 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=session_get)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             with patch("asyncio.sleep", new_callable=AsyncMock):
-                await specimen.ping_endpoint(
-                    "https://host", "token", max_retries=3
-                )
+                await specimen.ping_endpoint("https://host", "token", max_retries=3)
         assert call_count[0] == 2
 
     @mark.asyncio
@@ -685,19 +652,15 @@ class PingEndpointTests:
                 side_effect=ServerDisconnectedError("disconnected")
             )
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 with raises(
                     ConnectionError,
-                    match="ping failed after 2 attempts",
+                    match="ping failed after 1 attempts",
                 ):
-                    await specimen.ping_endpoint(
-                        "https://host", "token", max_retries=2
-                    )
+                    await specimen.ping_endpoint("https://host", "token", max_retries=2)
 
     @mark.asyncio
     async def test_ping_endpoint_client_payload_error_retry_then_success(self):
@@ -723,15 +686,11 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=session_get)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             with patch("asyncio.sleep", new_callable=AsyncMock):
-                await specimen.ping_endpoint(
-                    "https://host", "token", max_retries=3
-                )
+                await specimen.ping_endpoint("https://host", "token", max_retries=3)
         assert call_count[0] == 2
 
     @mark.asyncio
@@ -758,15 +717,11 @@ class PingEndpointTests:
             mock_session_instance = AsyncMock()
             mock_session_instance.get = Mock(side_effect=session_get)
             mock_session_ctx = AsyncMock()
-            mock_session_ctx.__aenter__ = AsyncMock(
-                return_value=mock_session_instance
-            )
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
             mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
             mock_session_class.return_value = mock_session_ctx
             with patch("asyncio.sleep", new_callable=AsyncMock):
-                await specimen.ping_endpoint(
-                    "https://host", "token", max_retries=3
-                )
+                await specimen.ping_endpoint("https://host", "token", max_retries=3)
         assert call_count[0] == 2
 
     @mark.asyncio
@@ -800,11 +755,171 @@ class PingEndpointTests:
             call_kw = sess.get.call_args[1]
             assert call_kw["headers"]["Authorization"] == "Bearer my_token"
 
+    def _soa_ping_session(self, nxdomain_times):
+        """session.get that raises NXDOMAIN nxdomain_times then returns 200."""
+        call_count = [0]
+
+        def session_get(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] <= nxdomain_times:
+                raise self._nxdomain_error()
+            mock_resp = AsyncMock()
+            mock_resp.status = 200
+            mock_resp.request_info = Mock()
+            mock_resp.history = ()
+            mock_resp.text = AsyncMock(return_value="")
+            mock_resp_ctx = AsyncMock()
+            mock_resp_ctx.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_resp_ctx.__aexit__ = AsyncMock(return_value=None)
+            return mock_resp_ctx
+
+        return session_get, call_count
+
+    @mark.asyncio
+    async def test_ping_nxdomain_success_after_two_failures(self):
+        """Two NXDOMAIN failures then success: two 1-minute sleeps, no raise.
+
+        Regression: the old time-budget check gave up on the 2nd negative-cache
+        wait, so this previously raised instead of succeeding.
+        """
+        session_get, call_count = self._soa_ping_session(nxdomain_times=2)
+        with patch(
+            "trainml.utils.transfer.aiohttp.ClientSession"
+        ) as mock_session_class:
+            mock_session_instance = AsyncMock()
+            mock_session_instance.get = Mock(side_effect=session_get)
+            mock_session_ctx = AsyncMock()
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+            mock_session_class.return_value = mock_session_ctx
+            sleep_mock = AsyncMock()
+            with (
+                patch(
+                    "trainml.utils.transfer._aiodns_available",
+                    return_value=True,
+                ),
+                patch(
+                    "trainml.utils.transfer._new_aiodns_resolver",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "trainml.utils.transfer._run_query_dns",
+                    new_callable=AsyncMock,
+                    return_value=(None, None),
+                ),
+                patch(
+                    "trainml.utils.transfer._probe_soa_minimum",
+                    new_callable=AsyncMock,
+                    return_value=1800,
+                ),
+                patch("asyncio.sleep", sleep_mock),
+            ):
+                await specimen.ping_endpoint("https://host", "token", max_retries=5)
+        assert call_count[0] == 3
+        assert [c.args[0] for c in sleep_mock.call_args_list] == [
+            specimen.DNS_NAME_ERROR_RETRY_DELAY,
+            specimen.DNS_NAME_ERROR_RETRY_DELAY,
+        ]
+
+    @mark.asyncio
+    async def test_ping_nxdomain_retries_full_count_at_fixed_cadence(self):
+        """With NXDOMAIN the whole time, retries the full count at a fixed
+        1-minute cadence (no total-time budget)."""
+        session_get, call_count = self._soa_ping_session(nxdomain_times=100)
+        with patch(
+            "trainml.utils.transfer.aiohttp.ClientSession"
+        ) as mock_session_class:
+            mock_session_instance = AsyncMock()
+            mock_session_instance.get = Mock(side_effect=session_get)
+            mock_session_ctx = AsyncMock()
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+            mock_session_class.return_value = mock_session_ctx
+            sleep_mock = AsyncMock()
+            with (
+                patch(
+                    "trainml.utils.transfer._aiodns_available",
+                    return_value=True,
+                ),
+                patch(
+                    "trainml.utils.transfer._new_aiodns_resolver",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "trainml.utils.transfer._run_query_dns",
+                    new_callable=AsyncMock,
+                    return_value=(None, None),
+                ),
+                patch(
+                    "trainml.utils.transfer._probe_soa_minimum",
+                    new_callable=AsyncMock,
+                    return_value=1800,
+                ),
+                patch("asyncio.sleep", sleep_mock),
+            ):
+                with raises(ConnectionError):
+                    await specimen.ping_endpoint("https://host", "token")
+        # Default warmup => calculate_ping_retries(PING_WARMUP_TIMEOUT, 2) = 9
+        # total attempts -> 8 retries, each the fixed 60s cadence, then raise.
+        expected = specimen.calculate_ping_retries(specimen.PING_WARMUP_TIMEOUT, 2)
+        assert call_count[0] == expected
+        assert [c.args[0] for c in sleep_mock.call_args_list] == (
+            [specimen.DNS_NAME_ERROR_RETRY_DELAY] * (expected - 1)
+        )
+
+    @mark.asyncio
+    async def test_ping_nxdomain_exhausted_raises_with_correct_message(self):
+        """Once the retry count is spent the failure message reports the true
+        attempt count (regression for the swapped-args message bug)."""
+        session_get, call_count = self._soa_ping_session(nxdomain_times=100)
+        with patch(
+            "trainml.utils.transfer.aiohttp.ClientSession"
+        ) as mock_session_class:
+            mock_session_instance = AsyncMock()
+            mock_session_instance.get = Mock(side_effect=session_get)
+            mock_session_ctx = AsyncMock()
+            mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
+            mock_session_class.return_value = mock_session_ctx
+            sleep_mock = AsyncMock()
+            with (
+                patch(
+                    "trainml.utils.transfer._aiodns_available",
+                    return_value=True,
+                ),
+                patch(
+                    "trainml.utils.transfer._new_aiodns_resolver",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "trainml.utils.transfer._run_query_dns",
+                    new_callable=AsyncMock,
+                    return_value=(None, None),
+                ),
+                patch(
+                    "trainml.utils.transfer._probe_soa_minimum",
+                    new_callable=AsyncMock,
+                    return_value=1800,
+                ),
+                patch("asyncio.sleep", sleep_mock),
+            ):
+                with raises(
+                    ConnectionError,
+                    match=r"ping failed after 1 retries \(2 of 2 attempts\)",
+                ):
+                    await specimen.ping_endpoint("https://host", "token", max_retries=2)
+        assert call_count[0] == 2
+        # Only the first failure triggers a retry sleep; the 2nd raises.
+        assert [c.args[0] for c in sleep_mock.call_args_list] == [
+            specimen.DNS_NAME_ERROR_RETRY_DELAY
+        ]
+
 
 class UploadChunkTests:
     @mark.asyncio
     async def test_upload_chunk_success(self):
         """upload_chunk awaits json and release on HTTP 200."""
+
         class OkResponse:
             """Minimal stand-in for aiohttp ClientResponse."""
 
@@ -832,9 +947,7 @@ class UploadChunkTests:
         async def mock_retry(func, *args, **kwargs):
             return await func(*args, **kwargs)
 
-        with patch(
-            "trainml.utils.transfer.retry_request", side_effect=mock_retry
-        ):
+        with patch("trainml.utils.transfer.retry_request", side_effect=mock_retry):
             await specimen.upload_chunk(
                 session,
                 "https://example.com",
@@ -848,6 +961,7 @@ class UploadChunkTests:
     @mark.asyncio
     async def test_upload_chunk_content_range_header(self):
         """upload_chunk sets Content-Range and Authorization on session.put."""
+
         class OkResponse:
             status = 200
             request_info = Mock()
@@ -873,9 +987,7 @@ class UploadChunkTests:
         async def mock_retry(func, *args, **kwargs):
             return await func(*args, **kwargs)
 
-        with patch(
-            "trainml.utils.transfer.retry_request", side_effect=mock_retry
-        ):
+        with patch("trainml.utils.transfer.retry_request", side_effect=mock_retry):
             await specimen.upload_chunk(
                 session,
                 "https://example.com",
@@ -975,9 +1087,7 @@ class UploadChunkTests:
         async def mock_retry(func, *args, **kwargs):
             return await func(*args, **kwargs)
 
-        with patch(
-            "trainml.utils.transfer.retry_request", side_effect=mock_retry
-        ):
+        with patch("trainml.utils.transfer.retry_request", side_effect=mock_retry):
             with raises(ClientResponseError):
                 await specimen.upload_chunk(
                     session,
@@ -1005,12 +1115,8 @@ class UploadChunkTests:
         async def mock_retry(func, *args, **kwargs):
             return await func(*args, **kwargs)
 
-        with patch(
-            "trainml.utils.transfer.retry_request", side_effect=mock_retry
-        ):
-            with raises(
-                ConnectionError, match="Chunk.*failed with status 400"
-            ):
+        with patch("trainml.utils.transfer.retry_request", side_effect=mock_retry):
+            with raises(ConnectionError, match="Chunk.*failed with status 400"):
                 await specimen.upload_chunk(
                     session,
                     "https://example.com",
@@ -1020,409 +1126,35 @@ class UploadChunkTests:
                     0,
                 )
 
-
-class UploadTests:
     @mark.asyncio
-    async def test_upload_file_not_found(self):
-        with patch(
-            "trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock
-        ):
-            with raises(ValueError, match="Path not found"):
-                await specimen.upload(
-                    "https://example.com", "token", "/nonexistent/path"
+    async def test_upload_chunk_not_found_raises_cse(self):
+        """A 404 on /upload (tunnel recycling) surfaces as ClientResponseError."""
+        session = AsyncMock()
+
+        mock_response = Mock()
+        mock_response.status = 404
+        mock_response.text = AsyncMock(return_value="Not found")
+        mock_response.request_info = Mock()
+        mock_response.history = ()
+
+        session.put = Mock(return_value=_AsyncContextManager(mock_response))
+
+        # Mock retry_request to actually call the function passed to it
+        async def mock_retry(func, *args, **kwargs):
+            return await func(*args, **kwargs)
+
+        with patch("trainml.utils.transfer.retry_request", side_effect=mock_retry):
+            with raises(ClientResponseError) as excinfo:
+                await specimen.upload_chunk(
+                    session,
+                    "https://example.com",
+                    "token",
+                    100,
+                    b"data",
+                    0,
                 )
 
-    @mark.asyncio
-    async def test_upload_invalid_path_type(self):
-        # Test path that is neither file nor directory
-        # This is hard to create in practice, but we can mock it
-        with tempfile.NamedTemporaryFile() as tmp:
-            with patch(
-                "trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock
-            ):
-                with patch("os.path.isfile", return_value=False):
-                    with patch("os.path.isdir", return_value=False):
-                        with patch("os.path.exists", return_value=True):
-                            with raises(
-                                ValueError,
-                                match="Path is neither a file nor directory",
-                            ):
-                                await specimen.upload(
-                                    "example.com", "token", tmp.name
-                                )
-
-    @mark.asyncio
-    async def test_upload_file(self):
-        with tempfile.NamedTemporaryFile() as tmp:
-            tmp.write(b"test content")
-            tmp.flush()
-
-            with patch(
-                "trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock
-            ):
-                with patch(
-                    "asyncio.create_subprocess_exec"
-                ) as mock_subprocess:
-                    mock_process = AsyncMock()
-                    mock_process.stdout.read = AsyncMock(
-                        side_effect=[b"data", b""]
-                    )
-                    mock_process.returncode = 0
-                    mock_process.wait = AsyncMock(return_value=0)
-                    mock_process.stderr.read = AsyncMock(return_value=b"")
-                    mock_subprocess.return_value = mock_process
-
-                    with patch("aiohttp.ClientSession") as mock_session:
-                        mock_session_instance = AsyncMock()
-                        mock_session.return_value.__aenter__ = AsyncMock(
-                            return_value=mock_session_instance
-                        )
-                        mock_session.return_value.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
-
-                        with patch(
-                            "trainml.utils.transfer.upload_chunk",
-                            new_callable=AsyncMock,
-                        ) as mock_upload_chunk:
-                            mock_finalize_response = AsyncMock()
-                            mock_finalize_response.status = 200
-                            mock_finalize_response.json = AsyncMock(
-                                return_value={"status": "ok"}
-                            )
-                            mock_finalize_response.__aenter__ = AsyncMock(
-                                return_value=mock_finalize_response
-                            )
-                            mock_finalize_response.__aexit__ = AsyncMock(
-                                return_value=None
-                            )
-
-                            # session.post() should return something that is both awaitable and an async context manager
-                            class AwaitableContextManager:
-                                def __init__(self, return_value):
-                                    self.return_value = return_value
-
-                                def __await__(self):
-                                    yield
-                                    return self
-
-                                async def __aenter__(self):
-                                    return self.return_value
-
-                                async def __aexit__(self, *args):
-                                    return None
-
-                            mock_post_context = AwaitableContextManager(
-                                mock_finalize_response
-                            )
-                            mock_session_instance.post = Mock(
-                                return_value=mock_post_context
-                            )
-
-                            await specimen.upload(
-                                "example.com", "token", tmp.name
-                            )
-                            # Verify upload_chunk was called
-                            assert mock_upload_chunk.called
-
-    @mark.asyncio
-    async def test_upload_directory(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            test_file = os.path.join(tmpdir, "test.txt")
-            with open(test_file, "w") as f:
-                f.write("test content")
-
-            with patch(
-                "trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock
-            ):
-                with patch(
-                    "asyncio.create_subprocess_exec"
-                ) as mock_subprocess:
-                    mock_process = AsyncMock()
-                    mock_process.stdout.read = AsyncMock(
-                        side_effect=[b"data", b""]
-                    )
-                    mock_process.returncode = 0
-                    mock_process.wait = AsyncMock(return_value=0)
-                    mock_process.stderr.read = AsyncMock(return_value=b"")
-                    mock_subprocess.return_value = mock_process
-
-                    with patch("aiohttp.ClientSession") as mock_session:
-                        mock_session_instance = AsyncMock()
-                        mock_session.return_value.__aenter__ = AsyncMock(
-                            return_value=mock_session_instance
-                        )
-                        mock_session.return_value.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
-
-                        with patch(
-                            "trainml.utils.transfer.upload_chunk",
-                            new_callable=AsyncMock,
-                        ) as mock_upload_chunk:
-                            mock_finalize_response = AsyncMock()
-                            mock_finalize_response.status = 200
-                            mock_finalize_response.json = AsyncMock(
-                                return_value={"status": "ok"}
-                            )
-                            mock_finalize_response.__aenter__ = AsyncMock(
-                                return_value=mock_finalize_response
-                            )
-                            mock_finalize_response.__aexit__ = AsyncMock(
-                                return_value=None
-                            )
-
-                            # session.post() should return something that is both awaitable and an async context manager
-                            class AwaitableContextManager:
-                                def __init__(self, return_value):
-                                    self.return_value = return_value
-
-                                def __await__(self):
-                                    yield
-                                    return self
-
-                                async def __aenter__(self):
-                                    return self.return_value
-
-                                async def __aexit__(self, *args):
-                                    return None
-
-                            mock_post_context = AwaitableContextManager(
-                                mock_finalize_response
-                            )
-                            mock_session_instance.post = Mock(
-                                return_value=mock_post_context
-                            )
-
-                            await specimen.upload(
-                                "example.com", "token", tmpdir
-                            )
-                            # Verify upload_chunk was called
-                            assert mock_upload_chunk.called
-
-    @mark.asyncio
-    async def test_upload_tar_command_failure(self):
-        with tempfile.NamedTemporaryFile() as tmp:
-            with patch("asyncio.create_subprocess_exec") as mock_subprocess:
-                mock_process = AsyncMock()
-                mock_process.stdout.read = AsyncMock(
-                    side_effect=[b"data", b""]
-                )
-                mock_process.wait = AsyncMock(return_value=1)
-                mock_process.stderr.read = AsyncMock(return_value=b"tar error")
-                mock_subprocess.return_value = mock_process
-
-                with patch("aiohttp.ClientSession") as mock_session:
-                    mock_session_instance = AsyncMock()
-                    mock_session.return_value = _AsyncContextManager(
-                        mock_session_instance
-                    )
-                    with patch(
-                        "trainml.utils.transfer.ping_endpoint",
-                        new_callable=AsyncMock,
-                    ):
-                        with patch(
-                            "trainml.utils.transfer.upload_chunk",
-                            new_callable=AsyncMock,
-                        ):
-                            with raises(
-                                TrainMLException, match="tar command failed"
-                            ):
-                                await specimen.upload(
-                                    "example.com", "token", tmp.name
-                                )
-
-    @mark.asyncio
-    async def test_upload_tar_command_failure_no_stderr(self):
-        with tempfile.NamedTemporaryFile() as tmp:
-            with patch("asyncio.create_subprocess_exec") as mock_subprocess:
-                mock_process = AsyncMock()
-                mock_process.stdout.read = AsyncMock(
-                    side_effect=[b"data", b""]
-                )
-                mock_process.wait = AsyncMock(return_value=1)
-                mock_process.stderr.read = AsyncMock(return_value=None)
-                mock_subprocess.return_value = mock_process
-
-                with patch("aiohttp.ClientSession") as mock_session:
-                    mock_session_instance = AsyncMock()
-                    mock_session.return_value.__aenter__ = AsyncMock(
-                        return_value=mock_session_instance
-                    )
-                    mock_session.return_value.__aexit__ = AsyncMock(
-                        return_value=None
-                    )
-                    with patch(
-                        "trainml.utils.transfer.ping_endpoint",
-                        new_callable=AsyncMock,
-                    ):
-                        with patch(
-                            "trainml.utils.transfer.upload_chunk",
-                            new_callable=AsyncMock,
-                        ):
-                            with raises(
-                                TrainMLException, match="tar command failed"
-                            ):
-                                await specimen.upload(
-                                    "example.com", "token", tmp.name
-                                )
-
-    @mark.asyncio
-    async def test_upload_finalize_failure(self):
-        with tempfile.NamedTemporaryFile() as tmp:
-            with patch(
-                "trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock
-            ):
-                with patch(
-                    "asyncio.create_subprocess_exec"
-                ) as mock_subprocess:
-                    mock_process = AsyncMock()
-                    mock_process.stdout.read = AsyncMock(
-                        side_effect=[b"data", b""]
-                    )
-                    mock_process.returncode = 0
-                    mock_process.wait = AsyncMock(return_value=0)
-                    mock_process.stderr.read = AsyncMock(return_value=b"")
-                    mock_subprocess.return_value = mock_process
-
-                    with patch("aiohttp.ClientSession") as mock_session:
-                        mock_session_instance = AsyncMock()
-                        mock_session.return_value.__aenter__ = AsyncMock(
-                            return_value=mock_session_instance
-                        )
-                        mock_session.return_value.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
-
-                        with patch(
-                            "trainml.utils.transfer.upload_chunk",
-                            new_callable=AsyncMock,
-                        ) as mock_upload_chunk:
-                            mock_finalize_response = AsyncMock()
-                            mock_finalize_response.status = 500
-                            mock_finalize_response.text = AsyncMock(
-                                return_value="Finalize error"
-                            )
-                            mock_finalize_response.__aenter__ = AsyncMock(
-                                return_value=mock_finalize_response
-                            )
-                            mock_finalize_response.__aexit__ = AsyncMock(
-                                return_value=None
-                            )
-
-                            # session.post() should return something that is both awaitable and an async context manager
-                            class AwaitableContextManager:
-                                def __init__(self, return_value):
-                                    self.return_value = return_value
-
-                                def __await__(self):
-                                    yield
-                                    return self
-
-                                async def __aenter__(self):
-                                    return self.return_value
-
-                                async def __aexit__(self, *args):
-                                    return None
-
-                            mock_post_context = AwaitableContextManager(
-                                mock_finalize_response
-                            )
-                            mock_session_instance.post = Mock(
-                                return_value=mock_post_context
-                            )
-
-                            with patch(
-                                "trainml.utils.transfer.ping_endpoint",
-                                new_callable=AsyncMock,
-                            ):
-                                with raises(
-                                    ConnectionError, match="Finalize failed"
-                                ):
-                                    await specimen.upload(
-                                        "example.com", "token", tmp.name
-                                    )
-                            # Verify upload_chunk was called before finalize
-                            assert mock_upload_chunk.called
-
-    @mark.asyncio
-    async def test_upload_multiple_chunks(self):
-        with tempfile.NamedTemporaryFile() as tmp:
-            tmp.write(b"x" * (10 * 1024 * 1024))  # 10MB file
-            tmp.flush()
-
-            with patch("asyncio.create_subprocess_exec") as mock_subprocess:
-                mock_process = AsyncMock()
-                # Simulate multiple chunks
-                mock_process.stdout.read = AsyncMock(
-                    side_effect=[
-                        b"x" * (5 * 1024 * 1024),
-                        b"x" * (5 * 1024 * 1024),
-                        b"",
-                    ]
-                )
-                mock_process.returncode = 0
-                mock_process.wait = AsyncMock(return_value=0)
-                mock_process.stderr.read = AsyncMock(return_value=b"")
-                mock_subprocess.return_value = mock_process
-
-                with patch("aiohttp.ClientSession") as mock_session:
-                    mock_session_instance = AsyncMock()
-                    mock_session.return_value.__aenter__ = AsyncMock(
-                        return_value=mock_session_instance
-                    )
-                    mock_session.return_value.__aexit__ = AsyncMock(
-                        return_value=None
-                    )
-
-                    upload_chunk_mock = AsyncMock()
-                    with patch(
-                        "trainml.utils.transfer.upload_chunk",
-                        upload_chunk_mock,
-                    ):
-                        mock_finalize_response = AsyncMock()
-                        mock_finalize_response.status = 200
-                        mock_finalize_response.json = AsyncMock(
-                            return_value={"status": "ok"}
-                        )
-                        mock_finalize_response.__aenter__ = AsyncMock(
-                            return_value=mock_finalize_response
-                        )
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
-
-                        # session.post() should return something that is both awaitable and an async context manager
-                        class AwaitableContextManager:
-                            def __init__(self, return_value):
-                                self.return_value = return_value
-
-                            def __await__(self):
-                                yield
-                                return self
-
-                            async def __aenter__(self):
-                                return self.return_value
-
-                            async def __aexit__(self, *args):
-                                return None
-
-                        mock_post_context = AwaitableContextManager(
-                            mock_finalize_response
-                        )
-                        mock_session_instance.post = Mock(
-                            return_value=mock_post_context
-                        )
-
-                        with patch(
-                            "trainml.utils.transfer.ping_endpoint",
-                            new_callable=AsyncMock,
-                        ):
-                            await specimen.upload(
-                                "example.com", "token", tmp.name
-                            )
-                        # Should have called upload_chunk twice (one per chunk)
-                        assert upload_chunk_mock.call_count == 2
+        assert excinfo.value.status == 404
 
 
 class DownloadTests:
@@ -1433,12 +1165,7 @@ class DownloadTests:
 
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning TAR mode
                 def mock_get(*args, **kwargs):
@@ -1447,22 +1174,16 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     # Handle /info endpoint
                     elif "/info" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -1470,17 +1191,13 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/x-tar"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
 
                             async def chunk_iter():
                                 yield b"tar data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -1496,9 +1213,7 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "asyncio.create_subprocess_exec"
-                    ) as mock_subprocess:
+                    with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                         mock_process = AsyncMock()
                         mock_process.stdin = Mock()
                         mock_process.stdin.write = Mock()
@@ -1517,9 +1232,7 @@ class DownloadTests:
                         mock_finalize_response.__aenter__ = AsyncMock(
                             return_value=mock_finalize_response
                         )
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -1547,9 +1260,7 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", target_dir
-                            )
+                            await specimen.download("example.com", "token", target_dir)
 
             assert os.path.isdir(target_dir)
 
@@ -1558,12 +1269,7 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint - needs to return async context manager for async with
                 def mock_get(*args, **kwargs):
@@ -1571,14 +1277,10 @@ class DownloadTests:
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
                         # Configure as async context manager
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -1586,17 +1288,13 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/x-tar"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
 
                             async def chunk_iter():
                                 yield b"tar data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -1612,9 +1310,7 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "asyncio.create_subprocess_exec"
-                    ) as mock_subprocess:
+                    with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                         mock_process = AsyncMock()
                         mock_process.stdin = Mock()
                         mock_process.stdin.write = Mock()
@@ -1633,9 +1329,7 @@ class DownloadTests:
                         mock_finalize_response.__aenter__ = AsyncMock(
                             return_value=mock_finalize_response
                         )
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -1663,21 +1357,14 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_zip_mode(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning ZIP mode - needs to return async context manager for async with
                 def mock_get(*args, **kwargs):
@@ -1685,14 +1372,10 @@ class DownloadTests:
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": True}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": True})
                         mock_resp.text = AsyncMock(return_value="")
                         # Configure as async context manager
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -1709,9 +1392,7 @@ class DownloadTests:
                                 yield b"zip data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -1728,13 +1409,9 @@ class DownloadTests:
                     side_effect=mock_retry,
                 ):
                     mock_file_context = AsyncMock()
-                    mock_file_context.__aenter__ = AsyncMock(
-                        return_value=AsyncMock()
-                    )
+                    mock_file_context.__aenter__ = AsyncMock(return_value=AsyncMock())
                     mock_file_context.__aexit__ = AsyncMock(return_value=None)
-                    mock_file_context.__aenter__.return_value.write = (
-                        AsyncMock()
-                    )
+                    mock_file_context.__aenter__.return_value.write = AsyncMock()
                     with patch(
                         "aiofiles.open", return_value=mock_file_context
                     ) as mock_file:
@@ -1746,9 +1423,7 @@ class DownloadTests:
                         mock_finalize_response.__aenter__ = AsyncMock(
                             return_value=mock_finalize_response
                         )
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -1785,12 +1460,7 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning 404
                 def mock_get(*args, **kwargs):
@@ -1799,9 +1469,7 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     # Handle /info endpoint - returns 404
@@ -1817,17 +1485,13 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/x-tar"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
 
                             async def chunk_iter():
                                 yield b"tar data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -1856,9 +1520,7 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "asyncio.create_subprocess_exec"
-                    ) as mock_subprocess:
+                    with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                         mock_process = AsyncMock()
                         mock_process.stdin = Mock()
                         mock_process.stdin.write = Mock()
@@ -1877,9 +1539,7 @@ class DownloadTests:
                         mock_finalize_response.__aenter__ = AsyncMock(
                             return_value=mock_finalize_response
                         )
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -1907,21 +1567,14 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_info_endpoint_connection_error_404(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning ConnectionError with 404
                 def mock_get(*args, **kwargs):
@@ -1930,9 +1583,7 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     # Handle /info endpoint - raises ConnectionError
@@ -1945,17 +1596,13 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/x-tar"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
 
                             async def chunk_iter():
                                 yield b"tar data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -1981,9 +1628,7 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "asyncio.create_subprocess_exec"
-                    ) as mock_subprocess:
+                    with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                         mock_process = AsyncMock()
                         mock_process.stdin = Mock()
                         mock_process.stdin.write = Mock()
@@ -2014,9 +1659,7 @@ class DownloadTests:
                             return_value=mock_finalize_response
                         )
 
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -2044,21 +1687,14 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_info_endpoint_non_404_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning non-404 error
                 with patch(
@@ -2072,21 +1708,14 @@ class DownloadTests:
                         new_callable=AsyncMock,
                     ):
                         with raises(ConnectionError):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_info_endpoint_invalid_url(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning InvalidURL
                 with patch(
@@ -2097,33 +1726,22 @@ class DownloadTests:
                         "trainml.utils.transfer.ping_endpoint",
                         new_callable=AsyncMock,
                     ):
-                        with raises(
-                            ConnectionError, match="Invalid endpoint URL"
-                        ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                        with raises(ConnectionError, match="Invalid endpoint URL"):
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_info_endpoint_error_reading_body(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint with error reading response body
                 # This tests the exception handling in _get_info when response.text() raises
                 async def _get_info_with_error(*args, **kwargs):
                     mock_resp = AsyncMock()
                     mock_resp.status = 500
-                    mock_resp.text = AsyncMock(
-                        side_effect=Exception("Read error")
-                    )
+                    mock_resp.text = AsyncMock(side_effect=Exception("Read error"))
                     mock_resp.request_info = Mock()
                     mock_resp.history = ()
                     mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
@@ -2146,24 +1764,15 @@ class DownloadTests:
                         "trainml.utils.transfer.ping_endpoint",
                         new_callable=AsyncMock,
                     ):
-                        with raises(
-                            ConnectionError, match="Failed to get server info"
-                        ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                        with raises(ConnectionError, match="Failed to get server info"):
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_zip_content_type_fallback(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning TAR mode but Content-Type says zip
                 def mock_get(*args, **kwargs):
@@ -2171,13 +1780,9 @@ class DownloadTests:
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2194,9 +1799,7 @@ class DownloadTests:
                                 yield b"zip data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -2213,13 +1816,9 @@ class DownloadTests:
                     side_effect=mock_retry,
                 ):
                     mock_file_context = AsyncMock()
-                    mock_file_context.__aenter__ = AsyncMock(
-                        return_value=AsyncMock()
-                    )
+                    mock_file_context.__aenter__ = AsyncMock(return_value=AsyncMock())
                     mock_file_context.__aexit__ = AsyncMock(return_value=None)
-                    mock_file_context.__aenter__.return_value.write = (
-                        AsyncMock()
-                    )
+                    mock_file_context.__aenter__.return_value.write = AsyncMock()
                     with patch(
                         "aiofiles.open", return_value=mock_file_context
                     ) as mock_file:
@@ -2233,9 +1832,7 @@ class DownloadTests:
                             return_value=mock_finalize_response
                         )
 
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -2263,34 +1860,23 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_content_length_logging(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2307,9 +1893,7 @@ class DownloadTests:
                                 yield b"tar data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -2325,9 +1909,7 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "asyncio.create_subprocess_exec"
-                    ) as mock_subprocess:
+                    with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                         mock_process = AsyncMock()
                         mock_process.stdin = Mock()
                         mock_process.stdin.write = Mock()
@@ -2346,9 +1928,7 @@ class DownloadTests:
                         mock_finalize_response.__aenter__ = AsyncMock(
                             return_value=mock_finalize_response
                         )
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -2376,34 +1956,23 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_empty_file_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": True}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": True})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2411,17 +1980,13 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/zip"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/zip"}
 
                             async def chunk_iter():
                                 return
                                 yield  # Make it an async generator
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -2438,13 +2003,9 @@ class DownloadTests:
                     side_effect=mock_retry,
                 ):
                     mock_file_context = AsyncMock()
-                    mock_file_context.__aenter__ = AsyncMock(
-                        return_value=AsyncMock()
-                    )
+                    mock_file_context.__aenter__ = AsyncMock(return_value=AsyncMock())
                     mock_file_context.__aexit__ = AsyncMock(return_value=None)
-                    mock_file_context.__aenter__.return_value.write = (
-                        AsyncMock()
-                    )
+                    mock_file_context.__aenter__.return_value.write = AsyncMock()
                     with patch(
                         "aiofiles.open", return_value=mock_file_context
                     ) as mock_file:
@@ -2456,34 +2017,23 @@ class DownloadTests:
                                 ConnectionError,
                                 match="Downloaded file is empty",
                             ):
-                                await specimen.download(
-                                    "example.com", "token", tmpdir
-                                )
+                                await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_tar_extraction_failure(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2491,17 +2041,13 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/x-tar"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
 
                             async def chunk_iter():
                                 yield b"tar data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -2517,18 +2063,14 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "asyncio.create_subprocess_exec"
-                    ) as mock_subprocess:
+                    with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                         mock_process = AsyncMock()
                         mock_process.stdin = Mock()
                         mock_process.stdin.write = Mock()
                         mock_process.stdin.drain = AsyncMock()
                         mock_process.stdin.close = Mock()
                         mock_process.wait = AsyncMock(return_value=1)
-                        mock_process.stderr.read = AsyncMock(
-                            return_value=b"tar error"
-                        )
+                        mock_process.stderr.read = AsyncMock(return_value=b"tar error")
                         mock_subprocess.return_value = mock_process
 
                         with patch(
@@ -2538,34 +2080,23 @@ class DownloadTests:
                             with raises(
                                 TrainMLException, match="tar extraction failed"
                             ):
-                                await specimen.download(
-                                    "example.com", "token", tmpdir
-                                )
+                                await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_tar_extraction_failure_no_stderr(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2573,17 +2104,13 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/x-tar"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
 
                             async def chunk_iter():
                                 yield b"tar data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -2599,9 +2126,7 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "asyncio.create_subprocess_exec"
-                    ) as mock_subprocess:
+                    with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                         mock_process = AsyncMock()
                         mock_process.stdin = Mock()
                         mock_process.stdin.write = Mock()
@@ -2619,34 +2144,23 @@ class DownloadTests:
                             with raises(
                                 TrainMLException, match="tar extraction failed"
                             ):
-                                await specimen.download(
-                                    "example.com", "token", tmpdir
-                                )
+                                await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_404_error(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2671,39 +2185,135 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "trainml.utils.transfer.ping_endpoint",
-                        new_callable=AsyncMock,
-                    ):
-                        with raises(ClientResponseError):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+                        with patch(
+                            "trainml.utils.transfer.ping_endpoint",
+                            new_callable=AsyncMock,
+                        ):
+                            with raises(ConnectionError, match="404"):
+                                await specimen.download("example.com", "token", tmpdir)
+
+                assert mock_sleep.await_count == 9
 
     @mark.asyncio
-    async def test_download_non_404_error_status(self):
+    async def test_download_404_retries_then_success(self):
+        """A 404 on /download (tunnel recycling) is retried, then succeeds."""
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
+
+                download_calls = {"count": 0}
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+                        mock_resp.__aexit__ = AsyncMock(return_value=None)
+                        return mock_resp
+                    else:
+                        download_calls["count"] += 1
+
+                        async def get_download_response():
+                            if download_calls["count"] < 3:
+                                raise ClientResponseError(
+                                    request_info=Mock(),
+                                    history=(),
+                                    status=404,
+                                    message="Not found",
+                                )
+                            mock_resp = AsyncMock()
+                            mock_resp.status = 200
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
+
+                            async def chunk_iter():
+                                yield b"tar data"
+                                yield b""
+
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
+                            mock_resp.close = Mock()
+                            return mock_resp
+
+                        return get_download_response()
+
+                mock_session_instance.get = Mock(side_effect=mock_get)
+
+                mock_finalize_response = AsyncMock()
+                mock_finalize_response.status = 200
+                mock_finalize_response.json = AsyncMock(return_value={"status": "ok"})
+                mock_finalize_response.__aenter__ = AsyncMock(
+                    return_value=mock_finalize_response
+                )
+                mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
+
+                class AwaitableContextManager:
+                    def __init__(self, return_value):
+                        self.return_value = return_value
+
+                    def __await__(self):
+                        yield
+                        return self
+
+                    async def __aenter__(self):
+                        return self.return_value
+
+                    async def __aexit__(self, *args):
+                        return None
+
+                mock_session_instance.post = Mock(
+                    return_value=AwaitableContextManager(mock_finalize_response)
+                )
+
+                # Call through to the real retry_request
+                async def mock_retry(func, *args, **kwargs):
+                    return await func(*args, **kwargs)
+
+                with patch("asyncio.create_subprocess_exec") as mock_subprocess:
+                    mock_process = AsyncMock()
+                    mock_process.stdin = Mock()
+                    mock_process.stdin.write = Mock()
+                    mock_process.stdin.drain = AsyncMock()
+                    mock_process.stdin.close = Mock()
+                    mock_process.returncode = 0
+                    mock_process.wait = AsyncMock(return_value=0)
+                    mock_process.stderr.read = AsyncMock(return_value=b"")
+                    mock_subprocess.return_value = mock_process
+
+                    with patch(
+                        "trainml.utils.transfer.retry_request",
+                        side_effect=mock_retry,
+                    ):
+                        with patch(
+                            "asyncio.sleep", new_callable=AsyncMock
+                        ) as mock_sleep:
+                            with patch(
+                                "trainml.utils.transfer.ping_endpoint",
+                                new_callable=AsyncMock,
+                            ):
+                                await specimen.download("example.com", "token", tmpdir)
+
+                assert download_calls["count"] == 3
+                assert mock_sleep.await_count == 2
+
+    @mark.asyncio
+    async def test_download_non_404_error_status(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("aiohttp.ClientSession") as mock_session:
+                mock_session_instance = AsyncMock()
+                mock_session.return_value = mock_session_instance
+
+                def mock_get(*args, **kwargs):
+                    url = args[0] if args else kwargs.get("url", "")
+                    if "/info" in url or "/ping" in url:
+                        mock_resp = AsyncMock()
+                        mock_resp.status = 200
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
+                        mock_resp.text = AsyncMock(return_value="")
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2733,34 +2343,23 @@ class DownloadTests:
                         new_callable=AsyncMock,
                     ):
                         with raises(ClientResponseError):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_finalize_failure(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2768,17 +2367,13 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/x-tar"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
 
                             async def chunk_iter():
                                 yield b"tar data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -2794,9 +2389,7 @@ class DownloadTests:
                     "trainml.utils.transfer.retry_request",
                     side_effect=mock_retry,
                 ):
-                    with patch(
-                        "asyncio.create_subprocess_exec"
-                    ) as mock_subprocess:
+                    with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                         mock_process = AsyncMock()
                         mock_process.stdin = Mock()
                         mock_process.stdin.write = Mock()
@@ -2818,9 +2411,7 @@ class DownloadTests:
                             return_value=mock_finalize_response
                         )
 
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -2848,37 +2439,113 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            with raises(
-                                ConnectionError, match="Finalize failed"
-                            ):
-                                await specimen.download(
-                                    "example.com", "token", tmpdir
-                                )
+                            with raises(ConnectionError, match="Finalize failed"):
+                                await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
-    async def test_download_content_disposition_filename(self):
+    async def test_download_finalize_retries_transient_error(self):
+        """A transient HTTP error on /finalize (e.g. 524) is retried, then succeeds."""
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": True}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+                        mock_resp.__aexit__ = AsyncMock(return_value=None)
+                        return mock_resp
+                    else:
+
+                        async def get_download_response():
+                            mock_resp = AsyncMock()
+                            mock_resp.status = 200
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
+
+                            async def chunk_iter():
+                                yield b"tar data"
+                                yield b""
+
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
+                            mock_resp.close = Mock()
+                            return mock_resp
+
+                        return get_download_response()
+
+                mock_session_instance.get = Mock(side_effect=mock_get)
+
+                with patch("asyncio.create_subprocess_exec") as mock_subprocess:
+                    mock_process = AsyncMock()
+                    mock_process.stdin = Mock()
+                    mock_process.stdin.write = Mock()
+                    mock_process.stdin.drain = AsyncMock()
+                    mock_process.stdin.close = Mock()
+                    mock_process.returncode = 0
+                    mock_process.wait = AsyncMock(return_value=0)
+                    mock_process.stderr.read = AsyncMock(return_value=b"")
+                    mock_subprocess.return_value = mock_process
+
+                    def make_finalize_response(status):
+                        resp = AsyncMock()
+                        resp.status = status
+                        resp.text = AsyncMock(
+                            return_value="origin timeout" if status != 200 else ""
                         )
+                        resp.json = AsyncMock(return_value={"status": "ok"})
+                        resp.__aenter__ = AsyncMock(return_value=resp)
+                        resp.__aexit__ = AsyncMock(return_value=None)
+                        return resp
+
+                    class AwaitableContextManager:
+                        def __init__(self, return_value):
+                            self.return_value = return_value
+
+                        def __await__(self):
+                            yield
+                            return self
+
+                        async def __aenter__(self):
+                            return self.return_value
+
+                        async def __aexit__(self, *args):
+                            return None
+
+                    fail_context = AwaitableContextManager(make_finalize_response(524))
+                    ok_context = AwaitableContextManager(make_finalize_response(200))
+                    mock_session_instance.post = Mock(
+                        side_effect=[fail_context, ok_context]
+                    )
+
+                    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+                        with patch(
+                            "trainml.utils.transfer.ping_endpoint",
+                            new_callable=AsyncMock,
+                        ):
+                            await specimen.download("example.com", "token", tmpdir)
+
+                    assert mock_session_instance.post.call_count == 2
+                    mock_sleep.assert_awaited()
+
+    @mark.asyncio
+    async def test_download_content_disposition_filename(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("aiohttp.ClientSession") as mock_session:
+                mock_session_instance = AsyncMock()
+                mock_session.return_value = mock_session_instance
+
+                def mock_get(*args, **kwargs):
+                    url = args[0] if args else kwargs.get("url", "")
+                    if "/info" in url or "/ping" in url:
+                        mock_resp = AsyncMock()
+                        mock_resp.status = 200
+                        mock_resp.json = AsyncMock(return_value={"archive": True})
+                        mock_resp.text = AsyncMock(return_value="")
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -2895,9 +2562,7 @@ class DownloadTests:
                                 yield b"zip data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -2914,13 +2579,9 @@ class DownloadTests:
                     side_effect=mock_retry,
                 ):
                     mock_file_context = AsyncMock()
-                    mock_file_context.__aenter__ = AsyncMock(
-                        return_value=AsyncMock()
-                    )
+                    mock_file_context.__aenter__ = AsyncMock(return_value=AsyncMock())
                     mock_file_context.__aexit__ = AsyncMock(return_value=None)
-                    mock_file_context.__aenter__.return_value.write = (
-                        AsyncMock()
-                    )
+                    mock_file_context.__aenter__.return_value.write = AsyncMock()
                     with patch(
                         "aiofiles.open", return_value=mock_file_context
                     ) as mock_file:
@@ -2934,9 +2595,7 @@ class DownloadTests:
                             return_value=mock_finalize_response
                         )
 
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -2964,21 +2623,14 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_content_disposition_filename_no_quotes(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
@@ -2986,22 +2638,16 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     # Handle /info endpoint
                     elif "/info" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": True}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": True})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -3018,9 +2664,7 @@ class DownloadTests:
                                 yield b"zip data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -3044,12 +2688,8 @@ class DownloadTests:
                         mock_file_context.__aenter__ = AsyncMock(
                             return_value=AsyncMock()
                         )
-                        mock_file_context.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
-                        mock_file_context.__aenter__.return_value.write = (
-                            AsyncMock()
-                        )
+                        mock_file_context.__aexit__ = AsyncMock(return_value=None)
+                        mock_file_context.__aenter__.return_value.write = AsyncMock()
                         with patch(
                             "aiofiles.open", return_value=mock_file_context
                         ) as mock_file:
@@ -3063,9 +2703,7 @@ class DownloadTests:
                             return_value=mock_finalize_response
                         )
 
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -3093,34 +2731,23 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_no_content_disposition_fallback(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
                     if "/info" in url or "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": True}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": True})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -3136,9 +2763,7 @@ class DownloadTests:
                                 yield b"zip data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -3155,13 +2780,9 @@ class DownloadTests:
                     side_effect=mock_retry,
                 ):
                     mock_file_context = AsyncMock()
-                    mock_file_context.__aenter__ = AsyncMock(
-                        return_value=AsyncMock()
-                    )
+                    mock_file_context.__aenter__ = AsyncMock(return_value=AsyncMock())
                     mock_file_context.__aexit__ = AsyncMock(return_value=None)
-                    mock_file_context.__aenter__.return_value.write = (
-                        AsyncMock()
-                    )
+                    mock_file_context.__aenter__.return_value.write = AsyncMock()
                     with patch(
                         "aiofiles.open", return_value=mock_file_context
                     ) as mock_file:
@@ -3175,9 +2796,7 @@ class DownloadTests:
                             return_value=mock_finalize_response
                         )
 
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -3205,21 +2824,14 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_filename_no_zip_extension(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
@@ -3227,22 +2839,16 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     # Handle /info endpoint
                     elif "/info" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": True}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": True})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -3259,9 +2865,7 @@ class DownloadTests:
                                 yield b"zip data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -3285,12 +2889,8 @@ class DownloadTests:
                         mock_file_context.__aenter__ = AsyncMock(
                             return_value=AsyncMock()
                         )
-                        mock_file_context.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
-                        mock_file_context.__aenter__.return_value.write = (
-                            AsyncMock()
-                        )
+                        mock_file_context.__aexit__ = AsyncMock(return_value=None)
+                        mock_file_context.__aenter__.return_value.write = AsyncMock()
                         with patch(
                             "aiofiles.open", return_value=mock_file_context
                         ) as mock_file:
@@ -3304,9 +2904,7 @@ class DownloadTests:
                             return_value=mock_finalize_response
                         )
 
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -3334,21 +2932,14 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_multiple_chunks(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
@@ -3356,22 +2947,16 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     # Handle /info endpoint
                     elif "/info" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": False}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": False})
                         mock_resp.text = AsyncMock(return_value="")
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     else:
@@ -3379,9 +2964,7 @@ class DownloadTests:
                         async def get_download_response():
                             mock_resp = AsyncMock()
                             mock_resp.status = 200
-                            mock_resp.headers = {
-                                "Content-Type": "application/x-tar"
-                            }
+                            mock_resp.headers = {"Content-Type": "application/x-tar"}
 
                             # Simulate multiple chunks - iter_chunked should return an async iterator
                             async def chunk_iter():
@@ -3389,9 +2972,7 @@ class DownloadTests:
                                 yield b"chunk2"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -3411,9 +2992,7 @@ class DownloadTests:
                         "trainml.utils.transfer.ping_endpoint",
                         new_callable=AsyncMock,
                     ):
-                        with patch(
-                            "asyncio.create_subprocess_exec"
-                        ) as mock_subprocess:
+                        with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                             mock_process = AsyncMock()
                             mock_process.stdin = Mock()
                             mock_process.stdin.write = Mock()
@@ -3421,19 +3000,13 @@ class DownloadTests:
                             mock_process.stdin.close = Mock()
                             mock_process.returncode = 0
                             mock_process.wait = AsyncMock(return_value=0)
-                            mock_process.stderr.read = AsyncMock(
-                                return_value=b""
-                            )
+                            mock_process.stderr.read = AsyncMock(return_value=b"")
 
                             # create_subprocess_exec is async, so return a coroutine
-                            async def mock_create_subprocess_exec(
-                                *args, **kwargs
-                            ):
+                            async def mock_create_subprocess_exec(*args, **kwargs):
                                 return mock_process
 
-                            mock_subprocess.side_effect = (
-                                mock_create_subprocess_exec
-                            )
+                            mock_subprocess.side_effect = mock_create_subprocess_exec
 
                             mock_finalize_response = AsyncMock()
                             mock_finalize_response.status = 200
@@ -3469,9 +3042,7 @@ class DownloadTests:
                                 return_value=mock_post_context
                             )
 
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
                         # Verify stdin.write was called for each chunk (chunk1, chunk2, and empty)
                         # The empty chunk at the end also triggers a write
                         assert mock_process.stdin.write.call_count >= 2
@@ -3534,16 +3105,10 @@ class DownloadTests:
             tmp.write(b"test content")
             tmp.flush()
 
-            with patch(
-                "trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock
-            ):
-                with patch(
-                    "asyncio.create_subprocess_exec"
-                ) as mock_subprocess:
+            with patch("trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock):
+                with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                     mock_process = AsyncMock()
-                    mock_process.stdout.read = AsyncMock(
-                        side_effect=[b"data", b""]
-                    )
+                    mock_process.stdout.read = AsyncMock(side_effect=[b"data", b""])
                     mock_process.returncode = 0
                     mock_process.wait = AsyncMock(return_value=0)
                     mock_process.stderr.read = AsyncMock(return_value=b"")
@@ -3551,12 +3116,7 @@ class DownloadTests:
 
                     with patch("aiohttp.ClientSession") as mock_session:
                         mock_session_instance = AsyncMock()
-                        mock_session.return_value.__aenter__ = AsyncMock(
-                            return_value=mock_session_instance
-                        )
-                        mock_session.return_value.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_session.return_value = mock_session_instance
 
                         with patch(
                             "trainml.utils.transfer.upload_chunk",
@@ -3597,11 +3157,261 @@ class DownloadTests:
                             )
 
                             with patch("logging.debug") as mock_log:
-                                await specimen.upload(
-                                    "example.com", "token", tmp.name
-                                )
+                                await specimen.upload("example.com", "token", tmp.name)
                                 # Verify logging.debug was called for finalize
                                 mock_log.assert_called()
+
+    @mark.asyncio
+    async def test_upload_finalize_retries_transient_error(self):
+        """A transient HTTP error on /finalize (e.g. 524) is retried, then succeeds."""
+        with tempfile.NamedTemporaryFile() as tmp:
+            tmp.write(b"test content")
+            tmp.flush()
+
+            with patch("trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock):
+                with patch("asyncio.create_subprocess_exec") as mock_subprocess:
+                    mock_process = AsyncMock()
+                    mock_process.stdout.read = AsyncMock(side_effect=[b"data", b""])
+                    mock_process.returncode = 0
+                    mock_process.wait = AsyncMock(return_value=0)
+                    mock_process.stderr.read = AsyncMock(return_value=b"")
+                    mock_subprocess.return_value = mock_process
+
+                    with patch("aiohttp.ClientSession") as mock_session:
+                        mock_session_instance = AsyncMock()
+                        mock_session.return_value = mock_session_instance
+
+                        with patch(
+                            "trainml.utils.transfer.upload_chunk",
+                            new_callable=AsyncMock,
+                        ):
+
+                            def make_finalize_response(status):
+                                resp = AsyncMock()
+                                resp.status = status
+                                resp.text = AsyncMock(
+                                    return_value=(
+                                        "origin timeout" if status != 200 else ""
+                                    )
+                                )
+                                resp.json = AsyncMock(return_value={"status": "ok"})
+                                resp.__aenter__ = AsyncMock(return_value=resp)
+                                resp.__aexit__ = AsyncMock(return_value=None)
+                                return resp
+
+                            class AwaitableContextManager:
+                                def __init__(self, return_value):
+                                    self.return_value = return_value
+
+                                def __await__(self):
+                                    yield
+                                    return self
+
+                                async def __aenter__(self):
+                                    return self.return_value
+
+                                async def __aexit__(self, *args):
+                                    return None
+
+                            fail_context = AwaitableContextManager(
+                                make_finalize_response(524)
+                            )
+                            ok_context = AwaitableContextManager(
+                                make_finalize_response(200)
+                            )
+                            mock_session_instance.post = Mock(
+                                side_effect=[fail_context, ok_context]
+                            )
+
+                            with patch(
+                                "asyncio.sleep", new_callable=AsyncMock
+                            ) as mock_sleep:
+                                await specimen.upload("example.com", "token", tmp.name)
+
+                            assert mock_session_instance.post.call_count == 2
+                            mock_sleep.assert_awaited()
+
+    @mark.asyncio
+    async def test_upload_finalize_no_retry_for_permanent_error(self):
+        """A non-retryable HTTP error on /finalize fails immediately, no retries."""
+        with tempfile.NamedTemporaryFile() as tmp:
+            tmp.write(b"test content")
+            tmp.flush()
+
+            with patch("trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock):
+                with patch("asyncio.create_subprocess_exec") as mock_subprocess:
+                    mock_process = AsyncMock()
+                    mock_process.stdout.read = AsyncMock(side_effect=[b"data", b""])
+                    mock_process.returncode = 0
+                    mock_process.wait = AsyncMock(return_value=0)
+                    mock_process.stderr.read = AsyncMock(return_value=b"")
+                    mock_subprocess.return_value = mock_process
+
+                    with patch("aiohttp.ClientSession") as mock_session:
+                        mock_session_instance = AsyncMock()
+                        mock_session.return_value = mock_session_instance
+
+                        with patch(
+                            "trainml.utils.transfer.upload_chunk",
+                            new_callable=AsyncMock,
+                        ):
+                            fail_response = AsyncMock()
+                            fail_response.status = 500
+                            fail_response.text = AsyncMock(
+                                return_value="Finalize error"
+                            )
+                            fail_response.__aenter__ = AsyncMock(
+                                return_value=fail_response
+                            )
+                            fail_response.__aexit__ = AsyncMock(return_value=None)
+
+                            class AwaitableContextManager:
+                                def __init__(self, return_value):
+                                    self.return_value = return_value
+
+                                def __await__(self):
+                                    yield
+                                    return self
+
+                                async def __aenter__(self):
+                                    return self.return_value
+
+                                async def __aexit__(self, *args):
+                                    return None
+
+                            fail_context = AwaitableContextManager(fail_response)
+                            mock_session_instance.post = Mock(return_value=fail_context)
+
+                            with patch(
+                                "asyncio.sleep", new_callable=AsyncMock
+                            ) as mock_sleep:
+                                with raises(
+                                    ConnectionError,
+                                    match=r"Finalize failed \(HTTP 500\)",
+                                ):
+                                    await specimen.upload(
+                                        "example.com", "token", tmp.name
+                                    )
+
+                            assert mock_session_instance.post.call_count == 1
+                            mock_sleep.assert_not_awaited()
+
+    @mark.asyncio
+    async def test_upload_404_retries_then_success(self):
+        """A 404 on an /upload chunk (tunnel recycling) is retried, then succeeds."""
+        with tempfile.NamedTemporaryFile() as tmp:
+            tmp.write(b"test content")
+            tmp.flush()
+
+            with patch("trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock):
+                with patch("asyncio.create_subprocess_exec") as mock_subprocess:
+                    mock_process = AsyncMock()
+                    mock_process.stdout.read = AsyncMock(side_effect=[b"data", b""])
+                    mock_process.returncode = 0
+                    mock_process.wait = AsyncMock(return_value=0)
+                    mock_process.stderr.read = AsyncMock(return_value=b"")
+                    mock_subprocess.return_value = mock_process
+
+                    with patch("aiohttp.ClientSession") as mock_session:
+                        mock_session_instance = AsyncMock()
+                        mock_session.return_value = mock_session_instance
+
+                        not_found = Mock()
+                        not_found.status = 404
+                        not_found.text = AsyncMock(return_value="Not found")
+                        not_found.request_info = Mock()
+                        not_found.history = ()
+
+                        ok_response = Mock()
+                        ok_response.status = 200
+                        ok_response.json = AsyncMock(
+                            return_value={"expected_offset": 4}
+                        )
+                        ok_response.release = AsyncMock()
+                        ok_response.request_info = Mock()
+                        ok_response.history = ()
+
+                        mock_session_instance.put = Mock(
+                            side_effect=[
+                                _AsyncContextManager(not_found),
+                                _AsyncContextManager(ok_response),
+                            ]
+                        )
+
+                        mock_finalize_response = AsyncMock()
+                        mock_finalize_response.status = 200
+                        mock_finalize_response.json = AsyncMock(
+                            return_value={"status": "ok"}
+                        )
+                        mock_finalize_response.__aenter__ = AsyncMock(
+                            return_value=mock_finalize_response
+                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
+
+                        class AwaitableContextManager:
+                            def __init__(self, return_value):
+                                self.return_value = return_value
+
+                            def __await__(self):
+                                yield
+                                return self
+
+                            async def __aenter__(self):
+                                return self.return_value
+
+                            async def __aexit__(self, *args):
+                                return None
+
+                        mock_session_instance.post = Mock(
+                            return_value=AwaitableContextManager(mock_finalize_response)
+                        )
+
+                        with patch(
+                            "asyncio.sleep", new_callable=AsyncMock
+                        ) as mock_sleep:
+                            await specimen.upload("example.com", "token", tmp.name)
+
+                        assert mock_session_instance.put.call_count == 2
+                        assert mock_sleep.await_count == 1
+
+    @mark.asyncio
+    async def test_upload_404_exhaustion_fails(self):
+        """A persistent 404 on /upload exhausts the retry budget and fails."""
+        with tempfile.NamedTemporaryFile() as tmp:
+            tmp.write(b"test content")
+            tmp.flush()
+
+            with patch("trainml.utils.transfer.ping_endpoint", new_callable=AsyncMock):
+                with patch("asyncio.create_subprocess_exec") as mock_subprocess:
+                    mock_process = AsyncMock()
+                    mock_process.stdout.read = AsyncMock(side_effect=[b"data", b""])
+                    mock_process.returncode = 0
+                    mock_process.wait = AsyncMock(return_value=0)
+                    mock_process.stderr.read = AsyncMock(return_value=b"")
+                    mock_subprocess.return_value = mock_process
+
+                    with patch("aiohttp.ClientSession") as mock_session:
+                        mock_session_instance = AsyncMock()
+                        mock_session.return_value = mock_session_instance
+
+                        not_found = Mock()
+                        not_found.status = 404
+                        not_found.text = AsyncMock(return_value="Not found")
+                        not_found.request_info = Mock()
+                        not_found.history = ()
+
+                        mock_session_instance.put = Mock(
+                            return_value=_AsyncContextManager(not_found)
+                        )
+
+                        with patch(
+                            "asyncio.sleep", new_callable=AsyncMock
+                        ) as mock_sleep:
+                            with raises(ConnectionError, match="404"):
+                                await specimen.upload("example.com", "token", tmp.name)
+
+                        assert mock_session_instance.put.call_count == 10
+                        assert mock_sleep.await_count == 9
 
     @mark.asyncio
     async def test_download_info_endpoint_non_200_status(self):
@@ -3644,13 +3454,8 @@ class DownloadTests:
                 return None
 
             with patch("aiohttp.ClientSession") as mock_session:
-                mock_session_instance = MagicMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session_instance = AsyncMock()
+                mock_session.return_value = mock_session_instance
 
                 with patch(
                     "trainml.utils.transfer.retry_request",
@@ -3660,12 +3465,8 @@ class DownloadTests:
                         "trainml.utils.transfer.ping_endpoint",
                         _noop_ping,
                     ):
-                        with raises(
-                            ConnectionError, match="Failed to get server info"
-                        ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                        with raises(ConnectionError, match="Failed to get server info"):
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_non_404_error_in_download(self):
@@ -3673,12 +3474,7 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 async def mock_get(*args, **kwargs):
                     mock_resp = AsyncMock()
@@ -3750,9 +3546,7 @@ class DownloadTests:
                         new_callable=AsyncMock,
                     ):
                         with raises(ClientResponseError):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_content_disposition_filename_no_quotes_fallback(
@@ -3762,9 +3556,7 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value = _AsyncContextManager(
-                    mock_session_instance
-                )
+                mock_session.return_value = mock_session_instance
 
                 def mock_get(*args, **kwargs):
                     url = args[0] if args else kwargs.get("url", "")
@@ -3777,9 +3569,7 @@ class DownloadTests:
                     elif "/info" in url:
                         mock_resp = Mock()
                         mock_resp.status = 200
-                        mock_resp.json = AsyncMock(
-                            return_value={"archive": True}
-                        )
+                        mock_resp.json = AsyncMock(return_value={"archive": True})
                         mock_resp.text = AsyncMock(return_value="")
                         return _AsyncContextManager(mock_resp)
                     else:
@@ -3796,9 +3586,7 @@ class DownloadTests:
                                 yield b"zip data"
                                 yield b""
 
-                            mock_resp.content.iter_chunked = (
-                                lambda size: chunk_iter()
-                            )
+                            mock_resp.content.iter_chunked = lambda size: chunk_iter()
                             mock_resp.close = Mock()
                             return mock_resp
 
@@ -3822,12 +3610,8 @@ class DownloadTests:
                         mock_file_context.__aenter__ = AsyncMock(
                             return_value=AsyncMock()
                         )
-                        mock_file_context.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
-                        mock_file_context.__aenter__.return_value.write = (
-                            AsyncMock()
-                        )
+                        mock_file_context.__aexit__ = AsyncMock(return_value=None)
+                        mock_file_context.__aenter__.return_value.write = AsyncMock()
                         with patch(
                             "aiofiles.open", return_value=mock_file_context
                         ) as mock_file:
@@ -3869,9 +3653,7 @@ class DownloadTests:
                             "trainml.utils.transfer.ping_endpoint",
                             new_callable=AsyncMock,
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_finalize_success_logging(self):
@@ -3879,19 +3661,12 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning success
                 mock_info_response = AsyncMock()
                 mock_info_response.status = 200
-                mock_info_response.json = AsyncMock(
-                    return_value={"archive": False}
-                )
+                mock_info_response.json = AsyncMock(return_value={"archive": False})
                 mock_info_response.__aenter__ = AsyncMock(
                     return_value=mock_info_response
                 )
@@ -3919,9 +3694,7 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     call_count += 1
@@ -3931,9 +3704,7 @@ class DownloadTests:
                         mock_get_response.__aenter__ = AsyncMock(
                             return_value=mock_info_response
                         )
-                        mock_get_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_get_response.__aexit__ = AsyncMock(return_value=None)
                         return mock_get_response
                     else:
                         # For /download endpoint, return awaitable that resolves to response (used with await)
@@ -3956,9 +3727,7 @@ class DownloadTests:
                         "trainml.utils.transfer.ping_endpoint",
                         new_callable=AsyncMock,
                     ):
-                        with patch(
-                            "asyncio.create_subprocess_exec"
-                        ) as mock_subprocess:
+                        with patch("asyncio.create_subprocess_exec") as mock_subprocess:
                             mock_process = AsyncMock()
                             mock_process.stdin = Mock()
                             mock_process.stdin.write = Mock()
@@ -3966,9 +3735,7 @@ class DownloadTests:
                             mock_process.stdin.close = Mock()
                             mock_process.returncode = 0
                             mock_process.wait = AsyncMock(return_value=0)
-                            mock_process.stderr.read = AsyncMock(
-                                return_value=b""
-                            )
+                            mock_process.stderr.read = AsyncMock(return_value=b"")
                             mock_subprocess.return_value = mock_process
 
                             mock_finalize_response = AsyncMock()
@@ -4006,9 +3773,7 @@ class DownloadTests:
                             )
 
                             with patch("logging.debug") as mock_log:
-                                await specimen.download(
-                                    "example.com", "token", tmpdir
-                                )
+                                await specimen.download("example.com", "token", tmpdir)
                                 # Verify logging.debug was called for finalize
                                 mock_log.assert_called()
 
@@ -4018,19 +3783,12 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning 500
                 mock_info_response = AsyncMock()
                 mock_info_response.status = 500
-                mock_info_response.text = AsyncMock(
-                    return_value="Server error"
-                )
+                mock_info_response.text = AsyncMock(return_value="Server error")
                 mock_info_response.request_info = Mock()
                 mock_info_response.history = ()
                 mock_info_response.__aenter__ = AsyncMock(
@@ -4044,9 +3802,7 @@ class DownloadTests:
                     return_value=mock_info_response
                 )
                 mock_get_response.__aexit__ = AsyncMock(return_value=None)
-                mock_session_instance.get = Mock(
-                    return_value=mock_get_response
-                )
+                mock_session_instance.get = Mock(return_value=mock_get_response)
 
                 # Mock retry_request to actually call the function passed to it
                 async def mock_retry(func, *args, **kwargs):
@@ -4060,12 +3816,8 @@ class DownloadTests:
                         "trainml.utils.transfer.ping_endpoint",
                         new_callable=AsyncMock,
                     ):
-                        with raises(
-                            ConnectionError, match="Failed to get server info"
-                        ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                        with raises(ConnectionError, match="Failed to get server info"):
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_info_endpoint_error_reading_body_direct(self):
@@ -4073,12 +3825,7 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning 500 with error reading body
                 mock_info_response = AsyncMock()
@@ -4100,9 +3847,7 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     # Handle /info endpoint
@@ -4131,9 +3876,7 @@ class DownloadTests:
                             ConnectionError,
                             match="Failed to get server info.*Unable to read response body",
                         ):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
 
     @mark.asyncio
     async def test_download_endpoint_404_error_direct(self):
@@ -4141,19 +3884,12 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning success
                 mock_info_response = AsyncMock()
                 mock_info_response.status = 200
-                mock_info_response.json = AsyncMock(
-                    return_value={"archive": False}
-                )
+                mock_info_response.json = AsyncMock(return_value={"archive": False})
                 mock_info_response.__aenter__ = AsyncMock(
                     return_value=mock_info_response
                 )
@@ -4162,9 +3898,7 @@ class DownloadTests:
                 # Mock /download endpoint returning 404
                 mock_download_response = AsyncMock()
                 mock_download_response.status = 404
-                mock_download_response.text = AsyncMock(
-                    return_value="Not Found"
-                )
+                mock_download_response.text = AsyncMock(return_value="Not Found")
                 mock_download_response.close = Mock()
                 mock_download_response.request_info = Mock()
                 mock_download_response.history = ()
@@ -4178,9 +3912,7 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     call_count += 1
@@ -4190,9 +3922,7 @@ class DownloadTests:
                         mock_get_response.__aenter__ = AsyncMock(
                             return_value=mock_info_response
                         )
-                        mock_get_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_get_response.__aexit__ = AsyncMock(return_value=None)
                         return mock_get_response
                     else:
                         # For /download endpoint, return awaitable that resolves to response (used with await)
@@ -4215,12 +3945,16 @@ class DownloadTests:
                         "trainml.utils.transfer.ping_endpoint",
                         new_callable=AsyncMock,
                     ):
-                        # The 404 error should be raised as ClientResponseError and retried, but eventually
-                        # it will raise ConnectionError with the message about endpoint not available
-                        with raises((ConnectionError, ClientResponseError)):
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                        with patch(
+                            "asyncio.sleep", new_callable=AsyncMock
+                        ) as mock_sleep:
+                            # The 404 is retried at the fixed tunnel-recycling
+                            # cadence, then raised as ConnectionError once the
+                            # retry budget is exhausted.
+                            with raises(ConnectionError, match="404"):
+                                await specimen.download("example.com", "token", tmpdir)
+
+                assert mock_sleep.await_count == 9
 
     @mark.asyncio
     async def test_download_endpoint_non_404_error_direct(self):
@@ -4228,19 +3962,12 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning success
                 mock_info_response = AsyncMock()
                 mock_info_response.status = 200
-                mock_info_response.json = AsyncMock(
-                    return_value={"archive": False}
-                )
+                mock_info_response.json = AsyncMock(return_value={"archive": False})
                 mock_info_response.__aenter__ = AsyncMock(
                     return_value=mock_info_response
                 )
@@ -4249,9 +3976,7 @@ class DownloadTests:
                 # Mock /download endpoint returning 500
                 mock_download_response = AsyncMock()
                 mock_download_response.status = 500
-                mock_download_response.text = AsyncMock(
-                    return_value="Server error"
-                )
+                mock_download_response.text = AsyncMock(return_value="Server error")
                 mock_download_response.close = Mock()
                 mock_download_response.request_info = Mock()
                 mock_download_response.history = ()
@@ -4265,9 +3990,7 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     call_count += 1
@@ -4277,9 +4000,7 @@ class DownloadTests:
                         mock_get_response.__aenter__ = AsyncMock(
                             return_value=mock_info_response
                         )
-                        mock_get_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_get_response.__aexit__ = AsyncMock(return_value=None)
                         return mock_get_response
                     else:
                         # For /download endpoint, return awaitable that resolves to response (used with await)
@@ -4303,9 +4024,7 @@ class DownloadTests:
                         new_callable=AsyncMock,
                     ):
                         with raises(ClientResponseError) as exc_info:
-                            await specimen.download(
-                                "example.com", "token", tmpdir
-                            )
+                            await specimen.download("example.com", "token", tmpdir)
                     assert exc_info.value.status == 500
 
     @mark.asyncio
@@ -4314,19 +4033,12 @@ class DownloadTests:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("aiohttp.ClientSession") as mock_session:
                 mock_session_instance = AsyncMock()
-                mock_session.return_value.__aenter__ = AsyncMock(
-                    return_value=mock_session_instance
-                )
-                mock_session.return_value.__aexit__ = AsyncMock(
-                    return_value=None
-                )
+                mock_session.return_value = mock_session_instance
 
                 # Mock /info endpoint returning success
                 mock_info_response = AsyncMock()
                 mock_info_response.status = 200
-                mock_info_response.json = AsyncMock(
-                    return_value={"archive": True}
-                )
+                mock_info_response.json = AsyncMock(return_value={"archive": True})
                 mock_info_response.__aenter__ = AsyncMock(
                     return_value=mock_info_response
                 )
@@ -4340,9 +4052,7 @@ class DownloadTests:
                 mock_download_response.status = 200
                 mock_download_response.headers = {
                     "Content-Type": "application/zip",
-                    "Content-Disposition": (
-                        "attachment; filename=test-file.zip"
-                    ),
+                    "Content-Disposition": ("attachment; filename=test-file.zip"),
                 }
 
                 async def chunk_iter(size):
@@ -4364,9 +4074,7 @@ class DownloadTests:
                     if "/ping" in url:
                         mock_resp = AsyncMock()
                         mock_resp.status = 200
-                        mock_resp.__aenter__ = AsyncMock(
-                            return_value=mock_resp
-                        )
+                        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
                         mock_resp.__aexit__ = AsyncMock(return_value=None)
                         return mock_resp
                     call_count += 1
@@ -4376,9 +4084,7 @@ class DownloadTests:
                         mock_get_response.__aenter__ = AsyncMock(
                             return_value=mock_info_response
                         )
-                        mock_get_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_get_response.__aexit__ = AsyncMock(return_value=None)
                         return mock_get_response
                     else:
                         # For /download endpoint, return awaitable that resolves to response (used with await)
@@ -4416,9 +4122,7 @@ class DownloadTests:
                             ):
                                 return None
                             # For subsequent calls, use the real re.search
-                            return original_search(
-                                pattern, string, *args, **kwargs
-                            )
+                            return original_search(pattern, string, *args, **kwargs)
 
                         file_writes = []
 
@@ -4438,9 +4142,7 @@ class DownloadTests:
                         mock_finalize_response.__aenter__ = AsyncMock(
                             return_value=mock_finalize_response
                         )
-                        mock_finalize_response.__aexit__ = AsyncMock(
-                            return_value=None
-                        )
+                        mock_finalize_response.__aexit__ = AsyncMock(return_value=None)
 
                         # session.post() should return something that is both awaitable and an async context manager
                         class AwaitableContextManager:
@@ -4474,9 +4176,7 @@ class DownloadTests:
                             ):
                                 with patch(
                                     "aiofiles.open",
-                                    return_value=_AsyncContextManager(
-                                        fake_file
-                                    ),
+                                    return_value=_AsyncContextManager(fake_file),
                                 ):
                                     await specimen.download(
                                         "example.com", "token", tmpdir
