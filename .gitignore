@@ -20,3 +20,4 @@ sync.sh
 .pypirc
 .cursor/
 htmlcov/
+.opencode/plans
