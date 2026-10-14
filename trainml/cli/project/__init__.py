@@ -82,3 +82,4 @@ from trainml.cli.project.credential import credential
 from trainml.cli.project.data_connector import data_connector
 from trainml.cli.project.datastore import datastore
 from trainml.cli.project.service import service
+from trainml.cli.project.authorizer import authorizer

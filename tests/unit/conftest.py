@@ -24,6 +24,7 @@ from trainml.projects.data_connectors import (
 )
 from trainml.projects.credentials import ProjectCredentials, ProjectCredential
 from trainml.projects.secrets import ProjectSecrets, ProjectSecret
+from trainml.projects.authorizers import ProjectAuthorizers, ProjectAuthorizer
 
 from trainml.cloudbender import Cloudbender
 from trainml.cloudbender.providers import Provider, Providers
@@ -34,7 +35,6 @@ from trainml.cloudbender.datastores import Datastore, Datastores
 from trainml.cloudbender.services import Service, Services
 from trainml.cloudbender.data_connectors import DataConnector, DataConnectors
 from trainml.cloudbender.device_configs import DeviceConfig, DeviceConfigs
-
 
 pytestmark = mark.unit
 
@@ -1096,6 +1096,49 @@ def mock_project_secrets():
     ]
 
 
+@fixture(
+    scope="session",
+)
+def mock_project_authorizers():
+    trainml = Mock()
+    yield [
+        ProjectAuthorizer(
+            trainml,
+            **{
+                "id": "auth-id-1",
+                "project_uuid": "proj-id-1",
+                "name": "api_key_authorizer",
+                "type": "api_key",
+                "keys": [
+                    {
+                        "client_id": "key-1",
+                        "key": "secret-key",
+                        "created_at": 1685733760084,
+                    }
+                ],
+                "createdAt": "2023-06-02T21:22:40.084Z",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+        ProjectAuthorizer(
+            trainml,
+            **{
+                "id": "auth-id-2",
+                "project_uuid": "proj-id-1",
+                "name": "oidc_authorizer",
+                "type": "oidc",
+                "oidc": {
+                    "issuer": "https://auth.example.com",
+                    "audience": "trainml-test",
+                    "algorithms": ["RS256"],
+                },
+                "createdAt": "2023-06-02T21:22:40.084Z",
+                "updatedAt": "2023-06-02T21:22:40.084Z",
+            },
+        ),
+    ]
+
+
 @fixture(scope="function")
 def mock_trainml(
     mock_my_datasets,
@@ -1121,6 +1164,7 @@ def mock_trainml(
     mock_project_data_connectors,
     mock_project_credentials,
     mock_project_secrets,
+    mock_project_authorizers,
 ):
     trainml = create_autospec(TrainML)
     trainml.active_project = "proj-id-1"
@@ -1136,9 +1180,7 @@ def mock_trainml(
     trainml.datasets.list = AsyncMock(return_value=mock_my_datasets)
     trainml.datasets.list_public = AsyncMock(return_value=mock_public_datasets)
     trainml.checkpoints.list = AsyncMock(return_value=mock_my_checkpoints)
-    trainml.checkpoints.list_public = AsyncMock(
-        return_value=mock_public_checkpoints
-    )
+    trainml.checkpoints.list_public = AsyncMock(return_value=mock_public_checkpoints)
     trainml.models.list = AsyncMock(return_value=mock_models)
     trainml.volumes.list = AsyncMock(return_value=mock_my_volumes)
     trainml.gpu_types.list = AsyncMock(return_value=mock_gpu_types)
@@ -1146,25 +1188,19 @@ def mock_trainml(
     trainml.jobs.list = AsyncMock(return_value=mock_jobs)
     trainml.projects.list = AsyncMock(return_value=mock_projects)
     trainml.projects.datastores = create_autospec(ProjectDatastores)
-    trainml.projects.datastores.list = AsyncMock(
-        return_value=mock_project_datastores
-    )
+    trainml.projects.datastores.list = AsyncMock(return_value=mock_project_datastores)
     trainml.projects.services = create_autospec(ProjectServices)
-    trainml.projects.services.list = AsyncMock(
-        return_value=mock_project_services
-    )
+    trainml.projects.services.list = AsyncMock(return_value=mock_project_services)
     trainml.projects.data_connectors = create_autospec(ProjectDataConnectors)
     trainml.projects.data_connectors.list = AsyncMock(
         return_value=mock_project_data_connectors
     )
     trainml.projects.credentials = create_autospec(ProjectCredentials)
-    trainml.projects.credentials.list = AsyncMock(
-        return_value=mock_project_credentials
-    )
+    trainml.projects.credentials.list = AsyncMock(return_value=mock_project_credentials)
     trainml.projects.secrets = create_autospec(ProjectSecrets)
-    trainml.projects.secrets.list = AsyncMock(
-        return_value=mock_project_secrets
-    )
+    trainml.projects.secrets.list = AsyncMock(return_value=mock_project_secrets)
+    trainml.projects.authorizers = create_autospec(ProjectAuthorizers)
+    trainml.projects.authorizers.list = AsyncMock(return_value=mock_project_authorizers)
 
     trainml.cloudbender = create_autospec(Cloudbender)
 
@@ -1177,9 +1213,7 @@ def mock_trainml(
     trainml.cloudbender.devices = create_autospec(Devices)
     trainml.cloudbender.devices.list = AsyncMock(return_value=mock_devices)
     trainml.cloudbender.datastores = create_autospec(Datastores)
-    trainml.cloudbender.datastores.list = AsyncMock(
-        return_value=mock_datastores
-    )
+    trainml.cloudbender.datastores.list = AsyncMock(return_value=mock_datastores)
     trainml.cloudbender.services = create_autospec(Services)
     trainml.cloudbender.services.list = AsyncMock(return_value=mock_services)
     trainml.cloudbender.data_connectors = create_autospec(DataConnectors)

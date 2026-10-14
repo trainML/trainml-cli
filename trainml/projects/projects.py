@@ -6,6 +6,7 @@ from .services import ProjectServices
 from .credentials import ProjectCredentials
 from .secrets import ProjectSecrets
 from .members import ProjectMembers
+from .authorizers import ProjectAuthorizers
 
 
 class Projects(object):
@@ -28,10 +29,7 @@ class Projects(object):
         return projects
 
     async def create(self, name, **kwargs):
-        data = dict(
-            name=name,
-            **kwargs
-        )
+        data = dict(name=name, **kwargs)
         payload = {k: v for k, v in data.items() if v is not None}
         logging.info(f"Creating Project {name}")
         resp = await self.trainml._query("/project", "POST", None, payload)
@@ -58,6 +56,7 @@ class Project:
         self.credentials = ProjectCredentials(self.trainml, self._id)
         self.secrets = ProjectSecrets(self.trainml, self._id)
         self.members = ProjectMembers(self.trainml, self._id)
+        self.authorizers = ProjectAuthorizers(self.trainml, self._id)
 
     @property
     def id(self) -> str:
