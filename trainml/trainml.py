@@ -26,6 +26,25 @@ async def delayed_close(ws):
         await ws.close()
 
 
+WS_STATUS_POLL_INTERVAL = 30
+
+ENTITY_COLLECTIONS = {
+    "job": "jobs",
+    "model": "models",
+    "dataset": "datasets",
+    "checkpoint": "checkpoints",
+    "volume": "volumes",
+}
+
+ENTITY_TERMINAL_STATUSES = {
+    "job": {"finished", "failed", "canceled"},
+    "model": {"ready", "failed"},
+    "dataset": {"ready", "failed"},
+    "checkpoint": {"ready", "failed"},
+    "volume": {"ready", "failed"},
+}
+
+
 class TrainML(object):
     def __init__(self, **kwargs):
         self._version = version("trainml")
@@ -224,109 +243,92 @@ class TrainML(object):
                 )
             async with aiohttp.ClientSession() as session:
                 done = False
-                async with session.ws_connect(
-                    f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}",
-                    headers=headers,
-                    heartbeat=30,
-                ) as ws:
-                    asyncio.create_task(
-                        ws.send_json(
-                            dict(
-                                action="getlogs",
-                                data=dict(
-                                    type="init",
-                                    entity=entity,
-                                    id=id,
-                                    project_uuid=project_uuid,
-                                ),
-                            )
+                done_event = asyncio.Event()
+                watcher = None
+                if entity in ENTITY_COLLECTIONS:
+                    watcher = asyncio.create_task(
+                        self._wait_for_entity_terminal(
+                            entity, project_uuid, id, done_event
                         )
                     )
-                    asyncio.create_task(
-                        ws.send_json(
-                            dict(
-                                action="subscribe",
-                                data=dict(
-                                    type="logs",
-                                    entity=entity,
-                                    id=id,
-                                    project_uuid=project_uuid,
-                                ),
-                            )
-                        )
-                    )
-                    async for msg in ws:
-                        if msg.type in (
-                            aiohttp.WSMsgType.CLOSED,
-                            aiohttp.WSMsgType.ERROR,
-                            aiohttp.WSMsgType.CLOSE,
-                        ):
-                            logging.debug(
-                                f"Websocket Received Closed Message.  Done? {done}"
-                            )
-                            await ws.close()
-                            break
-                        data = json.loads(msg.data)
-                        if data.get("type") == "end":
-                            done = True
-                            asyncio.create_task(delayed_close(ws))
-                        else:
-                            msg_handler(data)
-                logging.debug(f"Websocket Disconnected.  Done? {done}")
-
-                connection_tries = 0
-                while not done:
-                    tokens = self.auth.get_tokens()
-                    try:
-                        async with session.ws_connect(
-                            f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}",
-                            headers=headers,
-                            heartbeat=30,
-                        ) as ws:
-                            asyncio.create_task(
-                                ws.send_json(
-                                    dict(
-                                        action="subscribe",
-                                        data=dict(
-                                            type="logs",
-                                            entity=entity,
-                                            id=id,
-                                            project_uuid=project_uuid,
-                                        ),
-                                    )
+                try:
+                    async with session.ws_connect(
+                        f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}",
+                        headers=headers,
+                        heartbeat=30,
+                    ) as ws:
+                        asyncio.create_task(
+                            ws.send_json(
+                                dict(
+                                    action="getlogs",
+                                    data=dict(
+                                        type="init",
+                                        entity=entity,
+                                        id=id,
+                                        project_uuid=project_uuid,
+                                    ),
                                 )
                             )
-                            async for msg in ws:
-                                if msg.type in (
-                                    aiohttp.WSMsgType.CLOSED,
-                                    aiohttp.WSMsgType.ERROR,
-                                    aiohttp.WSMsgType.CLOSE,
-                                ):
-                                    logging.debug(
-                                        f"Websocket Received Closed Message.  Done? {done}"
-                                    )
-                                    await ws.close()
-                                    break
-                                data = json.loads(msg.data)
-                                if data.get("type") == "end":
-                                    done = True
-                                    asyncio.create_task(delayed_close(ws))
-                                else:
-                                    msg_handler(data)
-                        connection_tries = 0
-                        logging.debug(f"Websocket Disconnected.  Done? {done}")
-                    except Exception as e:
-                        connection_tries += 1
-                        logging.debug(
-                            f"Connection error: {traceback.format_exc()}"
                         )
-                        if connection_tries == 5:
-                            raise ApiError(
-                                500,
-                                {
-                                    "message": f"Connection error: {traceback.format_exc()}"
-                                },
+                        asyncio.create_task(
+                            ws.send_json(
+                                dict(
+                                    action="subscribe",
+                                    data=dict(
+                                        type="logs",
+                                        entity=entity,
+                                        id=id,
+                                        project_uuid=project_uuid,
+                                    ),
+                                )
                             )
+                        )
+                        done = await self._ws_consume(ws, msg_handler, done_event)
+                    logging.debug(f"Websocket Disconnected.  Done? {done}")
+
+                    connection_tries = 0
+                    while not done:
+                        tokens = self.auth.get_tokens()
+                        try:
+                            async with session.ws_connect(
+                                f"wss://{self.ws_url}?Authorization={tokens.get('id_token')}",
+                                headers=headers,
+                                heartbeat=30,
+                            ) as ws:
+                                asyncio.create_task(
+                                    ws.send_json(
+                                        dict(
+                                            action="subscribe",
+                                            data=dict(
+                                                type="logs",
+                                                entity=entity,
+                                                id=id,
+                                                project_uuid=project_uuid,
+                                            ),
+                                        )
+                                    )
+                                )
+                                done = await self._ws_consume(
+                                    ws, msg_handler, done_event
+                                )
+                            connection_tries = 0
+                            logging.debug(f"Websocket Disconnected.  Done? {done}")
+                        except Exception:
+                            connection_tries += 1
+                            logging.debug(
+                                f"Connection error: {traceback.format_exc()}"
+                            )
+                            if connection_tries == 5:
+                                raise ApiError(
+                                    500,
+                                    {
+                                        "message": f"Connection error: {traceback.format_exc()}"
+                                    },
+                                )
+                finally:
+                    if watcher is not None:
+                        watcher.cancel()
+                        await asyncio.gather(watcher, return_exceptions=True)
         except GeneratorExit:
             # Handle graceful shutdown - GeneratorExit is raised during
             # event loop cleanup. Don't re-raise to avoid "coroutine ignored"
@@ -337,6 +339,59 @@ class TrainML(object):
             # Re-raise CancelledError to properly propagate task cancellation
             logging.debug("Websocket subscription task cancelled")
             raise
+
+    async def _ws_consume(self, ws, msg_handler, done_event):
+        while True:
+            recv_task = asyncio.create_task(ws.receive())
+            signal_task = asyncio.create_task(done_event.wait())
+            try:
+                await asyncio.wait(
+                    {recv_task, signal_task},
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+            finally:
+                for task in (recv_task, signal_task):
+                    if not task.done():
+                        task.cancel()
+            await asyncio.gather(recv_task, signal_task, return_exceptions=True)
+            if not recv_task.done() or recv_task.cancelled():
+                if not ws.closed:
+                    await ws.close()
+                return True
+            msg = recv_task.result()
+            if msg.type in (
+                aiohttp.WSMsgType.CLOSED,
+                aiohttp.WSMsgType.ERROR,
+                aiohttp.WSMsgType.CLOSE,
+            ):
+                logging.debug("Websocket Received Closed Message.")
+                await ws.close()
+                return False
+            data = json.loads(msg.data)
+            if data.get("type") == "end":
+                asyncio.create_task(delayed_close(ws))
+                return True
+            msg_handler(data)
+
+    async def _entity_status(self, entity, project_uuid, id):
+        collection = getattr(self, ENTITY_COLLECTIONS[entity])
+        try:
+            obj = await collection.get(id, project_uuid=project_uuid)
+        except ApiError:
+            return None
+        return obj.status
+
+    async def _wait_for_entity_terminal(self, entity, project_uuid, id, done_event):
+        terminal = ENTITY_TERMINAL_STATUSES[entity]
+        while not done_event.is_set():
+            status = await self._entity_status(entity, project_uuid, id)
+            if status is None or status in terminal:
+                logging.debug(
+                    f"Entity {entity}/{id} status {status}; stopping websocket subscription"
+                )
+                done_event.set()
+                return
+            await asyncio.sleep(WS_STATUS_POLL_INTERVAL)
 
     def set_active_project(self, project_uuid):
         CONFIG_DIR = os.path.expanduser(

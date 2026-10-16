@@ -1,4 +1,5 @@
 import re
+import asyncio
 import logging
 import json
 import os
@@ -678,3 +679,166 @@ def test_trainml_project_property(mock_open, mock_requests_get, mock_boto3_clien
     trainml = specimen.TrainML()
     trainml.active_project = "proj-123"
     assert trainml.project == "proj-123"
+
+
+class FakeJob:
+    def __init__(self, status):
+        self.status = status
+
+
+class SilentWS:
+    def __init__(self):
+        self.closed = False
+        self.close_calls = 0
+        self._never = None
+
+    async def close(self):
+        self.closed = True
+        self.close_calls += 1
+
+    async def receive(self):
+        if self._never is None:
+            self._never = asyncio.get_running_loop().create_future()
+        return await self._never
+
+    async def send_json(self, *args, **kwargs):
+        pass
+
+
+class ScriptedWS:
+    def __init__(self, messages):
+        self.messages = list(messages)
+        self.closed = False
+        self.close_calls = 0
+        self._never = None
+
+    async def close(self):
+        self.closed = True
+        self.close_calls += 1
+
+    async def receive(self):
+        if self.messages:
+            return self.messages.pop(0)
+        if self._never is None:
+            self._never = asyncio.get_running_loop().create_future()
+        return await self._never
+
+    async def send_json(self, *args, **kwargs):
+        pass
+
+
+def _make_stubbed_trainml(mock_requests_get, mock_boto3_client):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "region": "us-east-1",
+        "userPoolSDKClientId": "default_client_id",
+        "userPoolId": "default_pool_id",
+    }
+    mock_requests_get.return_value = mock_response
+    mock_boto3_client.return_value = MagicMock()
+    trainml = specimen.TrainML()
+    trainml.auth = MagicMock(
+        get_tokens=MagicMock(return_value={"id_token": "tok"})
+    )
+    return trainml
+
+
+@patch("trainml.utils.auth.boto3.client")
+@patch("trainml.utils.auth.requests.get")
+@patch("builtins.open", side_effect=FileNotFoundError)
+@patch.dict(
+    os.environ,
+    {
+        "TRAINML_USER": "user-id",
+        "TRAINML_KEY": "key",
+        "TRAINML_REGION": "region",
+        "TRAINML_CLIENT_ID": "client_id",
+        "TRAINML_POOL_ID": "pool_id",
+        "TRAINML_API_URL": "api.example.com",
+        "TRAINML_WS_URL": "api-ws.example.com",
+    },
+)
+async def test_ws_subscribe_returns_when_entity_reaches_terminal_status(
+    mock_open, mock_requests_get, mock_boto3_client, monkeypatch
+):
+    """A silent websocket must return once the API reports the entity is
+    terminal, even if the server never sends a close or "end" message."""
+    monkeypatch.setattr(specimen, "WS_STATUS_POLL_INTERVAL", 0.01)
+
+    trainml = _make_stubbed_trainml(mock_requests_get, mock_boto3_client)
+    trainml.jobs.get = AsyncMock(
+        side_effect=[
+            FakeJob("running"),
+            FakeJob("running"),
+            FakeJob("failed"),
+        ]
+    )
+
+    ws = SilentWS()
+    session = MagicMock(
+        ws_connect=MagicMock(return_value=MockAsyncContextManager(ws))
+    )
+    with patch(
+        "trainml.trainml.aiohttp.ClientSession",
+        return_value=MockAsyncContextManager(session),
+    ):
+        await asyncio.wait_for(
+            trainml._ws_subscribe("job", "project-1", "job-1", lambda d: None),
+            timeout=10,
+        )
+
+    assert ws.close_calls >= 1
+    assert trainml.jobs.get.await_count >= 3
+
+
+@patch("trainml.utils.auth.boto3.client")
+@patch("trainml.utils.auth.requests.get")
+@patch("builtins.open", side_effect=FileNotFoundError)
+@patch.dict(
+    os.environ,
+    {
+        "TRAINML_USER": "user-id",
+        "TRAINML_KEY": "key",
+        "TRAINML_REGION": "region",
+        "TRAINML_CLIENT_ID": "client_id",
+        "TRAINML_POOL_ID": "pool_id",
+        "TRAINML_API_URL": "api.example.com",
+        "TRAINML_WS_URL": "api-ws.example.com",
+    },
+)
+async def test_ws_subscribe_still_terminates_on_end_message(
+    mock_open, mock_requests_get, mock_boto3_client, monkeypatch
+):
+    """The original "end" message path must keep working."""
+
+    async def instant_close(w):
+        if not w.closed:
+            await w.close()
+
+    monkeypatch.setattr(specimen, "delayed_close", instant_close)
+
+    trainml = _make_stubbed_trainml(mock_requests_get, mock_boto3_client)
+    trainml.jobs.get = AsyncMock(return_value=FakeJob("running"))
+
+    ws = ScriptedWS(
+        [
+            WSMessage(
+                WSMsgType.TEXT, json.dumps({"type": "log", "msg": "hello"}), ""
+            ),
+            WSMessage(WSMsgType.TEXT, json.dumps({"type": "end"}), ""),
+        ]
+    )
+    session = MagicMock(
+        ws_connect=MagicMock(return_value=MockAsyncContextManager(ws))
+    )
+    with patch(
+        "trainml.trainml.aiohttp.ClientSession",
+        return_value=MockAsyncContextManager(session),
+    ):
+        received = []
+        await asyncio.wait_for(
+            trainml._ws_subscribe("job", "project-1", "job-1", received.append),
+            timeout=10,
+        )
+
+    assert [m.get("msg") for m in received] == ["hello"]
