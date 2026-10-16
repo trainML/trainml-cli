@@ -1,5 +1,5 @@
-import warnings
 import logging
+import warnings
 
 with warnings.catch_warnings():
     # this will suppress all warnings in this block
@@ -13,5 +13,5 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 __all__ = "TrainML"
