@@ -44,7 +44,8 @@ python_functions = "test_*"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 testpaths = ["tests"]
-faulthandler_timeout = 1800
+timeout = 900
+timeout_method = "thread"
 markers = [
     "create: Tests that create resources on the trainml platform",
     "gpu_types: Gpu Type tests",
@@ -79,6 +80,7 @@ dev = [
     "pytest>=8.4.2",
     "pytest-asyncio>=1.4,<2",
     "pytest-cov>=7.1.0",
+    "pytest-timeout>=2.4",
     "pytest-xdist>=3.8.0",
     "toml>=0.10.2",
     "twine>=6.2.0",

@@ -224,6 +224,23 @@ class TrainML(object):
                     continue
                 else:
                     raise ApiError(e.status, f"Error {e.message}")
+            except (
+                aiohttp.ClientConnectorError,
+                aiohttp.ServerTimeoutError,
+                asyncio.TimeoutError,
+            ) as e:
+                if attempt < max_retries - 1:
+                    logging.warning(
+                        f"Network error on {method} {url}: {e}. "
+                        f"Retrying in backoff (attempt {attempt + 1}/{max_retries})"
+                    )
+                    wait_time = (
+                        (2**attempt) * backoff_factor * (random.random() + 0.5)
+                    )
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    raise
 
         raise TrainMLException("Unexpected API failure")
 

@@ -988,6 +988,40 @@ def mock_data_connectors():
     ]
 
 
+@fixture(scope="session")
+def mock_connection_data_connectors():
+    trainml = Mock()
+    yield [
+        DataConnector(
+            trainml,
+            **{
+                "provider_uuid": "prov-id-1",
+                "region_uuid": "reg-id-1",
+                "connector_id": "con-conn-1",
+                "type": "http",
+                "name": "On-Prem HTTP Connector",
+                "host": "10.0.0.10",
+                "port": 8443,
+                "auth_type": "api_key",
+            },
+        ),
+        DataConnector(
+            trainml,
+            **{
+                "provider_uuid": "prov-id-1",
+                "region_uuid": "reg-id-1",
+                "connector_id": "con-conn-2",
+                "type": "pg",
+                "name": "On-Prem PG Connector",
+                "host": "10.0.0.20",
+                "port": 5432,
+                "database": "ml_data",
+                "auth_type": "password",
+            },
+        ),
+    ]
+
+
 @fixture(
     scope="session",
 )

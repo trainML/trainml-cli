@@ -195,6 +195,7 @@ class Job:
         ]
         data_keys = [
             "datasets",
+            "connectors",
             "input_type",
             "input_uri",
             "input_options",
