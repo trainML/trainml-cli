@@ -66,6 +66,7 @@ class GetDataConnectorTests:
             port=8080,
             auth_type="api_key",
             api_key=FAKE_API_KEY,
+            authorization_header="Authorization",
         )
         yield connector
         await connector.remove()
@@ -158,6 +159,7 @@ class GetDataConnectorTests:
         assert data.get("host") == FAKE_HOST
         assert data.get("port") == 8080
         assert data.get("auth_type") == "api_key"
+        assert data.get("authorization_header") == "Authorization"
         assert "api_key" not in data
 
     async def test_http_no_tls_connector_properties(
