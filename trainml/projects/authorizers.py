@@ -127,6 +127,11 @@ class ProjectAuthorizer:
         logging.info(f"Edited Project Authorizer {updated.name} with id {updated.id}")
         return updated
 
+    async def remove(self, **kwargs):
+        await self.trainml._query(
+            f"/project/{self._project_uuid}/authorizers/{self._id}", "DELETE", kwargs
+        )
+
     def __str__(self):
         return json.dumps({k: v for k, v in self._entity.items()})
 
